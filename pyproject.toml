@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "p2d"
+version = "0.1.0"
+description = "Protein-to-DNA reverse translation that knows about your vector"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "YOUR NAME", email = "you@example.com" }]
+keywords = ["bioinformatics", "codon optimization", "cloning", "synthetic biology", "protein design"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "biopython>=1.81",
+  "pyyaml>=6.0",
+  "typer>=0.12",
+]
+
+[project.optional-dependencies]
+fold = ["ViennaRNA>=2.6"]          # kept optional: different licence, heavy build
+dev = ["pytest>=8", "ruff>=0.6", "pytest-cov"]
+
+[project.urls]
+Homepage = "https://github.com/YOUR_USER/p2d"
+Issues = "https://github.com/YOUR_USER/p2d/issues"
+
+[project.scripts]
+p2d = "p2d.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/p2d"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/p2d/cli.py" = ["B008"]   # typer.Option in defaults is the documented idiom

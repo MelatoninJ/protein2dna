@@ -1,0 +1,59 @@
+LOCUS       pTEST1                  1149 bp    ds-DNA  circular UNK 01-JAN-1980
+DEFINITION  synthetic pET-like test vector for p2d (not a real plasmid).
+ACCESSION   pTEST1
+VERSION     pTEST1
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  synthetic construct
+            .
+FEATURES             Location/Qualifiers
+     misc_feature    1..87
+                     /label="T7 promoter / lac operator / RBS"
+     misc_feature    88..90
+                     /label="start codon"
+     misc_feature    91..117
+                     /label="His6 tag"
+     misc_feature    118..144
+                     /label="thrombin site"
+     misc_feature    145..150
+                     /label="NdeI"
+     misc_feature    151..156
+                     /label="BamHI"
+     misc_feature    157..168
+                     /label="stuffer"
+     misc_feature    169..174
+                     /label="EcoRI"
+     misc_feature    175..180
+                     /label="XhoI"
+     misc_feature    181..198
+                     /label="His6 tag (C-term)"
+     misc_feature    199..201
+                     /label="stop"
+     misc_feature    202..249
+                     /label="T7 terminator"
+     misc_feature    250..669
+                     /label="ori (placeholder)"
+     misc_feature    670..1149
+                     /label="KanR (placeholder)"
+ORIGIN
+        1 taatacgact cactataggg gaattgtgag cggataacaa ttcccctcta gaaataattt
+       61 tgtttaactt taagaaggag atataccatg ggcagcagcc atcatcatca tcatcacagc
+      121 agcggcctgg tgccgcgcgg cagccatatg ggatccggta ccggcagcga attcctcgag
+      181 caccaccacc accaccactg actagcataa ccccttgggg cctctaaacg ggtcttgagg
+      241 ggttttttgt actgtcacgg ctaaatggat ggttgagaca tctcgttgtg ttcaaaagct
+      301 cgactcacca ttttgcgaaa aggctaatga gtatccaagc tgcggtccat ttataagatg
+      361 ccctggtcac ccacccggcg attttccctc atgtaggatt aagggttgcc ttaccgcgca
+      421 agtttagcgt agtatgaaag gcttccgaac tcgcgtctgg cgcacaaata ggcggcgaag
+      481 tactaaattg ctgtctttct gtgctatgtg tgcggcaata acagctaagg gatattaatc
+      541 cctatacttc agatataatg attccatcaa catcacaacg acctcctatg agggtttact
+      601 tatttttgtt cggatagctc tgccggggct ataatggtgt accgagtggg cggagataat
+      661 tagccggtgg cccattatcg acacgcccgc cactgatggc ctaaagggta atgtgttact
+      721 aacgggtgag aaccccaagc acaaacggag aaggcgatgt ttgtctaagt aagatgggag
+      781 gccagcactc cgctaaacga gtcacacagt ggaggtggca gcgatgaata gaatcggagt
+      841 aggatgcgtg aagaggagct accaggagtg tagacgctgt taagctaggt tctggactga
+      901 ccatgtctct cgacttgcca ctcccttaga ggtggtggcg tcgaagaggt gcctgaccaa
+      961 cgagagggca cctcgctcca tctgaaggaa aggaatagtg cgcatagtga acctacatac
+     1021 gcgcgtatat aggctattgc ttgaagggat atctgcgcca atcatctaca gtgatccctc
+     1081 tgcctggcat cgcgttaaga catgggtggc agtatcttat gatatgcgaa agctggtgga
+     1141 gcacagatg
+//

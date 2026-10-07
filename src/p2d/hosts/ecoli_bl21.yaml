@@ -1,0 +1,62 @@
+name: Escherichia coli BL21(DE3)
+slug: ecoli_bl21
+taxid: 469008
+
+# PLACEHOLDER VALUES -- see docs/hosts.md before trusting these.
+# Replace with a cited table (Kazusa CUTG taxid 469008, or HIVE-CUT) and
+# record the source + download date in `codon_usage.source` below.
+codon_usage:
+  source: "PLACEHOLDER -- not yet replaced with a cited table"
+  verified: false
+  # fraction of each amino acid's codons, per codon
+  table:
+    A: {GCG: 0.36, GCC: 0.27, GCA: 0.21, GCT: 0.16}
+    R: {CGC: 0.40, CGT: 0.38, CGG: 0.10, CGA: 0.06, AGA: 0.04, AGG: 0.02}
+    N: {AAC: 0.55, AAT: 0.45}
+    D: {GAT: 0.63, GAC: 0.37}
+    C: {TGC: 0.56, TGT: 0.44}
+    Q: {CAG: 0.65, CAA: 0.35}
+    E: {GAA: 0.69, GAG: 0.31}
+    G: {GGC: 0.41, GGT: 0.34, GGG: 0.15, GGA: 0.10}
+    H: {CAT: 0.57, CAC: 0.43}
+    I: {ATC: 0.42, ATT: 0.51, ATA: 0.07}
+    L: {CTG: 0.50, TTA: 0.13, TTG: 0.13, CTC: 0.10, CTT: 0.10, CTA: 0.04}
+    K: {AAA: 0.77, AAG: 0.23}
+    M: {ATG: 1.00}
+    F: {TTT: 0.57, TTC: 0.43}
+    P: {CCG: 0.52, CCA: 0.19, CCT: 0.16, CCC: 0.13}
+    S: {AGC: 0.28, TCT: 0.15, TCC: 0.15, TCG: 0.15, AGT: 0.15, TCA: 0.12}
+    T: {ACC: 0.44, ACG: 0.27, ACT: 0.17, ACA: 0.13}
+    W: {TGG: 1.00}
+    Y: {TAT: 0.57, TAC: 0.43}
+    V: {GTG: 0.37, GTT: 0.26, GTC: 0.22, GTA: 0.15}
+  stop: {TAA: 0.64, TGA: 0.29, TAG: 0.07}
+
+# codons whose tRNA is limiting in standard BL21 (supplemented in Rosetta /
+# CodonPlus strains -- see `strain_supplements`)
+rare_codons: [AGG, AGA, CGA, ATA, CTA, CCC, GGA]
+strain_supplements:
+  rosetta2: [AGG, AGA, CGG, ATA, CTA, CCC, GGA]
+  codonplus_ril: [AGG, AGA, ATA, CTA]
+
+forbidden_motifs:
+  - {pattern: AGGAGG, reason: internal Shine-Dalgarno (ribosome pausing / internal initiation)}
+  - {pattern: GCTGGTGG, reason: Chi site (RecBCD recombination hotspot)}
+
+homopolymer_max: {A: 8, T: 8, G: 5, C: 5}
+
+gc:
+  global: [0.35, 0.65]
+  window: {size: 50, range: [0.25, 0.75]}
+
+repeats:
+  direct_max: 20
+  inverted_max: 20
+
+initiation:
+  # 5' mRNA structure dominates expression in E. coli; fold this window
+  # relative to the start codon A (position 0) and penalise strong structure.
+  fold_window: [-30, 40]
+  dg_min: -10.0  # kcal/mol, soft constraint
+
+required_elements: []

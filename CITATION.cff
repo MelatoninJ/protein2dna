@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: "p2d: vector-aware protein-to-DNA reverse translation"
+message: "If you use this software, please cite it."
+type: software
+authors:
+  - family-names: "YOUR FAMILY NAME"
+    given-names: "YOUR GIVEN NAME"
+repository-code: "https://github.com/YOUR_USER/p2d"
+license: MIT
+version: 0.1.0
