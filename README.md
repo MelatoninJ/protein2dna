@@ -46,7 +46,7 @@ For development use `pip install -e ".[dev]"`, then `pytest -q`.
 ## The website
 
 ```bash
-p2d ui            # opens http://127.0.0.1:8765 in your browser
+p2d ui
 ```
 
 1. **Pick a plasmid.** Use the bundled test vector, one of your own files, an upload, or
