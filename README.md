@@ -17,6 +17,18 @@ really get, scar residues included.
 > `python_codon_tables`, used for BL21 as is standard — see the profile's
 > `codon_usage.note`. Review a design before you order it.
 
+## Two ways to use it
+
+**A local website.** Run `p2d ui` and use p2d in your browser: pick or upload a plasmid,
+choose two restriction sites on a map, and read the construct summary. There is nothing to
+code. It runs on your own computer (there is no hosted version), so your plasmid never
+leaves it.
+
+**A Python module.** `import p2d` to script it: design constructs in a notebook, loop over
+hundreds of proteins, or plug it into a pipeline. The website is a thin layer over this
+module, so both give the same answer for the same input, and the library itself has no web
+dependency (a test enforces that).
+
 ## Install
 
 p2d is not on PyPI yet; install it from source (Python 3.10 or newer):
@@ -31,10 +43,9 @@ p2d --help
 
 For development use `pip install -e ".[dev]"`, then `pytest -q`.
 
-## Web UI
+## The website
 
 ```bash
-pip install -e .
 p2d ui            # opens http://127.0.0.1:8765 in your browser
 ```
 
@@ -59,7 +70,87 @@ p2d ui            # opens http://127.0.0.1:8765 in your browser
    the vector's annotations carried over.
 
 It runs only on your computer, binds to loopback, and needs no dependencies beyond the
-library itself.
+library itself. The same steps are available from code, below.
+
+## The Python module
+
+### Quick start
+
+```python
+import p2d
+
+# the bundled synthetic test plasmid; NdeI supplies the start Met, so leave a leading M out
+a = p2d.run("KVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE", site="NdeI-XhoI")
+
+print(a.ok)               # the round-trip validation passed
+print(a.fusion_report())  # the protein you actually get, residue by residue
+print(a.insert_dna)       # the DNA to order
+a.to_record()             # the whole annotated plasmid, writable as GenBank
+```
+
+```
+      1-19    vector (N-terminal)      MGSSHHHHHHSSGLVPRGS
+     20-21    scar: 5' junction        HM
+     22-71    insert                   KVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE
+     72-73    scar: 3' junction        LE
+     74-79    vector (C-terminal)      HHHHHH
+  total: 79 aa
+```
+
+The `HM` and `LE` are the NdeI and XhoI sites being translated. They are not noise: they are
+real residues that will be in your purified protein, and most tools never show them to you.
+The N-terminal tag stays because NdeI lies downstream of this vector's start codon, which is
+exactly the kind of thing that goes wrong when the vector is ignored.
+
+### With your own plasmid
+
+```python
+from Bio import SeqIO
+
+import p2d
+from p2d.analysis import analyze_vector, confirm
+from p2d.enzymes import find_cut_site, list_cut_sites, plan_cut
+from p2d.report import construct_report
+from p2d.vectorio import read_vector_file
+
+# 1. read your plasmid (GenBank, SnapGene .dna or FASTA); it is flipped if stored backwards
+analysis = analyze_vector(read_vector_file("my_plasmid.dna"))
+print(analysis.best_start.position + 1, analysis.best_start.confidence)  # where translation starts
+vector = confirm(analysis)  # accepts the start codon (pass start=... to choose your own)
+
+# 2. every restriction site, by position (an enzyme with several sites is numbered)
+for site in list_cut_sites(vector, window=(5160, 5215)):
+    print(site.id, site.label)
+
+# 3. choose two sites and design
+site = plan_cut(vector, find_cut_site(vector, "BamHI:5166"), find_cut_site(vector, "XhoI:5206"))
+plan = p2d.ConstructPlan.single_chain("KVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE")
+design = p2d.design_insert(plan, vector, site, p2d.load_host("ecoli_bl21"), cterm=p2d.CTerm.TAG)
+assembly = p2d.assemble(design)
+
+# 4. read the result
+print(assembly.ok, assembly.protein)
+print(construct_report(assembly)["sizes"])  # plasmid before/after, replaced piece, insert, ...
+SeqIO.write(assembly.to_record(), "finished_plasmid.gb", "genbank")
+```
+
+`plan_cut` refuses a pair that would not work and says why (wrong way round, touching, same
+ends, or another site of the enzyme in the part of the plasmid you keep).
+
+### The main entry points
+
+| Task | Function |
+|---|---|
+| One call, bundled plasmid | `p2d.run(protein, site=...)` |
+| Read a plasmid | `p2d.vectorio.read_vector_file / read_vector_text / read_vector_bytes` |
+| Find the start codon | `p2d.analysis.analyze_vector`, then `confirm` |
+| List and choose sites | `p2d.enzymes.list_cut_sites`, `find_cut_site`, `plan_cut` |
+| Design and validate | `p2d.design_insert` (`CTerm`, `CodonStrategy`), `p2d.assemble` |
+| Sizes, check digest, protein mass | `p2d.report.construct_report` |
+| Just the codon optimiser | `p2d.optimize.optimize_coding` |
+
+The result of `assemble` has `.ok`, `.protein`, `.seq`, `.insert_dna`, `.fusion_report()`
+and `.to_record()`.
 
 ## Why this exists
 
@@ -72,51 +163,30 @@ you left in that silently deletes the tag.
 
 p2d makes the vector a first-class input.
 
-## Example
-
-```python
-import p2d
-
-a = p2d.run("MKVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE")
-
-print(a.ok)  # round-trip validation passed
-print(a.fusion_report())  # what you actually get, residue by residue
-print(a.insert_dna)  # order this
-a.to_record()  # full annotated plasmid, writable as GenBank
-```
-
-```
-      1-1     scar: 5' junction        M
-      2-52    insert                   MKVFLDWINEAYQRGTRVLAEMAKRG...
-     53-54    scar: 3' junction        LE
-     55-60    vector (C-terminal)      HHHHHH
-  total: 60 aa
-```
-
-The `LE` is the XhoI site (CTCGAG) being translated. It is not noise — it is
-two real residues that will be in your purified protein, and most tools never
-show it to you.
-
 ## CLI
 
 ```bash
 p2d hosts                                  # list host profiles
 p2d vectors                                # list bundled vectors
-p2d design MKVFLDWINEAYQ... --site NdeI-XhoI --gb out.gb
+p2d design KVFLDWINEAYQ... --site NdeI-XhoI --gb out.gb
+p2d ui                                     # the local website
 ```
 
 ## What it checks
 
-- **Frame** through both junctions, from the vector's own start codon
-- **Pad bases** inserted automatically when an enzyme pair would otherwise
-  shift the frame, chosen to avoid stop codons and new restriction sites
-- **Internal sites** of the cloning enzymes, removed by synonymous swap
-- **Stop codon policy** — omitted when the vector supplies a C-terminal tag,
-  added (as a double stop) when it does not
+- **Frame** through both junctions. The finished plasmid is translated from the vector's own
+  start codon, and a design whose assumed start differs from the real one is rejected
+- **Pad bases** added automatically when a pair of sites would shift the frame, chosen to
+  avoid stop codons and new restriction sites, and reported to you
+- **Cloning sites kept out of the coding DNA**, on both strands and across the junctions
+  with the vector, by an exact search; a site your protein forces is reported, not hidden
+- **Which sites you can use**: order, spacing, compatible ends, and whether a second site of
+  the same enzyme would cut the backbone you keep
+- **The C-terminus**: a stop codon, or a read into the vector's His tag with the bases that
+  put it in frame
 - **Duplicate tags** between insert and vector
-- **Round-trip**: the assembled plasmid is translated from the vector's start
-  codon and the result must contain the payload intact, with no frameshift,
-  no internal stop, and a terminating stop
+- **Round-trip**: the payload must survive intact and in frame, with no internal stop and a
+  terminating stop
 
 ## Design rules
 
@@ -140,16 +210,17 @@ framework. The library has to stay usable from a batch script.
 |---|---|
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies (`HARMONIZED` not implemented) ✅ |
+| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position; C-terminus choice; construct report ✅ |
 | 0.3 | GC windows, 5′ ΔG (ViennaRNA), repeats, synthesis manufacturability |
-| 0.4 | enzyme-pair search, Dam/Dcm methylation, buffer compatibility |
-| 0.5 | Addgene API, Gibson assembly, Streamlit web UI |
+| 0.4 | automatic enzyme-pair ranking, Dam/Dcm methylation, buffer compatibility |
+| 0.5 | Addgene API, Gibson assembly, a hosted version of the website |
 | 1.0 | multi-chain linkage strategies, mammalian host profiles, Golden Gate |
 
 ## Bundled vector
 
 `pTEST1` is a **synthetic** 1149 bp pET-like vector used by the test suite. It
-is not a real plasmid; do not order it. Real vectors come from
-`Vector.from_genbank()`.
+is not a real plasmid; do not order it. Use your own plasmids: `read_vector_file()` from
+Python, or the website's upload and `~/.p2d/vectors` folder.
 
 ## Licence
 
