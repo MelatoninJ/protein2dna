@@ -147,6 +147,25 @@ def assemble(design: InsertDesign) -> Assembly:
             Issue(Severity.ERROR, "internal_stop", "the coding region contains a stop codon")
         )
 
+    # ---- hard gate 5: the protein is what the vector's own ribosome makes ----
+    # A site definition can name a start codon of its own (e.g. an NdeI ATG), but if the
+    # vector's real start codon lies upstream and in frame it still initiates first and
+    # the tag it encodes stays on the product.  Translate from the real start and compare.
+    real_start = d.vector.expression_start
+    declared_atg = final[d.orf_start : d.orf_start + 3] == "ATG"
+    if real_start is not None and declared_atg and d.orf_start != real_start:
+        real, _ = _translate_orf(final, real_start)
+        if real != protein:
+            issues.append(
+                Issue(
+                    Severity.ERROR,
+                    "wrong_start",
+                    f"the design assumes translation starts at {d.orf_start}, but the "
+                    f"vector's own start codon at {real_start} initiates first and gives a "
+                    f"different protein (starting {real[:24]}... not {protein[:24]}...)",
+                )
+            )
+
     # ---- frame bookkeeping, reported explicitly -----------------------------
     issues.append(
         Issue(

@@ -34,15 +34,23 @@ def build(vector, host, site_key, payload, **kw):
 
 # ------------------------------------------------------------------ golden set
 
+# The vector's own tag, translated from its ATG: M GSSHHHHHHSSGLVPRGS + H M (the NdeI site).
+TAG_THROUGH_NDEI = "MGSSHHHHHHSSGLVPRGSHM"
+
 GOLDEN = [
-    ("NdeI-XhoI", PAYLOAD, "M" + PAYLOAD + "LE" + "HHHHHH"),
-    ("NdeI-EcoRI", PAYLOAD, "M" + PAYLOAD + "EF" + "LEHHHHHH"),
+    # NdeI sits downstream of the vector ATG, so the N-terminal tag is kept.
+    ("NdeI-XhoI", PAYLOAD, TAG_THROUGH_NDEI + PAYLOAD + "LE" + "HHHHHH"),
+    ("NdeI-EcoRI", PAYLOAD, TAG_THROUGH_NDEI + PAYLOAD + "EF" + "LEHHHHHH"),
     (
         "BamHI-XhoI",
         PAYLOAD,
         "MGSSHHHHHHSSGLVPRGSHM" + "GS" + PAYLOAD + "LE" + "HHHHHH",
     ),
-    ("NdeI-XhoI", NANOBODY_LIKE, "M" + NANOBODY_LIKE + "LE" + "HHHHHH"),
+    ("NdeI-XhoI", NANOBODY_LIKE, TAG_THROUGH_NDEI + NANOBODY_LIKE + "LE" + "HHHHHH"),
+    # NcoI holds the start codon itself (CC|ATG|G): the tag goes, and G follows the Met.
+    ("NcoI-XhoI", PAYLOAD, "MG" + PAYLOAD + "LE" + "HHHHHH"),
+    ("NcoI-EcoRI", PAYLOAD, "MG" + PAYLOAD + "EF" + "LEHHHHHH"),
+    ("NcoI-XhoI", NANOBODY_LIKE, "MG" + NANOBODY_LIKE + "LE" + "HHHHHH"),
 ]
 
 
@@ -127,7 +135,8 @@ def test_enzyme_sites_unique_in_final_plasmid(vector, host):
 
 
 def test_duplicate_met_warned(vector, host):
-    a = build(vector, host, "NdeI-XhoI", "M" + PAYLOAD)
+    """Only a site that donates the start codon (NcoI) can duplicate the payload's Met."""
+    a = build(vector, host, "NcoI-XhoI", "M" + PAYLOAD)
     assert any(i.code == "duplicate_met" for i in a.issues)
 
 
@@ -171,3 +180,36 @@ def test_unimplemented_linkage_is_explicit():
 
     with pytest.raises(NotImplementedError):
         p2d.ConstructPlan(chains=[Chain("a", PAYLOAD)], linkage=LinkageStrategy.SELF_CLEAVING_2A)
+
+
+# ------------------------------------------------------ the start-codon gate
+
+
+def test_a_site_that_ignores_the_vectors_real_start_is_refused(vector, host):
+    """The old, wrong NdeI definition ("untagged") must now fail loudly, not pass quietly.
+
+    NdeI has an ATG of its own (CAT|ATG), but the vector's ATG at 87 lies upstream and in
+    frame, so it initiates first and the tag stays.  A design that claims otherwise has
+    to be an error.
+    """
+    wrong = InsertionSite(
+        "NdeI-XhoI-wrong",
+        "NdeI",
+        "XhoI",
+        StartSource.UPSTREAM_SITE,
+        start_offset_in_site=3,
+    )
+    plan = p2d.ConstructPlan.single_chain(PAYLOAD)
+    a = p2d.assemble(p2d.design_insert(plan, vector, wrong, host))
+    assert not a.ok
+    (err,) = [i for i in a.errors if i.code == "wrong_start"]
+    assert "87" in err.message and "MGSSHHHHHH" in err.message
+
+
+def test_registered_sites_all_pass_the_start_gate(vector, host):
+    for key in vector.sites:
+        a = build(vector, host, key, PAYLOAD)
+        assert a.ok and not any(i.code == "wrong_start" for i in a.issues), key
+        # and the protein really is what the vector's own start codon makes
+        real = str(Seq(a.seq[vector.expression_start :][: 3 * len(a.protein)]).translate())
+        assert real == a.protein, key

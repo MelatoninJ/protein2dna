@@ -18,23 +18,48 @@ from .vector import InsertionSite, StartSource, Vector
 
 DATA_PACKAGE = "p2d.data"
 
+# The vector's start codon, right after its RBS (the "start codon" feature, re-checked
+# by tests against the sequence itself).
+PTEST1_EXPRESSION_START = 87
+
 PTEST1_SITES = {
-    # NdeI donates the ATG: the vector's own N-terminal tag is excised.
+    # NdeI lies downstream of the vector's ATG (87), in frame, so the ribosome still
+    # starts there: the N-terminal His6 and thrombin site stay, and the NdeI site adds
+    # H-M in front of the payload.  (Earlier versions called this "untagged"; that was
+    # wrong, and the assemble() start check now refuses such a definition.)
     "NdeI-XhoI": InsertionSite(
         name="NdeI-XhoI",
         upstream_enzyme="NdeI",
         downstream_enzyme="XhoI",
-        start_source=StartSource.UPSTREAM_SITE,
-        start_offset_in_site=3,  # CAT|ATG
-        note="untagged N-terminus; C-terminal His6 retained",
+        start_source=StartSource.VECTOR,
+        vector_orf_start=PTEST1_EXPRESSION_START,
+        note="N-terminal His6 + thrombin retained; C-terminal His6 retained",
     ),
     "NdeI-EcoRI": InsertionSite(
         name="NdeI-EcoRI",
         upstream_enzyme="NdeI",
         downstream_enzyme="EcoRI",
+        start_source=StartSource.VECTOR,
+        vector_orf_start=PTEST1_EXPRESSION_START,
+        note="N-terminal His6 + thrombin retained; XhoI scar and C-terminal His6 retained",
+    ),
+    # NcoI is the site that holds the vector's own start codon (CC|ATG|G), so cutting
+    # there removes the N-terminal tag; the site's ATG becomes the Met and G the 2nd residue.
+    "NcoI-XhoI": InsertionSite(
+        name="NcoI-XhoI",
+        upstream_enzyme="NcoI",
+        downstream_enzyme="XhoI",
         start_source=StartSource.UPSTREAM_SITE,
-        start_offset_in_site=3,
-        note="untagged N-terminus; XhoI scar and C-terminal His6 retained",
+        start_offset_in_site=2,  # CC|ATG|G
+        note="untagged N-terminus (M-G...); C-terminal His6 retained",
+    ),
+    "NcoI-EcoRI": InsertionSite(
+        name="NcoI-EcoRI",
+        upstream_enzyme="NcoI",
+        downstream_enzyme="EcoRI",
+        start_source=StartSource.UPSTREAM_SITE,
+        start_offset_in_site=2,
+        note="untagged N-terminus (M-G...); XhoI scar and C-terminal His6 retained",
     ),
     # BamHI lies downstream of the vector ATG, so the N-terminal tag is kept.
     "BamHI-XhoI": InsertionSite(
@@ -42,15 +67,10 @@ PTEST1_SITES = {
         upstream_enzyme="BamHI",
         downstream_enzyme="XhoI",
         start_source=StartSource.VECTOR,
-        vector_orf_start=87,
+        vector_orf_start=PTEST1_EXPRESSION_START,
         note="N-terminal His6 + thrombin retained; adds HM scar from the NdeI site",
     ),
 }
-
-
-# The vector's start codon, right after its RBS (the "start codon" feature, re-checked
-# by tests against the sequence itself).
-PTEST1_EXPRESSION_START = 87
 
 
 def load_bundled(name: str = "pTEST1") -> Vector:
