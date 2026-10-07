@@ -4,6 +4,7 @@ Deliberately synthetic: it is small enough to read in a test failure message,
 and it makes no claim to be a real plasmid.  Real vectors come from user
 GenBank upload or the Addgene API.
 """
+
 import random
 
 from Bio import SeqIO
@@ -60,8 +61,12 @@ add("ori (placeholder)", clean(420))
 add("KanR (placeholder)", clean(480))
 
 seq = "".join(s for _, s, _, _ in parts)
-rec = SeqRecord(Seq(seq), id="pTEST1", name="pTEST1",
-                description="synthetic pET-like test vector for p2d (not a real plasmid)")
+rec = SeqRecord(
+    Seq(seq),
+    id="pTEST1",
+    name="pTEST1",
+    description="synthetic pET-like test vector for p2d (not a real plasmid)",
+)
 rec.annotations["molecule_type"] = "ds-DNA"
 rec.annotations["topology"] = "circular"
 rec.annotations["organism"] = "synthetic construct"
