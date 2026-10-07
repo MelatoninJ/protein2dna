@@ -19,6 +19,7 @@ site straddling a junction is avoided rather than discovered afterwards.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 
 from Bio.Seq import Seq
 
@@ -142,6 +143,39 @@ def _vector_supplies_stop(vector: Vector, down_end: int, frame_offset: int) -> t
     return False, "".join(aa)
 
 
+class CTerm(str, Enum):
+    """What happens at the C-terminus of the insert.
+
+    The vector's own reading frame after the 3' site is not always the frame of its
+    C-terminal tag (pET-28a(+): XhoI and the His6 tag sit one base off the start codon's
+    frame), so the choice changes which bases are added in front of the 3' site.
+    """
+
+    VECTOR_FRAME = "vector_frame"  # keep the vector's frame after the site, as it was
+    STOP = "stop"  # end the protein with a stop codon; nothing from the vector is read
+    TAG = "tag"  # read into the vector's C-terminal His tag, whatever frame it is in
+
+
+@dataclass(frozen=True)
+class CTermTag:
+    position: int  # 0-based start of the first tag codon in the vector
+    residues: str  # the tag as translated, e.g. "HHHHHH"
+
+
+def find_cterm_tag(vector: Vector, after: int, window: int = 240) -> CTermTag | None:
+    """A His6 run in one of the three frames after ``after``, before that frame's stop."""
+    best = None
+    for frame in range(3):
+        seg = vector.seq[after + frame : after + frame + window]
+        seg = seg[: len(seg) - len(seg) % 3]
+        aa = str(Seq(seg).translate(to_stop=True))
+        k = aa.find("HHHHHH")
+        if k >= 0 and (best is None or k < best[0]):
+            run = len(aa[k:]) - len(aa[k:].lstrip("H"))
+            best = (k, CTermTag(after + frame + 3 * k, "H" * run))
+    return best[1] if best else None
+
+
 # ----------------------------------------------------------------- main entry
 
 
@@ -153,13 +187,22 @@ def design_insert(
     *,
     strategy: CodonStrategy = CodonStrategy.WEIGHTED_SAMPLE,
     seed: int | None = None,
+    cterm: CTerm = CTerm.VECTOR_FRAME,
 ) -> InsertDesign:
     if len(plan.chains) != 1:
         raise NotImplementedError("v0.1 handles single-chain constructs only")
     chain = plan.chains[0]
 
-    up = vector.find_enzyme(site.upstream_enzyme)
-    down = vector.find_enzyme(site.downstream_enzyme)
+    up = (
+        vector.hit_at(site.upstream_enzyme, site.upstream_pos)
+        if site.upstream_pos is not None
+        else vector.find_enzyme(site.upstream_enzyme)
+    )
+    down = (
+        vector.hit_at(site.downstream_enzyme, site.downstream_pos)
+        if site.downstream_pos is not None
+        else vector.find_enzyme(site.downstream_enzyme)
+    )
     issues: list[Issue] = []
 
     if down.start <= up.end:
@@ -201,7 +244,16 @@ def design_insert(
     # tag).  This fixes the 3' pad for any enzyme pair, not only ones whose downstream
     # site happens to start in frame.
     frame_grid = vector.expression_start if vector.expression_start is not None else orf_start
-    n_pad_down = (down.start - frame_grid) % 3
+    if cterm is CTerm.TAG:
+        tag = find_cterm_tag(vector, down.end)
+        if tag is None:
+            raise ValueError(
+                f"No C-terminal His tag follows the {site.downstream_enzyme} site; "
+                "choose a stop codon or the vector's own frame instead"
+            )
+        frame_grid = tag.position
+    # with a stop codon straight after the insert nothing downstream is read, so no pad
+    n_pad_down = 0 if cterm is CTerm.STOP else (down.start - frame_grid) % 3
 
     insert_aa = chain.insert_aa
 
@@ -212,7 +264,7 @@ def design_insert(
     )
     vector_encodes_cterm = bool(downstream_aa)
 
-    if chain.stop is StopPolicy.FORCE:
+    if chain.stop is StopPolicy.FORCE or cterm is CTerm.STOP:
         want_stop = True
     elif chain.stop is StopPolicy.OMIT:
         want_stop = False
@@ -222,7 +274,8 @@ def design_insert(
     if want_stop and vector_encodes_cterm:
         issues.append(
             Issue(
-                Severity.WARNING,
+                # asking for a stop outright is a choice, not something to warn about
+                Severity.INFO if cterm is CTerm.STOP else Severity.WARNING,
                 "cterm_lost",
                 f"insert carries a stop but the vector encodes {len(downstream_aa)} "
                 f"residue(s) downstream ({downstream_aa[:20]}...) -- they will not be translated",

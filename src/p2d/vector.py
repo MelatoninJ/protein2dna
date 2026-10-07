@@ -74,6 +74,10 @@ class InsertionSite:
     vector_orf_start: int | None = None
     start_offset_in_site: int = 0
     note: str = ""
+    # Which occurrence of each enzyme to use (0-based start of the site).  None means
+    # "the enzyme must cut the vector once"; set when a vector has several sites.
+    upstream_pos: int | None = None
+    downstream_pos: int | None = None
 
 
 def site_regex(site: str) -> re.Pattern:
@@ -89,6 +93,10 @@ class Vector:
     # The ATG the ribosome really starts at.  Curated, not read from annotations:
     # it decides which enzymes can be used and what N-terminus comes out.
     expression_start: int | None = None
+    # Where cloning is meant to happen (0-based, end exclusive): the MCS.  Enzyme
+    # candidates are limited to it so a pair can never cut a gene the vector needs.
+    cloning_region: tuple[int, int] | None = None
+    notes: list[str] = field(default_factory=list)  # how the vector was read, for the user
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -120,6 +128,13 @@ class Vector:
                 f"{enzyme} is not unique in {self.name}: {len(hits)} sites at {positions}"
             )
         return hits[0]
+
+    def hit_at(self, enzyme: str, pos: int) -> EnzymeHit:
+        """The site of ``enzyme`` that starts at ``pos``."""
+        for hit in self.find_all(enzyme):
+            if hit.start == pos:
+                return hit
+        raise ValueError(f"{enzyme} has no site starting at position {pos} in {self.name}")
 
     def find_all(self, enzyme: str) -> list[EnzymeHit]:
         enz = _enzyme(enzyme)

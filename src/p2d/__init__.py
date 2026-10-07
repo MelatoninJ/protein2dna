@@ -6,7 +6,7 @@ are not (see README roadmap) -- review a design before ordering it.
 """
 
 from .assemble import Assembly, assemble
-from .frame import InsertDesign, Issue, Severity, design_insert
+from .frame import CTerm, InsertDesign, Issue, Severity, design_insert
 from .host import HostProfile, available_hosts, load_host
 from .model import (
     LINKERS,
@@ -32,6 +32,7 @@ __all__ = [
     "Chain",
     "CodonStrategy",
     "ConstructPlan",
+    "CTerm",
     "HostProfile",
     "InsertDesign",
     "InsertionSite",

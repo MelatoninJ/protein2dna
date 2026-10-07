@@ -61,6 +61,19 @@ class Assembly:
         rec.annotations["molecule_type"] = "ds-DNA"
         rec.annotations["topology"] = "circular" if d.vector.circular else "linear"
 
+        # carry the vector's annotations over: those before the replaced stretch stay,
+        # those after it move by the change in length, those it overlaps are gone
+        delta = len(self.seq) - len(d.vector.seq)
+        for f in d.vector.record.features:
+            s, e = int(f.location.start), int(f.location.end)
+            if f.type == "source" or (s < d.down.end and e > d.up.start):
+                continue
+            try:
+                loc = f.location if e <= d.up.start else f.location + delta
+            except (TypeError, ValueError):
+                continue
+            rec.features.append(SeqFeature(loc, type=f.type, qualifiers=dict(f.qualifiers)))
+
         ins_start = d.up.start
         rec.features.append(
             SeqFeature(
@@ -84,6 +97,7 @@ class Assembly:
                 qualifiers={"label": ["fusion ORF"], "translation": [self.protein]},
             )
         )
+        rec.features.sort(key=lambda f: (int(f.location.start), int(f.location.end)))
         return rec
 
 

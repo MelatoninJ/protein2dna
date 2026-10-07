@@ -21,6 +21,7 @@ DATA_PACKAGE = "p2d.data"
 # The vector's start codon, right after its RBS (the "start codon" feature, re-checked
 # by tests against the sequence itself).
 PTEST1_EXPRESSION_START = 87
+PTEST1_CLONING_REGION = (144, 180)  # NdeI through XhoI
 
 PTEST1_SITES = {
     # NdeI lies downstream of the vector's ATG (87), in frame, so the ribosome still
@@ -81,6 +82,7 @@ def load_bundled(name: str = "pTEST1") -> Vector:
         v = Vector.from_genbank(p, name="pTEST1")
     v.sites = dict(PTEST1_SITES)
     v.expression_start = PTEST1_EXPRESSION_START
+    v.cloning_region = PTEST1_CLONING_REGION
     return v
 
 
