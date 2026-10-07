@@ -86,6 +86,9 @@ class Vector:
     name: str = ""
     circular: bool = True
     sites: dict[str, InsertionSite] = field(default_factory=dict)
+    # The ATG the ribosome really starts at.  Curated, not read from annotations:
+    # it decides which enzymes can be used and what N-terminus comes out.
+    expression_start: int | None = None
 
     def __post_init__(self) -> None:
         if not self.name:

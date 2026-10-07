@@ -48,6 +48,11 @@ PTEST1_SITES = {
 }
 
 
+# The vector's start codon, right after its RBS (the "start codon" feature, re-checked
+# by tests against the sequence itself).
+PTEST1_EXPRESSION_START = 87
+
+
 def load_bundled(name: str = "pTEST1") -> Vector:
     if name != "pTEST1":
         raise ValueError(f"no bundled vector named {name!r}; available: pTEST1")
@@ -55,6 +60,7 @@ def load_bundled(name: str = "pTEST1") -> Vector:
     with resources.as_file(path) as p:
         v = Vector.from_genbank(p, name="pTEST1")
     v.sites = dict(PTEST1_SITES)
+    v.expression_start = PTEST1_EXPRESSION_START
     return v
 
 

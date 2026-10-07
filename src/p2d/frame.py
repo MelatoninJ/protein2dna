@@ -195,13 +195,21 @@ def design_insert(
     # --- frame arithmetic ---------------------------------------------------
     offset = (up.start + len(up_site) - orf_start) % 3
     n_pad_up = (3 - offset) % 3
-    n_pad_down = (-len(down_site)) % 3
+    # The vector's own downstream frame must survive the splice, or its C-terminal tag
+    # is read out of frame.  That frame is set by the vector's real start codon, which
+    # may differ from ``orf_start`` (an NdeI-style site restarts translation inside the
+    # tag).  This fixes the 3' pad for any enzyme pair, not only ones whose downstream
+    # site happens to start in frame.
+    frame_grid = vector.expression_start if vector.expression_start is not None else orf_start
+    n_pad_down = (down.start - frame_grid) % 3
 
     insert_aa = chain.insert_aa
 
     # --- stop codon policy --------------------------------------------------
     down_frame_offset = (n_pad_down + len(down_site)) % 3
-    has_downstream_stop, downstream_aa = _vector_supplies_stop(vector, down.end, 0)
+    has_downstream_stop, downstream_aa = _vector_supplies_stop(
+        vector, down.end, (frame_grid - down.end) % 3
+    )
     vector_encodes_cterm = bool(downstream_aa)
 
     if chain.stop is StopPolicy.FORCE:
@@ -239,15 +247,22 @@ def design_insert(
     # The pads are fixed DNA from the optimiser's point of view, and a site can
     # run across pad and coding region, so try pad combinations until the DP
     # finds a path.  If none does, the first combination's error is reported.
+    # include up to two vector bases on each side so a stop codon straddling the site
+    # boundary is seen, but never bases before the start codon (they are not translated)
+    lead = max(0, min(2, up.start - orf_start))
     up_pads = _pad_candidates(
         n_pad_up,
-        prefix=up_site,
+        prefix=vector.seq[up.start - lead : up.start] + up_site,
         suffix="",
         forbidden=forbidden,
-        frame_offset=(up.start - orf_start) % 3,
+        frame_offset=(up.start - lead - orf_start) % 3,
     )
     down_pads = _pad_candidates(
-        n_pad_down, prefix=stop_dna, suffix=down_site, forbidden=forbidden, frame_offset=0
+        n_pad_down,
+        prefix=stop_dna,
+        suffix=down_site + vector.seq[down.end : down.end + 2],
+        forbidden=forbidden,
+        frame_offset=0,
     )
     context = Automaton(forbidden).max_len
     vector_before = vector.seq[max(0, up.start - context) : up.start]
