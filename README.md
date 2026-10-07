@@ -1,18 +1,14 @@
 # p2d — protein-to-DNA reverse translation that knows about your vector
 
-Reverse-translate a designed protein (RFdiffusion / ProteinMPNN output, a
-nanobody, a binder) into DNA that is **actually cloneable into the vector you
-picked** — correct reading frame through both junctions, restriction sites at
-the ends, no surprise stop codons, and a preview of the fusion protein you will
+Reverse-translate a designed protein into DNA that is **actually cloneable into the vector you
+entered** — correct reading frame through both junctions, restriction sites at
+the ends, no unexpected stop codons, and a preview of the fusion protein you will
 really get, scar residues included.
 
 > **Status: v0.2 — frame engine + constrained codon optimiser.**
 > Codons are chosen by a DFA-constrained dynamic programme, so the insert is
 > provably free of both enzymes' recognition sites on either strand, including
-> sites that would straddle the vector junctions. The default strategy samples
-> codons above a usage floor (seeded, reproducible); `MAX_CAI` is available.
-> **Not done yet:** GC windows, 5′ mRNA folding, repeat and synthesis checks
-> (v0.3), and the host's `forbidden_motifs` are not yet fed to the optimiser.
+> sites that would straddle the vector junctions.
 > The bundled `ecoli_bl21` table is *E. coli* K-12 usage from
 > `python_codon_tables`, used for BL21 as is standard — see the profile's
 > `codon_usage.note`. Review a design before you order it.
@@ -20,14 +16,11 @@ really get, scar residues included.
 ## Two ways to use it
 
 **A local website.** Run `p2d ui` and use p2d in your browser: pick or upload a plasmid,
-choose two restriction sites on a map, and read the construct summary. There is nothing to
-code. It runs on your own computer (there is no hosted version), so your plasmid never
-leaves it.
+choose two restriction sites on a map, and read the construct summary. For who will not code, there is nothing to
+code in this way. It runs on your own computer (there is no hosted version).
 
-**A Python module.** `import p2d` to script it: design constructs in a notebook, loop over
-hundreds of proteins, or plug it into a pipeline. The website is a thin layer over this
-module, so both give the same answer for the same input, and the library itself has no web
-dependency (a test enforces that).
+**A Python module.** `import p2d` to script it. The website is a thin layer over this
+module, so both give the same answer for the same input.
 
 ## Install
 
@@ -51,20 +44,20 @@ p2d ui
 
 1. **Pick a plasmid.** Use the bundled test vector, one of your own files, an upload, or
    pasted text. GenBank (`.gb`), SnapGene (`.dna`) and FASTA are read; a plasmid stored on
-   the opposite strand (SnapGene's own pET-28a(+) is) is flipped automatically. Put files
+   the opposite strand (ex. pET-28a(+)) is flipped automatically. Put files
    you do not want to re-upload in `~/.p2d/vectors` (or set `P2D_VECTOR_DIR`) and they show
    up in the list; nothing is copied or sent anywhere.
 2. **Confirm where translation starts.** p2d offers the likely start codons with their
    evidence (an annotated start codon, a ribosome binding site, a T7 promoter) and you
    choose.
-3. **Choose two restriction sites by position.** Every site in the window is listed, and
+3. **Choose two restriction sites by position.** Every restriction site is listed, and
    an enzyme the plasmid cuts several times is shown as "2 of 3" and so on. Two sites work
    when no other site of either enzyme lies in the part you keep; each unavailable site
    comes with the reason (wrong way round, touching, same ends, forced by your protein).
-4. **Choose the C-terminus.** A stop codon, or read on into the vector's His tag (p2d adds
+4. **Choose the C-terminus.** A stop codon, or read on into the vector's tag (p2d adds
    the bases that put it in frame; some vectors, pET-28a(+) among them, have the tag one
    base off the start codon's frame).
-5. **Read the construct summary.** Fusion protein, plasmid size before and after, the
+5. **Read the summary.** Fusion protein, plasmid size before and after, the
    piece replaced, the bases added for the reading frame, a check digest (fragment sizes
    before and after) and the DNA to order, plus the whole finished plasmid as GenBank with
    the vector's annotations carried over.
@@ -97,8 +90,8 @@ a.to_record()  # the whole annotated plasmid, writable as GenBank
   total: 79 aa
 ```
 
-The `HM` and `LE` are the NdeI and XhoI sites being translated. They are not noise: they are
-real residues that will be in your purified protein, and most tools never show them to you.
+The `HM` and `LE` are the NdeI and XhoI sites being translated. They are residues that will be in your
+expressed protein, and most tools never show them to you.
 The N-terminal tag stays because NdeI lies downstream of this vector's start codon, which is
 exactly the kind of thing that goes wrong when the vector is ignored.
 
@@ -155,13 +148,11 @@ and `.to_record()`.
 ## Why this exists
 
 Codon-optimisation tools give you a coding sequence. They do not tell you what
-protein comes out the other end after you ligate it into pET-28a, because they
-never look at the vector. That last step is where constructs actually fail:
+protein comes out the other end after you ligate it into a vector, because they
+never look at the vector. That last step is where considerations are needed:
 an off-by-one at the junction, a C-terminal His-tag that is out of frame, a
 second His-tag you did not realise the vector already supplied, a stop codon
 you left in that silently deletes the tag.
-
-p2d makes the vector a first-class input.
 
 ## CLI
 
@@ -174,12 +165,12 @@ p2d ui                                     # the local website
 
 ## What it checks
 
-- **Frame** through both junctions. The finished plasmid is translated from the vector's own
+- **Frame**: The finished plasmid is translated from the vector's own
   start codon, and a design whose assumed start differs from the real one is rejected
 - **Pad bases** added automatically when a pair of sites would shift the frame, chosen to
   avoid stop codons and new restriction sites, and reported to you
 - **Cloning sites kept out of the coding DNA**, on both strands and across the junctions
-  with the vector, by an exact search; a site your protein forces is reported, not hidden
+  with the vector, by a search; a site your protein forces is reported, not hidden
 - **Which sites you can use**: order, spacing, compatible ends, and whether a second site of
   the same enzyme would cut the backbone you keep
 - **The C-terminus**: a stop codon, or a read into the vector's His tag with the bases that
@@ -200,9 +191,7 @@ Three, and they are load-bearing:
    `src/p2d/hosts/` — see `CONTRIBUTING.md`.
 3. **Never trust annotation labels.** ORFs and sites are re-derived from the
    sequence; the record's own features are used only for reporting.
-
-And one more, enforced by a test: nothing under `src/p2d/` may import a UI
-framework. The library has to stay usable from a batch script.
+   
 
 ## Roadmap
 
@@ -218,8 +207,8 @@ framework. The library has to stay usable from a batch script.
 
 ## Bundled vector
 
-`pTEST1` is a **synthetic** 1149 bp pET-like vector used by the test suite. It
-is not a real plasmid; do not order it. Use your own plasmids: `read_vector_file()` from
+`pTEST1` is a **synthetic** 1149 bp pET-like vector used by the test suite.
+Do not order it. Use your own plasmids: `read_vector_file()` from
 Python, or the website's upload and `~/.p2d/vectors` folder.
 
 ## Licence
