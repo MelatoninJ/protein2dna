@@ -38,7 +38,13 @@ def _static_bytes(name: str) -> bytes:
     return resources.files("p2d_ui").joinpath("static", name).read_bytes()
 
 
-POST_ROUTES = {"/api/design": service.design, "/api/enzymes": service.enzymes}
+POST_ROUTES = {
+    "/api/vector": service.load_vector,
+    "/api/sites": service.sites,
+    "/api/design": service.design,
+}
+# an uploaded plasmid arrives base64-encoded, so its route may carry up to ~5 MB of file
+ROUTE_LIMITS = {"/api/vector": 7_000_000}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -79,7 +85,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self._host_ok():
             return self._json(HTTPStatus.FORBIDDEN, {"error": "Unexpected Host header."})
-        handler = POST_ROUTES.get(self.path.split("?", 1)[0])
+        route = self.path.split("?", 1)[0]
+        handler = POST_ROUTES.get(route)
         if handler is None:
             return self._json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
         if not self.headers.get("Content-Type", "").startswith("application/json"):
@@ -88,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = -1
-        if not 0 < length <= MAX_BODY:
+        if not 0 < length <= ROUTE_LIMITS.get(route, MAX_BODY):
             return self._json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "Bad request size."})
         try:
             request = json.loads(self.rfile.read(length))

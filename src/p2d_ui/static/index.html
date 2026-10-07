@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>p2d | Protein to DNA</title>
-  <meta name="description" content="Design cloneable DNA for a protein and see the fusion protein you will actually get.">
+  <meta name="description" content="Design cloneable DNA for a protein in your own plasmid, and see the fusion protein and the sizes you will actually get.">
   <link rel="stylesheet" href="/app.css">
   <script src="/app.js" defer></script>
 </head>
@@ -29,38 +29,99 @@
           <label for="protein">Protein sequence</label>
           <button type="button" class="link" id="load-example">Load GFP example</button>
         </div>
-        <textarea id="protein" name="protein" rows="9" spellcheck="false" autocomplete="off"
+        <textarea id="protein" name="protein" rows="7" spellcheck="false" autocomplete="off"
                   aria-describedby="protein-help protein-count" placeholder="MKTAYIAKQR..."></textarea>
         <div class="help-row">
-          <p id="protein-help" class="help">Amino acids or FASTA. Enter the protein as it is. The note under the enzymes says when to leave the first M out.</p>
+          <p id="protein-help" class="help">Amino acids or FASTA. Enter the protein as it is. The note under the sites says when to leave the first M out.</p>
           <p id="protein-count" class="count" aria-live="polite">0 aa</p>
         </div>
         <p id="protein-error" class="field-error" role="alert" hidden></p>
       </div>
 
-      <div class="field">
-        <label for="vector">Vector</label>
-        <select id="vector" name="vector"></select>
-      </div>
-
       <fieldset class="field">
-        <legend>Cloning enzymes</legend>
-        <div id="mcs" class="mcs" role="img" aria-label="Enzyme sites along the vector expression region"></div>
+        <legend>Plasmid</legend>
+        <select id="vector" name="vector" aria-label="Plasmid"></select>
+        <div class="row">
+          <button type="button" class="secondary" id="upload-btn">Upload a file</button>
+          <button type="button" class="secondary" id="paste-btn" aria-expanded="false" aria-controls="paste-box">Paste a sequence</button>
+          <input type="file" id="vector-file" hidden accept=".gb,.gbk,.genbank,.gbff,.dna,.fa,.fasta,.fna,.txt">
+        </div>
+        <p class="help">GenBank (.gb), SnapGene (.dna) or FASTA. Files stay on this computer.</p>
+        <div id="paste-box" class="paste" hidden>
+          <label for="paste-text">Plasmid DNA (FASTA, GenBank text or plain sequence)</label>
+          <textarea id="paste-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
+          <button type="button" class="secondary" id="paste-use">Use this plasmid</button>
+        </div>
+        <p id="vector-status" class="help" role="status" aria-live="polite"></p>
+
+        <div id="vector-card" class="vcard" hidden>
+          <p id="vector-summary" class="vsummary"></p>
+          <ul id="vector-warnings" class="vwarn"></ul>
+          <div class="field">
+            <label for="start">Translation starts at</label>
+            <select id="start" name="start"></select>
+          </div>
+          <div id="start-manual-box" class="field" hidden>
+            <label for="start-manual">ATG position (bp)</label>
+            <input id="start-manual" type="number" min="1" inputmode="numeric">
+          </div>
+          <p id="start-note" class="help"></p>
+          <details class="why" id="features-box">
+            <summary id="features-summary">Annotated features</summary>
+            <ul id="features-list"></ul>
+          </details>
+        </div>
+      </fieldset>
+
+      <fieldset class="field" id="sites-field" disabled>
+        <legend>Restriction sites</legend>
+        <div id="mcs" class="mcs" role="img" aria-label="Restriction sites along the plasmid"></div>
+        <p id="mcs-key" class="help"></p>
+        <div class="window">
+          <div class="field">
+            <label for="win-from">Show from (bp)</label>
+            <input id="win-from" type="number" min="1" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="win-to">to (bp)</label>
+            <input id="win-to" type="number" min="1" inputmode="numeric">
+          </div>
+          <button type="button" class="link" id="win-all">Whole plasmid</button>
+          <button type="button" class="link" id="win-orf">Expression region</button>
+          <button type="button" class="link" id="win-mcs" hidden>Annotated MCS</button>
+        </div>
+        <label class="check"><input type="checkbox" id="multi" checked> Include enzymes that cut more than once</label>
         <div class="pair">
           <div class="field">
-            <label for="upstream">5' enzyme</label>
+            <label for="upstream">5' site</label>
             <select id="upstream" name="upstream"></select>
           </div>
           <div class="field">
-            <label for="downstream">3' enzyme</label>
+            <label for="downstream">3' site</label>
             <select id="downstream" name="downstream"></select>
           </div>
         </div>
         <p id="pair-note" class="help" aria-live="polite"></p>
         <details id="why" class="why" hidden>
-          <summary>Why are some enzymes unavailable?</summary>
+          <summary>Why are some sites unavailable?</summary>
           <ul id="why-list"></ul>
         </details>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>C-terminus</legend>
+        <div class="choices">
+          <label class="choice">
+            <input type="radio" name="cterm" value="stop" checked>
+            <b>Stop codon</b>
+            <span>The protein ends with your sequence. Nothing from the vector is read.</span>
+          </label>
+          <label class="choice" id="cterm-tag-choice">
+            <input type="radio" name="cterm" value="tag" id="cterm-tag">
+            <b>Read into the vector's His tag</b>
+            <span id="cterm-tag-note">Adds the bases that put the tag in frame.</span>
+          </label>
+        </div>
       </fieldset>
 
       <div class="field">
@@ -87,7 +148,7 @@
   </main>
 
   <footer class="wrap foot">
-    <p>Runs entirely on this computer. Nothing you paste leaves it.</p>
+    <p>Runs entirely on this computer. Nothing you paste or upload leaves it.</p>
   </footer>
 </body>
 </html>
