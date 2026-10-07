@@ -17,6 +17,21 @@ really get, scar residues included.
 > `python_codon_tables`, used for BL21 as is standard — see the profile's
 > `codon_usage.note`. Review a design before you order it.
 
+## Web UI
+
+```bash
+pip install -e .
+p2d ui            # opens http://127.0.0.1:8765 in your browser
+```
+
+Paste a protein (or FASTA) and pick a vector. p2d reads the vector's map and lists the
+enzymes that cut it once inside the expression region; choose a 5' and a 3' enzyme (the
+list rules out wrong-way-round, touching and same-ended pairs, and any enzyme your
+protein forces into the DNA, each with the reason). Then read the fusion map:
+the exact protein the construct will make, scar residues included. Copy the insert
+or download FASTA and GenBank. It runs only on your computer, binds to loopback,
+and needs no dependencies beyond the library itself.
+
 ## Why this exists
 
 Codon-optimisation tools give you a coding sequence. They do not tell you what

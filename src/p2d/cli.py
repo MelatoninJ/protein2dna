@@ -100,6 +100,17 @@ def design(
         raise typer.Exit(1)
 
 
+@app.command()
+def ui(
+    port: int = typer.Option(8765, "--port", "-p", help="local port to serve on"),
+    no_browser: bool = typer.Option(False, "--no-browser", help="do not open a browser tab"),
+) -> None:
+    """Open the local web UI (a shell over this library; runs only on this computer)."""
+    from p2d_ui import serve  # imported here so the core CLI never depends on the UI package
+
+    serve(port=port, open_browser=not no_browser)
+
+
 def _read_payload(arg: str) -> str:
     p = Path(arg)
     if p.exists():

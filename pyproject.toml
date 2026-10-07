@@ -37,7 +37,7 @@ Issues = "https://github.com/YOUR_USER/p2d/issues"
 p2d = "p2d.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/p2d"]
+packages = ["src/p2d", "src/p2d_ui"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

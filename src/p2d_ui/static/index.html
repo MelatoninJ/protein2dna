@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>p2d | Protein to DNA</title>
+  <meta name="description" content="Design cloneable DNA for a protein and see the fusion protein you will actually get.">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#result">Skip to result</a>
+
+  <header class="top">
+    <div class="wrap top-row">
+      <a class="brand" href="/" aria-label="p2d home">p2d</a>
+      <p class="tagline">Protein to DNA, checked against your vector.</p>
+      <button type="button" class="ghost" id="theme-toggle" aria-label="Switch colour theme">Theme</button>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <form id="design-form" class="panel" novalidate>
+      <h1>Design an insert</h1>
+
+      <div class="field">
+        <div class="label-row">
+          <label for="protein">Protein sequence</label>
+          <button type="button" class="link" id="load-example">Load GFP example</button>
+        </div>
+        <textarea id="protein" name="protein" rows="9" spellcheck="false" autocomplete="off"
+                  aria-describedby="protein-help protein-count" placeholder="MKTAYIAKQR..."></textarea>
+        <div class="help-row">
+          <p id="protein-help" class="help">Amino acids or FASTA. Enter the protein as it is. The note under the enzymes says when to leave the first M out.</p>
+          <p id="protein-count" class="count" aria-live="polite">0 aa</p>
+        </div>
+        <p id="protein-error" class="field-error" role="alert" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="vector">Vector</label>
+        <select id="vector" name="vector"></select>
+      </div>
+
+      <fieldset class="field">
+        <legend>Cloning enzymes</legend>
+        <div id="mcs" class="mcs" role="img" aria-label="Enzyme sites along the vector expression region"></div>
+        <div class="pair">
+          <div class="field">
+            <label for="upstream">5' enzyme</label>
+            <select id="upstream" name="upstream"></select>
+          </div>
+          <div class="field">
+            <label for="downstream">3' enzyme</label>
+            <select id="downstream" name="downstream"></select>
+          </div>
+        </div>
+        <p id="pair-note" class="help" aria-live="polite"></p>
+        <details id="why" class="why" hidden>
+          <summary>Why are some enzymes unavailable?</summary>
+          <ul id="why-list"></ul>
+        </details>
+      </fieldset>
+
+      <div class="field">
+        <label for="host">Expression host</label>
+        <select id="host" name="host"></select>
+        <p id="host-note" class="help"></p>
+      </div>
+
+      <fieldset class="field">
+        <legend>Codon strategy</legend>
+        <div id="strategies" class="choices"></div>
+      </fieldset>
+
+      <div class="field">
+        <label for="seed">Seed</label>
+        <input id="seed" name="seed" type="number" inputmode="numeric" min="0" max="4294967295" placeholder="Optional" aria-describedby="seed-help">
+        <p id="seed-help" class="help">Leave empty for a reproducible default. The same inputs always give the same DNA.</p>
+      </div>
+
+      <button type="submit" class="primary" id="submit">Design insert</button>
+    </form>
+
+    <section id="result" class="result" tabindex="-1" aria-live="polite" aria-label="Design result"></section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Runs entirely on this computer. Nothing you paste leaves it.</p>
+  </footer>
+</body>
+</html>
