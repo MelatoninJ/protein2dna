@@ -6,11 +6,16 @@ picked** — correct reading frame through both junctions, restriction sites at
 the ends, no surprise stop codons, and a preview of the fusion protein you will
 really get, scar residues included.
 
-> **Status: v0.1 — frame engine only.**
-> The constrained codon optimiser is not implemented yet. Reverse translation
-> currently picks the most-used codon per residue, which is a known-bad
-> production strategy. **Treat v0.1 output as a frame check, not as a sequence
-> to order.** The bundled codon table is an unverified placeholder.
+> **Status: v0.2 — frame engine + constrained codon optimiser.**
+> Codons are chosen by a DFA-constrained dynamic programme, so the insert is
+> provably free of both enzymes' recognition sites on either strand, including
+> sites that would straddle the vector junctions. The default strategy samples
+> codons above a usage floor (seeded, reproducible); `MAX_CAI` is available.
+> **Not done yet:** GC windows, 5′ mRNA folding, repeat and synthesis checks
+> (v0.3), and the host's `forbidden_motifs` are not yet fed to the optimiser.
+> The bundled `ecoli_bl21` table is *E. coli* K-12 usage from
+> `python_codon_tables`, used for BL21 as is standard — see the profile's
+> `codon_usage.note`. Review a design before you order it.
 
 ## Why this exists
 
@@ -90,8 +95,7 @@ framework. The library has to stay usable from a batch script.
 | version | adds |
 |---|---|
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
-|  | *see `docs/handoff-v0.2.md` for the current task* |
-| 0.2 | Aho-Corasick DFA + DP codon optimiser; verified codon tables |
+| **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies (`HARMONIZED` not implemented) ✅ |
 | 0.3 | GC windows, 5′ ΔG (ViennaRNA), repeats, synthesis manufacturability |
 | 0.4 | enzyme-pair search, Dam/Dcm methylation, buffer compatibility |
 | 0.5 | Addgene API, Gibson assembly, Streamlit web UI |

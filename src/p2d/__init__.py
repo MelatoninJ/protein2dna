@@ -1,10 +1,8 @@
 """p2d -- protein-to-DNA reverse translation that knows about your vector.
 
-Status: v0.1. The frame engine and round-trip validation are implemented; the
-constrained codon optimiser is not (see README roadmap).  Reverse translation
-currently picks the most-used codon per residue, which is explicitly *not* a
-good production strategy -- treat v0.1 output as a frame check, not as a
-sequence to order.
+Status: v0.2. The frame engine, round-trip validation and the DFA-constrained
+codon optimiser are implemented.  GC windows, mRNA folding and synthesis checks
+are not (see README roadmap) -- review a design before ordering it.
 """
 
 from .assemble import Assembly, assemble
@@ -23,6 +21,7 @@ from .model import (
     PartSource,
     StopPolicy,
 )
+from .optimize import CodonStrategy
 from .vector import InsertionSite, StartSource, Vector
 from .vectors import available_bundled, load_bundled
 
@@ -31,6 +30,7 @@ __version__ = "0.1.0"
 __all__ = [
     "Assembly",
     "Chain",
+    "CodonStrategy",
     "ConstructPlan",
     "HostProfile",
     "InsertDesign",

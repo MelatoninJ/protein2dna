@@ -27,7 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 fold = ["ViennaRNA>=2.6"]          # kept optional: different licence, heavy build
-dev = ["pytest>=8", "ruff>=0.6", "pytest-cov"]
+dev = ["pytest>=8", "ruff>=0.6", "pytest-cov", "hypothesis>=6"]
 
 [project.urls]
 Homepage = "https://github.com/YOUR_USER/p2d"

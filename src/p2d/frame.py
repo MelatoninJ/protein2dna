@@ -11,39 +11,26 @@ The arithmetic that matters:
 ``pad_up`` makes the payload's first codon land in frame with the start codon.
 ``pad_down`` makes whatever the vector encodes downstream land in frame.  Both
 pads are chosen by a small search that refuses bases creating a stop codon or a
-new copy of either enzyme's site.
+new copy of either enzyme's site.  The coding region itself is chosen by
+``p2d.optimize`` *given* those pads and the surrounding vector sequence, so a
+site straddling a junction is avoided rather than discovered afterwards.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 
 from Bio.Seq import Seq
 
 from .host import HostProfile
+from .issues import Issue, Severity
 from .model import Chain, ConstructPlan, PartKind, PartSource, StopPolicy
+from .optimize import Automaton, CodonStrategy, OptimizationRequest, optimize_coding
 from .vector import EnzymeHit, InsertionSite, StartSource, Vector, enzyme_site, site_regex
 
 PAD_BASES = ["GC", "GG", "CG", "GA", "AC", "CA", "TC", "CT", "AG", "GT"]
 STOP_CODONS = {"TAA", "TAG", "TGA"}
 DOWNSTREAM_SCAN_NT = 600
-
-
-class Severity(str, Enum):
-    ERROR = "error"
-    WARNING = "warning"
-    INFO = "info"
-
-
-@dataclass(frozen=True)
-class Issue:
-    severity: Severity
-    code: str
-    message: str
-
-    def __str__(self) -> str:
-        return f"[{self.severity.value}] {self.code}: {self.message}"
 
 
 @dataclass
@@ -74,6 +61,7 @@ class InsertDesign:
     coding_start: int  # index of payload-block first base in final coords
     issues: list[Issue] = field(default_factory=list)
     stop_in_insert: bool = False
+    metrics: dict = field(default_factory=dict)  # codon metrics from the optimiser
 
     @property
     def errors(self) -> list[Issue]:
@@ -88,35 +76,35 @@ class InsertDesign:
 
 
 def reverse_translate(aa: str, host: HostProfile) -> str:
-    """Naive codon choice (v0.1).
+    """Naive best-codon baseline.
 
-    This is deliberately the simplest thing that works, so the frame engine can
-    be tested on its own.  The constrained optimiser replaces it in v0.2 -- the
-    signature is what the rest of the package depends on.
+    No longer used by ``design_insert`` (``p2d.optimize`` replaced it in v0.2).
+    Kept as the reference the optimiser is tested against, and for isolating
+    whether a failure is in the optimiser or in the frame engine.
     """
     return "".join(host.best_codon(r) for r in aa)
 
 
-def _creates_problem(seq: str, forbidden: list[str]) -> bool:
-    return any(site_regex(site).search(seq) for site in forbidden)
-
-
-def _choose_pad(
+def _pad_candidates(
     n: int,
     prefix: str,
     suffix: str,
     forbidden: list[str],
     frame_offset: int,
-) -> str:
-    """Pick ``n`` pad bases that introduce neither a stop codon nor a new site.
+) -> list[str]:
+    """All ``n``-base pads that introduce neither a stop codon nor a new site.
 
     ``frame_offset`` is the position of ``prefix``'s first base within its
-    codon, so stop codons can be read in the correct frame.
+    codon, so stop codons can be read in the correct frame.  Sites running into
+    the coding region are not judged here -- the optimiser sees the pad as fixed
+    context and avoids them -- so more than one candidate is returned and the
+    caller tries them in order.
     """
     if n == 0:
-        return ""
+        return [""]
     candidates = [p[:n] for p in PAD_BASES] if n <= 2 else ["GCG", "GGC"]
     pad_lo, pad_hi = len(prefix), len(prefix) + n
+    usable = []
     for pad in dict.fromkeys(candidates):
         window = prefix + pad + suffix
         codons = [window[i : i + 3] for i in range(-frame_offset % 3, len(window) - 2, 3)]
@@ -130,62 +118,13 @@ def _choose_pad(
             for m in site_regex(site).finditer(window)
         ):
             continue
-        return pad
-    raise ValueError(
-        f"could not find {n} pad base(s) free of stop codons and {forbidden}; "
-        "pick a different enzyme pair"
-    )
-
-
-def _repair_internal_sites(
-    coding: str, aa: str, host: HostProfile, forbidden: list[str]
-) -> tuple[str, list[Issue]]:
-    """Remove forbidden sites from the coding region by synonymous swap.
-
-    Greedy and local -- good enough for v0.1.  The DFA/DP optimiser in v0.2
-    makes this guarantee global instead of best-effort.
-    """
-    issues: list[Issue] = []
-    for site in forbidden:
-        rx = site_regex(site)
-        for _ in range(50):
-            m = rx.search(coding)
-            if not m:
-                break
-            fixed = False
-            for pos in range(m.start() // 3, (m.end() + 2) // 3):
-                if pos >= len(aa):
-                    break
-                residue = aa[pos]
-                options = sorted(host.codons_for(residue).items(), key=lambda kv: -kv[1])
-                current = coding[pos * 3 : pos * 3 + 3]
-                for codon, _freq in options:
-                    if codon == current:
-                        continue
-                    trial = coding[: pos * 3] + codon + coding[pos * 3 + 3 :]
-                    if not rx.search(trial[max(0, m.start() - 6) : m.end() + 6]):
-                        coding = trial
-                        issues.append(
-                            Issue(
-                                Severity.INFO,
-                                "silent_change",
-                                f"codon {pos + 1} ({residue}) {current}->{codon} to remove {site}",
-                            )
-                        )
-                        fixed = True
-                        break
-                if fixed:
-                    break
-            if not fixed:
-                issues.append(
-                    Issue(
-                        Severity.ERROR,
-                        "unremovable_site",
-                        f"{site} at coding position {m.start()} cannot be removed synonymously",
-                    )
-                )
-                break
-    return coding, issues
+        usable.append(pad)
+    if not usable:
+        raise ValueError(
+            f"could not find {n} pad base(s) free of stop codons and {forbidden}; "
+            "pick a different enzyme pair"
+        )
+    return usable
 
 
 def _vector_supplies_stop(vector: Vector, down_end: int, frame_offset: int) -> tuple[bool, str]:
@@ -211,6 +150,9 @@ def design_insert(
     vector: Vector,
     site: InsertionSite,
     host: HostProfile,
+    *,
+    strategy: CodonStrategy = CodonStrategy.WEIGHTED_SAMPLE,
+    seed: int | None = None,
 ) -> InsertDesign:
     if len(plan.chains) != 1:
         raise NotImplementedError("v0.1 handles single-chain constructs only")
@@ -256,17 +198,6 @@ def design_insert(
     n_pad_down = (-len(down_site)) % 3
 
     insert_aa = chain.insert_aa
-    coding = reverse_translate(insert_aa, host)
-    coding, repair_issues = _repair_internal_sites(coding, insert_aa, host, forbidden)
-    issues += repair_issues
-
-    pad_up = _choose_pad(
-        n_pad_up,
-        prefix=up_site,
-        suffix=coding[:6],
-        forbidden=forbidden,
-        frame_offset=(up.start - orf_start) % 3,
-    )
 
     # --- stop codon policy --------------------------------------------------
     down_frame_offset = (n_pad_down + len(down_site)) % 3
@@ -304,13 +235,44 @@ def design_insert(
         # double stop is standard practice; the second one is belt-and-braces
         stop_dna = "TAA" + "TGA"
 
-    pad_down = _choose_pad(
-        n_pad_down,
-        prefix=coding[-6:] + stop_dna,
-        suffix=down_site,
+    # --- coding region: optimised against the real junction context ---------
+    # The pads are fixed DNA from the optimiser's point of view, and a site can
+    # run across pad and coding region, so try pad combinations until the DP
+    # finds a path.  If none does, the first combination's error is reported.
+    up_pads = _pad_candidates(
+        n_pad_up,
+        prefix=up_site,
+        suffix="",
         forbidden=forbidden,
-        frame_offset=0,
+        frame_offset=(up.start - orf_start) % 3,
     )
+    down_pads = _pad_candidates(
+        n_pad_down, prefix=stop_dna, suffix=down_site, forbidden=forbidden, frame_offset=0
+    )
+    context = Automaton(forbidden).max_len
+    vector_before = vector.seq[max(0, up.start - context) : up.start]
+    vector_after = vector.seq[down.end : down.end + context]
+
+    first = None
+    for pad_up, pad_down in ((u, d) for u in up_pads for d in down_pads):
+        result = optimize_coding(
+            OptimizationRequest(
+                aa=insert_aa,
+                host=host,
+                prefix=vector_before + up_site + pad_up,
+                suffix=stop_dna + pad_down + down_site + vector_after,
+                forbidden=forbidden,
+                strategy=strategy,
+                seed=seed,
+            )
+        )
+        first = first or (result, pad_up, pad_down)
+        if result.ok:
+            break
+    else:
+        result, pad_up, pad_down = first
+    coding = result.dna
+    issues += result.issues
 
     insert_dna = up_site + pad_up + coding + stop_dna + pad_down + down_site
     coding_start = up.start + len(up_site) + len(pad_up)
@@ -353,6 +315,7 @@ def design_insert(
         coding_start=coding_start,
         issues=issues,
         stop_in_insert=want_stop,
+        metrics=result.metrics,
     )
     _ = down_frame_offset
     return design
