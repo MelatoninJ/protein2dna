@@ -82,10 +82,10 @@ import p2d
 # the bundled synthetic test plasmid; NdeI supplies the start Met, so leave a leading M out
 a = p2d.run("KVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE", site="NdeI-XhoI")
 
-print(a.ok)               # the round-trip validation passed
+print(a.ok)  # the round-trip validation passed
 print(a.fusion_report())  # the protein you actually get, residue by residue
-print(a.insert_dna)       # the DNA to order
-a.to_record()             # the whole annotated plasmid, writable as GenBank
+print(a.insert_dna)  # the DNA to order
+a.to_record()  # the whole annotated plasmid, writable as GenBank
 ```
 
 ```
