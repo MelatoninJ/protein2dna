@@ -17,6 +17,20 @@ really get, scar residues included.
 > `python_codon_tables`, used for BL21 as is standard — see the profile's
 > `codon_usage.note`. Review a design before you order it.
 
+## Install
+
+p2d is not on PyPI yet; install it from source (Python 3.10 or newer):
+
+```bash
+git clone https://github.com/MelatoninJ/protein2dna
+cd protein2dna
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+p2d --help
+```
+
+For development use `pip install -e ".[dev]"`, then `pytest -q`.
+
 ## Web UI
 
 ```bash
@@ -139,5 +153,16 @@ is not a real plasmid; do not order it. Real vectors come from
 
 ## Licence
 
-MIT. ViennaRNA is an optional extra (`pip install p2d[fold]`) so that the core
-package stays permissively licensed and installs without a compiler.
+MIT, see `LICENSE`. ViennaRNA is an optional extra (`pip install protein2dna[fold]`) so that
+the core package stays permissively licensed and installs without a compiler.
+
+### Third-party data
+
+* **Codon usage** comes from [`python_codon_tables`](https://pypi.org/project/python_codon_tables/)
+  (CC0, derived from Kazusa CUTG). The bundled `ecoli_bl21` profile uses the *E. coli* K-12
+  table for BL21, which is standard practice and is recorded in the profile.
+* **Plasmid files are not redistributed.** `pTEST1` is synthetic. SnapGene, Addgene and vendor
+  maps carry their own terms (SnapGene's, for example, require attribution and a licence for
+  commercial use), so keep them on your own computer: put them in `~/.p2d/vectors` or upload
+  them in the UI, and they never leave it.
+* Depends on Biopython (Biopython License), PyYAML and Typer (MIT).

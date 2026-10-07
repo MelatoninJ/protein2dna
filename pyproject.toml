@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "p2d"
-version = "0.1.0"
+name = "protein2dna"
+version = "0.2.0"
 description = "Protein-to-DNA reverse translation that knows about your vector"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "YOUR NAME", email = "you@example.com" }]
+authors = [{ name = "Minjae Kim", email = "161689285+MelatoninJ@users.noreply.github.com" }]
 keywords = ["bioinformatics", "codon optimization", "cloning", "synthetic biology", "protein design"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -30,8 +30,8 @@ fold = ["ViennaRNA>=2.6"]          # kept optional: different licence, heavy bui
 dev = ["pytest>=8", "ruff>=0.6", "pytest-cov", "hypothesis>=6"]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USER/p2d"
-Issues = "https://github.com/YOUR_USER/p2d/issues"
+Homepage = "https://github.com/MelatoninJ/protein2dna"
+Issues = "https://github.com/MelatoninJ/protein2dna/issues"
 
 [project.scripts]
 p2d = "p2d.cli:app"

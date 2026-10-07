@@ -3,8 +3,8 @@ title: "p2d: vector-aware protein-to-DNA reverse translation"
 message: "If you use this software, please cite it."
 type: software
 authors:
-  - family-names: "YOUR FAMILY NAME"
-    given-names: "YOUR GIVEN NAME"
-repository-code: "https://github.com/YOUR_USER/p2d"
+  - family-names: "Kim"
+    given-names: "Minjae"
+repository-code: "https://github.com/MelatoninJ/protein2dna"
 license: MIT
-version: 0.1.0
+version: 0.2.0

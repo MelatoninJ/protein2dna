@@ -1,7 +1,7 @@
 # Contributing
 
 ```bash
-git clone https://github.com/YOUR_USER/p2d && cd p2d
+git clone https://github.com/MelatoninJ/protein2dna && cd protein2dna
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 pytest -q && ruff check .
@@ -57,3 +57,16 @@ Open an issue before starting anything on the v0.2+ roadmap (the codon
 optimiser, enzyme-pair search, Addgene integration, multi-chain linkage) —
 these have design decisions attached that are worth settling in an issue
 first.
+
+
+## Testing against real plasmids
+
+Real vectors are not in the repository because their licences differ. Tests that need them
+read the folder named by `P2D_VECTOR_SAMPLES` and are skipped when it is unset:
+
+```bash
+P2D_VECTOR_SAMPLES=~/vectors pytest -q
+```
+
+The suite looks for `pET-28a_plus.dna` (SnapGene) and `U13853.gb`, `U13852.gb`, `U13850.gb`
+(pGEX-4T-1, 3X, 2T from NCBI). Please do not commit plasmid files.

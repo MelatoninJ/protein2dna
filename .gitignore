@@ -12,3 +12,12 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+
+# tool and local files
+skills-lock.json
+.env
+.p2d/
+
+# plasmid files are often under their own licence (SnapGene, vendors): never commit them by accident
+*.dna
+vector-samples/
