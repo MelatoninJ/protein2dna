@@ -24,13 +24,28 @@ pip install -e .
 p2d ui            # opens http://127.0.0.1:8765 in your browser
 ```
 
-Paste a protein (or FASTA) and pick a vector. p2d reads the vector's map and lists the
-enzymes that cut it once inside the expression region; choose a 5' and a 3' enzyme (the
-list rules out wrong-way-round, touching and same-ended pairs, and any enzyme your
-protein forces into the DNA, each with the reason). Then read the fusion map:
-the exact protein the construct will make, scar residues included. Copy the insert
-or download FASTA and GenBank. It runs only on your computer, binds to loopback,
-and needs no dependencies beyond the library itself.
+1. **Pick a plasmid.** Use the bundled test vector, one of your own files, an upload, or
+   pasted text. GenBank (`.gb`), SnapGene (`.dna`) and FASTA are read; a plasmid stored on
+   the opposite strand (SnapGene's own pET-28a(+) is) is flipped automatically. Put files
+   you do not want to re-upload in `~/.p2d/vectors` (or set `P2D_VECTOR_DIR`) and they show
+   up in the list; nothing is copied or sent anywhere.
+2. **Confirm where translation starts.** p2d offers the likely start codons with their
+   evidence (an annotated start codon, a ribosome binding site, a T7 promoter) and you
+   choose.
+3. **Choose two restriction sites by position.** Every site in the window is listed, and
+   an enzyme the plasmid cuts several times is shown as "2 of 3" and so on. Two sites work
+   when no other site of either enzyme lies in the part you keep; each unavailable site
+   comes with the reason (wrong way round, touching, same ends, forced by your protein).
+4. **Choose the C-terminus.** A stop codon, or read on into the vector's His tag (p2d adds
+   the bases that put it in frame; some vectors, pET-28a(+) among them, have the tag one
+   base off the start codon's frame).
+5. **Read the construct summary.** Fusion protein, plasmid size before and after, the
+   piece replaced, the bases added for the reading frame, a check digest (fragment sizes
+   before and after) and the DNA to order, plus the whole finished plasmid as GenBank with
+   the vector's annotations carried over.
+
+It runs only on your computer, binds to loopback, and needs no dependencies beyond the
+library itself.
 
 ## Why this exists
 
