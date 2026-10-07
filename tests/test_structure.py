@@ -78,12 +78,34 @@ def test_empty_vector_orf_translates_as_expected():
 # -------------------------------------------------------------------- hosts
 
 
-def test_host_loads_and_flags_placeholder_table():
-    with pytest.warns(UserWarning, match="placeholder"):
+def test_bundled_host_is_verified_and_cited():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         h = p2d.load_host("ecoli_bl21")
-    assert not h.codon_table_verified
+    usage = h.raw["codon_usage"]
+    assert h.codon_table_verified
+    assert "python_codon_tables" in usage["source"]
+    assert "e_coli_316407" in usage["source"]
+    assert "K-12" in usage["note"]
     assert h.best_codon("M") == "ATG"
     assert h.best_codon("*") == "TAA"
+
+
+def test_unverified_profile_still_warns(tmp_path):
+    profile = tmp_path / "fake.yaml"
+    profile.write_text(
+        "name: Fake host\n"
+        "slug: fake\n"
+        "codon_usage:\n"
+        '  source: "PLACEHOLDER"\n'
+        "  verified: false\n"
+        "  table: {M: {ATG: 1.0}}\n"
+    )
+    with pytest.warns(UserWarning, match="placeholder"):
+        h = p2d.load_host(profile)
+    assert not h.codon_table_verified
 
 
 def test_every_residue_has_a_codon():

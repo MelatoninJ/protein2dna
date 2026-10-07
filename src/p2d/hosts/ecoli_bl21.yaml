@@ -2,34 +2,34 @@ name: Escherichia coli BL21(DE3)
 slug: ecoli_bl21
 taxid: 469008
 
-# PLACEHOLDER VALUES -- see docs/hosts.md before trusting these.
-# Replace with a cited table (Kazusa CUTG taxid 469008, or HIVE-CUT) and
-# record the source + download date in `codon_usage.source` below.
+# The codon_usage block is generated -- do not edit by hand.
+# Regenerate with: python tools/build_codon_table.py --write
 codon_usage:
-  source: "PLACEHOLDER -- not yet replaced with a cited table"
-  verified: false
+  source: "python_codon_tables 0.1.18, table 'e_coli_316407' (E. coli K-12, Kazusa CUTG)"
+  note: "K-12 table used for a BL21 (B strain) profile -- standard practice; revisit if B-strain-specific data becomes available"
+  verified: true
   # fraction of each amino acid's codons, per codon
   table:
     A: {GCG: 0.36, GCC: 0.27, GCA: 0.21, GCT: 0.16}
-    R: {CGC: 0.40, CGT: 0.38, CGG: 0.10, CGA: 0.06, AGA: 0.04, AGG: 0.02}
-    N: {AAC: 0.55, AAT: 0.45}
-    D: {GAT: 0.63, GAC: 0.37}
     C: {TGC: 0.56, TGT: 0.44}
-    Q: {CAG: 0.65, CAA: 0.35}
+    D: {GAT: 0.63, GAC: 0.37}
     E: {GAA: 0.69, GAG: 0.31}
-    G: {GGC: 0.41, GGT: 0.34, GGG: 0.15, GGA: 0.10}
-    H: {CAT: 0.57, CAC: 0.43}
-    I: {ATC: 0.42, ATT: 0.51, ATA: 0.07}
-    L: {CTG: 0.50, TTA: 0.13, TTG: 0.13, CTC: 0.10, CTT: 0.10, CTA: 0.04}
-    K: {AAA: 0.77, AAG: 0.23}
-    M: {ATG: 1.00}
     F: {TTT: 0.57, TTC: 0.43}
-    P: {CCG: 0.52, CCA: 0.19, CCT: 0.16, CCC: 0.13}
-    S: {AGC: 0.28, TCT: 0.15, TCC: 0.15, TCG: 0.15, AGT: 0.15, TCA: 0.12}
-    T: {ACC: 0.44, ACG: 0.27, ACT: 0.17, ACA: 0.13}
-    W: {TGG: 1.00}
-    Y: {TAT: 0.57, TAC: 0.43}
+    G: {GGC: 0.41, GGT: 0.34, GGG: 0.15, GGA: 0.11}
+    H: {CAT: 0.57, CAC: 0.43}
+    I: {ATT: 0.51, ATC: 0.42, ATA: 0.07}
+    K: {AAA: 0.76, AAG: 0.24}
+    L: {CTG: 0.5, TTA: 0.13, TTG: 0.13, CTC: 0.1, CTT: 0.1, CTA: 0.04}
+    M: {ATG: 1}
+    N: {AAC: 0.55, AAT: 0.45}
+    P: {CCG: 0.53, CCA: 0.19, CCT: 0.16, CCC: 0.12}
+    Q: {CAG: 0.65, CAA: 0.35}
+    R: {CGC: 0.4, CGT: 0.38, CGG: 0.1, CGA: 0.06, AGA: 0.04, AGG: 0.02}
+    S: {AGC: 0.28, AGT: 0.15, TCC: 0.15, TCG: 0.15, TCT: 0.15, TCA: 0.12}
+    T: {ACC: 0.44, ACG: 0.27, ACT: 0.16, ACA: 0.13}
     V: {GTG: 0.37, GTT: 0.26, GTC: 0.22, GTA: 0.15}
+    W: {TGG: 1}
+    Y: {TAT: 0.57, TAC: 0.43}
   stop: {TAA: 0.64, TGA: 0.29, TAG: 0.07}
 
 # codons whose tRNA is limiting in standard BL21 (supplemented in Rosetta /
