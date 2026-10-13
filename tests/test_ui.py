@@ -525,3 +525,62 @@ def test_example_sequence_is_valid_and_designs_cleanly(pt1):
     assert len(seq) == 237
     r = service.design(req(pt1, protein=seq, upstream="NdeI:144", downstream="XhoI:174"))
     assert r["ok"] and not [i for i in r["issues"] if i["severity"] != "info"]
+
+
+# ----------------------------------------------------------------- the order
+
+
+def test_the_result_carries_the_dna_to_order(pt1):
+    r = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174"))
+    o = r["order"]
+    assert (len(o["clamp_5"]), len(o["clamp_3"])) == (6, 6), "six extra bases each side by default"
+    assert o["dna"] == o["clamp_5"] + r["insert_dna"] + o["clamp_3"] and o["length"] == len(
+        o["dna"]
+    )
+    a, b = o["coding_span"]
+    assert b - a == 3 * len(PEPTIDE) and o["dna"][a : a + 3] != ""
+    assert o["insert_span"] == [6, 6 + len(r["insert_dna"])]
+    assert o["ligation"]["ok"] and "exactly" in o["ligation"]["message"]
+    assert 0 < o["gc"] < 1 and o["longest_homopolymer"] >= 1
+    assert r["fasta"] == f">{r['filename']}_order\n{o['dna']}\n"
+    assert r["insert_fasta"] == f">{r['filename']}_insert\n{r['insert_dna']}\n"
+
+
+@pytest.mark.parametrize("c5, c3", [(0, 0), (3, 12), ("4", "0"), (30, 30)])
+def test_extra_bases_follow_the_request(pt1, c5, c3):
+    r = service.design(
+        req(pt1, upstream="BamHI:150", downstream="XhoI:174", clamp_5=c5, clamp_3=c3)
+    )
+    o = r["order"]
+    assert (len(o["clamp_5"]), len(o["clamp_3"])) == (int(c5), int(c3))
+    assert o["ligation"]["ok"] and r["ok"]
+
+
+def test_blank_extra_bases_mean_the_default(pt1):
+    r = service.design(
+        req(pt1, upstream="NdeI:144", downstream="XhoI:174", clamp_5="", clamp_3=None)
+    )
+    assert (len(r["order"]["clamp_5"]), len(r["order"]["clamp_3"])) == (6, 6)
+
+
+@pytest.mark.parametrize(
+    "patch, message",
+    [
+        ({"clamp_5": -1}, "between 0 and 30"),
+        ({"clamp_3": 31}, "between 0 and 30"),
+        ({"clamp_5": "abc"}, "whole numbers"),
+        ({"clamp_3": 2.5}, "whole numbers"),
+        ({"clamp_5": True}, "whole numbers"),
+    ],
+)
+def test_bad_extra_bases_are_clean_input_errors(pt1, patch, message):
+    with pytest.raises(service.InputError, match=message):
+        service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", **patch))
+
+
+def test_the_page_asks_for_the_extra_bases():
+    html = static_text("index.html")
+    for needle in ('id="clamp-5"', 'id="clamp-3"', 'value="6"', "Extra bases for ordering"):
+        assert needle in html
+    js = static_text("app.js")
+    assert "clamp_5" in js and "DNA to order" in js

@@ -63,6 +63,7 @@ class InsertDesign:
     issues: list[Issue] = field(default_factory=list)
     stop_in_insert: bool = False
     metrics: dict = field(default_factory=dict)  # codon metrics from the optimiser
+    host_motifs: list[str] = field(default_factory=list)  # host preferences it was designed against
 
     @property
     def errors(self) -> list[Issue]:
@@ -385,6 +386,7 @@ def design_insert(
         issues=issues,
         stop_in_insert=want_stop,
         metrics=result.metrics,
+        host_motifs=list(host.soft_motifs()),
     )
     _ = down_frame_offset
     return design

@@ -124,6 +124,21 @@
         </div>
       </fieldset>
 
+      <fieldset class="field">
+        <legend>Extra bases for ordering</legend>
+        <div class="pair">
+          <div class="field">
+            <label for="clamp-5">At the 5' end</label>
+            <input id="clamp-5" name="clamp_5" type="number" min="0" max="30" value="6" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="clamp-3">At the 3' end</label>
+            <input id="clamp-3" name="clamp_3" type="number" min="0" max="30" value="6" inputmode="numeric">
+          </div>
+        </div>
+        <p class="help">Enzymes cut poorly at the very end of a DNA fragment, so a synthetic fragment needs a few bases beyond each site. They are cut away and never reach your plasmid. Six on each side is a common guideline; some enzymes need fewer.</p>
+      </fieldset>
+
       <div class="field">
         <label for="host">Expression host</label>
         <select id="host" name="host"></select>

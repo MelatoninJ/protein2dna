@@ -29,6 +29,7 @@ from p2d.assemble import assemble
 from p2d.enzymes import CutSite, find_cut_site, list_cut_sites, plan_cut, upstream_problem
 from p2d.frame import find_cterm_tag
 from p2d.optimize import OptimizationRequest, optimize_coding
+from p2d.order import DEFAULT_CLAMP, MAX_CLAMP, make_order
 from p2d.report import construct_report
 from p2d.vector import Vector
 from p2d.vectorio import (
@@ -436,6 +437,19 @@ def design(request: dict) -> dict:
         if not 0 <= seed < 2**32:
             raise InputError("Seed must be between 0 and 4294967295.")
 
+    clamps = []
+    for key in ("clamp_5", "clamp_3"):
+        raw = request.get(key)
+        if isinstance(raw, bool) or (isinstance(raw, float) and not raw.is_integer()):
+            raise InputError("Extra bases must be whole numbers.")
+        try:
+            n = DEFAULT_CLAMP if raw in (None, "") else int(raw)
+        except (TypeError, ValueError):
+            raise InputError("Extra bases must be whole numbers.") from None
+        if not 0 <= n <= MAX_CLAMP:
+            raise InputError(f"Extra bases must be between 0 and {MAX_CLAMP}.")
+        clamps.append(n)
+
     if not (request.get("upstream") and request.get("downstream")):
         raise InputError("Choose both a 5' and a 3' site.")
     try:
@@ -464,6 +478,7 @@ def design(request: dict) -> dict:
         raise InputError(str(exc)) from exc
 
     d = a.design
+    order = make_order(a, *clamps)
     coding_in_insert = d.coding_start - d.up.start
     segments, pos = [], 1
     for seg in a.segments:
@@ -483,7 +498,7 @@ def design(request: dict) -> dict:
     SeqIO.write(a.to_record(), gb, "genbank")
     name = f"{v.name}_{up.enzyme}-{down.enzyme}"
     return {
-        "ok": a.ok,
+        "ok": a.ok and order.ok,
         "vector": v.name,
         "site": site.name,
         "upstream": up.label,
@@ -496,11 +511,23 @@ def design(request: dict) -> dict:
         "issues": [
             {"severity": i.severity.value, "code": i.code, "message": i.message}
             for i in sorted(
-                a.issues, key=lambda i: ("error", "warning", "info").index(i.severity.value)
+                [*a.issues, *order.issues],
+                key=lambda i: ("error", "warning", "info").index(i.severity.value),
             )
         ],
         "insert_dna": a.insert_dna,
         "coding_span": [coding_in_insert, coding_in_insert + len(d.coding)],
+        "order": {
+            "dna": order.dna,
+            "clamp_5": order.clamp_5,
+            "clamp_3": order.clamp_3,
+            "insert_span": [order.insert_start, order.insert_end],
+            "coding_span": list(order.coding_span),
+            "length": order.length,
+            "gc": order.gc,
+            "longest_homopolymer": order.longest_homopolymer,
+            "ligation": {"ok": order.ligation.ok, "message": order.ligation.message},
+        },
         "insert_bp": len(a.insert_dna),
         "plasmid_bp": len(a.seq),
         "metrics": {
@@ -511,6 +538,7 @@ def design(request: dict) -> dict:
         },
         "report": construct_report(a),
         "genbank": gb.getvalue(),
-        "fasta": f">{name}_insert\n{a.insert_dna}\n",
+        "fasta": f">{name}_order\n{order.dna}\n",
+        "insert_fasta": f">{name}_insert\n{a.insert_dna}\n",
         "filename": name,
     }

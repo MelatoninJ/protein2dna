@@ -57,10 +57,15 @@ p2d ui
 4. **Choose the C-terminus.** A stop codon, or read on into the vector's tag (p2d adds
    the bases that put it in frame; some vectors, pET-28a(+) among them, have the tag one
    base off the start codon's frame).
-5. **Read the summary.** Fusion protein, plasmid size before and after, the
-   piece replaced, the bases added for the reading frame, a check digest (fragment sizes
-   before and after) and the DNA to order, plus the whole finished plasmid as GenBank with
-   the vector's annotations carried over.
+5. **Set the extra bases for ordering.** A restriction site at the very end of a synthetic
+   fragment often fails to cut, so p2d adds bases outside each site (six per side by default,
+   NEB's [general guideline](https://www.neb.com/tools-and-resources/usage-guidelines/cleavage-close-to-the-end-of-dna-fragments);
+   some enzymes need fewer). They are cut away and never reach the plasmid.
+6. **Read the summary and take the DNA to order.** Fusion protein, plasmid size before and
+   after, the piece replaced, the bases added for the reading frame, and a check digest
+   (fragment sizes before and after). The order is checked in silico: it is cut with
+   Biopython's cut positions and ligated into the vector, and must give the planned plasmid
+   exactly. The whole finished plasmid is available as GenBank with the vector's annotations.
 
 It runs only on your computer, binds to loopback, and needs no dependencies beyond the
 library itself. The same steps are available from code, below.
@@ -125,6 +130,11 @@ assembly = p2d.assemble(design)
 print(assembly.ok, assembly.protein)
 print(construct_report(assembly)["sizes"])  # plasmid before/after, replaced piece, insert, ...
 SeqIO.write(assembly.to_record(), "finished_plasmid.gb", "genbank")
+
+# 5. the sequence to order: the insert plus extra bases outside each site (6 per side by default)
+order = p2d.make_order(assembly)
+print(order.dna)
+print(order.ligation.message)  # the order was cut and ligated into the vector in silico
 ```
 
 `plan_cut` refuses a pair that would not work and says why (wrong way round, touching, same
@@ -173,6 +183,8 @@ p2d ui                                     # the local website
   with the vector, by a search; a site your protein forces is reported, not hidden
 - **Host preferences**: internal Shine-Dalgarno, Chi sites and long homopolymer runs are
   avoided when a path exists, and any that the protein forces are named in a warning
+- **The order itself**: extra bases outside each site that create no new cloning site or host
+  motif, and an in-silico digest and ligation of the whole order that must reproduce the plasmid
 - **Which sites you can use**: order, spacing, compatible ends, and whether a second site of
   the same enzyme would cut the backbone you keep
 - **The C-terminus**: a stop codon, or a read into the vector's His tag with the bases that
@@ -220,11 +232,11 @@ Three, and they are load-bearing:
 |---|---|
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
-| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position; C-terminus choice; construct report; host motifs and homopolymer limits as soft preferences ✅ |
-| 0.3 | gene-only mode for synthesis orders (no vector), vendor synthesis limits with references, GC and repeat refinement, automatic enzyme-pair ranking, tag and linker choices in the website, first PyPI release |
+| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position; C-terminus choice; construct report; host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
+| 0.3 | vendor synthesis limits with references, GC and repeat refinement, automatic enzyme-pair ranking, tag and linker choices in the website, first PyPI release |
 | 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy, more host profiles |
 | 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
-| later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, Addgene |
+| later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, a vector-free mode, Addgene |
 
 ## Bundled vector
 

@@ -436,19 +436,26 @@ function legendRow(seg) {
 }
 
 function dnaView(r) {
-  const [a, b] = r.coding_span;
-  const seq = r.insert_dna;
+  // the order is clamp + insert + clamp; inside the insert only the coding region is dark
+  const o = r.order;
+  const seq = o.dna;
+  const [ins0, ins1] = o.insert_span;
+  const [cds0, cds1] = o.coding_span;
+  const kind = (i) => (i < ins0 || i >= ins1 ? "clamp" : i >= cds0 && i < cds1 ? "cds" : "flank");
   const rows = [];
   for (let i = 0; i < seq.length; i += 60) {
     const end = Math.min(i + 60, seq.length);
     const parts = [];
-    const cut = (from, to, cls) => { if (to > from) parts.push(h("span", { class: cls, text: seq.slice(from, to) })); };
-    cut(i, Math.min(end, a), "flank");
-    cut(Math.max(i, a), Math.min(end, b), "cds");
-    cut(Math.max(i, b), end, "flank");
+    let from = i;
+    for (let j = i + 1; j <= end; j++) {
+      if (j === end || kind(j) !== kind(from)) {
+        parts.push(h("span", { class: kind(from), text: seq.slice(from, j) }));
+        from = j;
+      }
+    }
     rows.push(h("div", { class: "dna-line" }, h("span", { class: "n", text: String(i + 1) }), h("span", null, parts)));
   }
-  return h("div", { class: "dna", tabindex: "0", role: "group", "aria-label": "Insert DNA sequence" }, rows);
+  return h("div", { class: "dna", tabindex: "0", role: "group", "aria-label": "DNA to order" }, rows);
 }
 
 function download(name, text) {
@@ -547,16 +554,26 @@ function renderResult(r) {
             h("div", null, h("p", { text: i.message }), h("span", { class: "code", text: i.code })))))
       : h("p", { class: "none", text: "No warnings. The insert is in frame at both junctions and carries no extra cutting sites." }));
 
+  const o = r.order;
   const copyBtn = h("button", { type: "button", class: "secondary", text: "Copy DNA" });
-  copyBtn.addEventListener("click", () => copyText(copyBtn, r.insert_dna));
+  copyBtn.addEventListener("click", () => copyText(copyBtn, o.dna));
+  const extra = o.clamp_5.length + o.clamp_3.length;
   const dna = h("section", { "aria-labelledby": "dna-h" },
     h("div", { class: "dna-head" },
-      h("h2", { id: "dna-h", text: "Insert DNA" }),
+      h("h2", { id: "dna-h", text: "DNA to order" }),
       h("div", { class: "actions" }, copyBtn,
-        h("button", { type: "button", class: "secondary", text: "Download FASTA", onclick: () => download(`${r.filename}_insert.fasta`, r.fasta) }),
+        h("button", { type: "button", class: "secondary", text: "Download FASTA", onclick: () => download(`${r.filename}_order.fasta`, r.fasta) }),
         h("button", { type: "button", class: "secondary", text: "Download GenBank", onclick: () => download(`${r.filename}.gb`, r.genbank) }))),
+    h("p", { class: "ordermeta" },
+      h("span", null, "Length ", h("b", { text: bp(o.length) })),
+      h("span", null, "GC ", h("b", { text: `${(o.gc * 100).toFixed(1)}%` })),
+      h("span", null, "Longest run ", h("b", { text: `${o.longest_homopolymer} bases` })),
+      h("span", null, "Extra bases ", h("b", { text: `${o.clamp_5.length} + ${o.clamp_3.length}` }))),
     dnaView(r),
-    h("p", { class: "key", text: "Dark bases are your coding region. Lighter bases are the cloning sites and linker bases around it. The GenBank file is the whole finished plasmid with the vector's annotations." }));
+    h("p", { class: "key", text: extra
+      ? "Faint bases at both ends are the extra bases outside the sites: they let the enzymes cut and are removed by the digest. Lighter bases inside are the sites and any frame pads. Dark bases are your coding region. The GenBank file is the whole finished plasmid with the vector's annotations."
+      : "Lighter bases are the cloning sites and any frame pads. Dark bases are your coding region. The GenBank file is the whole finished plasmid with the vector's annotations." }),
+    h("p", { class: `ligation${o.ligation.ok ? "" : " bad"}`, text: `${o.ligation.ok ? "Checked in silico: " : "Check failed: "}${o.ligation.message}.` }));
 
   setResult(h("div", null, verdict, stats), constructSummary(r), map, issues, dna);
 }
@@ -585,6 +602,7 @@ async function onSubmit(e) {
     vector_id: vec.id, start: currentStart(), protein: form.get("protein"),
     upstream: form.get("upstream"), downstream: form.get("downstream"), cterm: form.get("cterm"),
     host: form.get("host"), strategy: form.get("strategy"), seed: form.get("seed"),
+    clamp_5: form.get("clamp_5"), clamp_3: form.get("clamp_3"),
   };
   try {
     const data = await post("/api/design", body);
