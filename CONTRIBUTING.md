@@ -20,6 +20,8 @@ adding **one YAML file** to `src/p2d/hosts/` and nothing else.
    normally means polyadenylation signals (`AATAAA`), AU-rich elements
    (`ATTTA`), and splice donor/acceptor consensus sequences. For bacteria it
    means internal Shine–Dalgarno sequences and Chi sites.
+   `homopolymer_max` (the longest run of each base allowed) is read the same way: both are
+   soft preferences, so give a reference for any number you change.
 4. Add the slug to `test_structure.py::test_every_residue_has_a_codon` —
    `test_codon_table_is_self_consistent` and `test_codon_table_is_complete`
    will catch most transcription errors for you.

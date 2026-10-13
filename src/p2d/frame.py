@@ -330,6 +330,7 @@ def design_insert(
                 prefix=vector_before + up_site + pad_up,
                 suffix=stop_dna + pad_down + down_site + vector_after,
                 forbidden=forbidden,
+                soft_forbidden=host.soft_motifs(),
                 strategy=strategy,
                 seed=seed,
             )

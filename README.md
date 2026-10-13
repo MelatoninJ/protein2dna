@@ -171,6 +171,8 @@ p2d ui                                     # the local website
   avoid stop codons and new restriction sites, and reported to you
 - **Cloning sites kept out of the coding DNA**, on both strands and across the junctions
   with the vector, by a search; a site your protein forces is reported, not hidden
+- **Host preferences**: internal Shine-Dalgarno, Chi sites and long homopolymer runs are
+  avoided when a path exists, and any that the protein forces are named in a warning
 - **Which sites you can use**: order, spacing, compatible ends, and whether a second site of
   the same enzyme would cut the backbone you keep
 - **The C-terminus**: a stop codon, or a read into the vector's His tag with the bases that
@@ -178,6 +180,25 @@ p2d ui                                     # the local website
 - **Duplicate tags** between insert and vector
 - **Round-trip**: the payload must survive intact and in frame, with no internal stop and a
   terminating stop
+
+## What it does not do yet
+
+p2d makes promises about the *sequence*: the reading frame, which sites are in the DNA, the
+fusion protein you get, and the sizes. It does not yet promise anything about how much protein
+you will make.
+
+- **No experimental validation.** Codons follow a published usage table (the *E. coli* K-12
+  table stands in for BL21). That they raise expression in your hands has not been tested.
+- **Not implemented:** GC-content windows and repeat checks, 5′ mRNA folding, vendor synthesis
+  limits (length, GC, complexity), Dam/Dcm methylation and double-digest buffers.
+- **Host limits are defaults, not citations.** The homopolymer lengths and motifs in the host
+  profile come from the project template, not from a reference. They are soft preferences, so
+  they never block a design, but do not read them as vetted thresholds.
+- **Scope.** One protein chain at a time, and restriction-site cloning only (no Gibson or
+  Golden Gate). Tested on bacterial vectors: pET-28a(+), pGEX-4T-1/3X/2T and a synthetic one.
+  Eukaryotic vectors are not supported.
+
+Review a design before you order it.
 
 ## Design rules
 
@@ -198,12 +219,12 @@ Three, and they are load-bearing:
 | version | adds |
 |---|---|
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
-| **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies (`HARMONIZED` not implemented) ✅ |
-| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position; C-terminus choice; construct report ✅ |
-| 0.3 | GC windows, 5′ ΔG (ViennaRNA), repeats, synthesis manufacturability |
-| 0.4 | automatic enzyme-pair ranking, Dam/Dcm methylation, buffer compatibility |
-| 0.5 | Addgene API, Gibson assembly, a hosted version of the website |
-| 1.0 | multi-chain linkage strategies, mammalian host profiles, Golden Gate |
+| **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
+| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position; C-terminus choice; construct report; host motifs and homopolymer limits as soft preferences ✅ |
+| 0.3 | gene-only mode for synthesis orders (no vector), vendor synthesis limits with references, GC and repeat refinement, automatic enzyme-pair ranking, tag and linker choices in the website, first PyPI release |
+| 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy, more host profiles |
+| 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
+| later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, Addgene |
 
 ## Bundled vector
 

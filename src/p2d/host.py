@@ -27,6 +27,26 @@ class HostProfile:
     stop_usage: dict[str, float] = field(default_factory=dict)
     rare_codons: set[str] = field(default_factory=set)
     forbidden_motifs: list[dict] = field(default_factory=list)
+    homopolymer_max: dict[str, int] = field(default_factory=dict)
+
+    def soft_motifs(self) -> dict[str, str]:
+        """Sequences the optimiser should avoid when it can: ``{pattern: why}``.
+
+        These are preferences of the host, not cloning requirements, so a protein that
+        forces one (a run of single-codon residues) keeps it and is told so instead of
+        failing.  Includes each homopolymer run one longer than the profile allows.
+        """
+        out = {
+            str(m["pattern"]).upper(): str(m.get("reason", "host motif"))
+            for m in self.forbidden_motifs
+            if m.get("pattern")
+        }
+        for base, limit in self.homopolymer_max.items():
+            out[base.upper() * (int(limit) + 1)] = (
+                f"run of {int(limit) + 1} or more {base.upper()}, longer than this host "
+                "profile allows"
+            )
+        return out
 
     @property
     def codon_table_verified(self) -> bool:
@@ -62,6 +82,7 @@ def _parse(data: dict) -> HostProfile:
         stop_usage=dict(usage.get("stop", {"TAA": 1.0})),
         rare_codons=set(data.get("rare_codons", [])),
         forbidden_motifs=list(data.get("forbidden_motifs", [])),
+        homopolymer_max=dict(data.get("homopolymer_max", {})),
     )
     if not profile.codon_table_verified:
         warnings.warn(

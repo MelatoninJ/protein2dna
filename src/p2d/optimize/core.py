@@ -41,6 +41,9 @@ class OptimizationRequest:
     strategy: CodonStrategy = CodonStrategy.WEIGHTED_SAMPLE
     seed: int | None = None
     usage_floor: float = DEFAULT_USAGE_FLOOR  # WEIGHTED_SAMPLE only
+    # Preferences, ``{pattern: why}``: avoided when a path exists, otherwise kept and
+    # reported.  ``forbidden`` stays a hard requirement and always wins.
+    soft_forbidden: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -212,9 +215,50 @@ def _metrics(req: OptimizationRequest, codons: list[str]) -> dict:
 # ------------------------------------------------------------------- public
 
 
+def _attempt(req: OptimizationRequest, forbidden: list[str], noise):
+    """One DP run against ``forbidden``.
+
+    Returns ``(codons, failure, floor_note, floor)``; ``codons`` is None when no path exists.
+    The usage floor keeps sampling away from rare codons.  If it leaves no path it is
+    dropped before concluding a site is unavoidable: that is a statement about the
+    protein, not about codon preference.
+    """
+    dfa = Automaton(forbidden)
+    sampling = req.strategy is CodonStrategy.WEIGHTED_SAMPLE
+    floors = [req.usage_floor, 0.0] if sampling and req.usage_floor > 0 else [0.0]
+    failure = None
+    for floor in floors:
+        codons, failure = _solve(_options(req, noise, floor), dfa, req.prefix, req.suffix)
+        if codons is not None:
+            note = None
+            if floor != floors[0]:
+                note = Issue(
+                    Severity.INFO,
+                    "usage_floor_relaxed",
+                    f"no site-free path used only codons with usage >= {floors[0]:g}; "
+                    "rarer codons were allowed",
+                )
+            return codons, None, note, floor
+    return None, failure, None, floors[-1]
+
+
+def _present(req: OptimizationRequest, dna: str, patterns: list[str]) -> list[str]:
+    """Which of ``patterns`` occur in ``dna`` (or across its junctions with the context)."""
+    lo, hi = len(req.prefix), len(req.prefix) + len(dna)
+    found = []
+    for pattern in patterns:
+        _, matches = Automaton([pattern]).scan(req.prefix + dna + req.suffix)
+        if any(m.start < hi and m.end > lo for m in matches):
+            found.append(pattern)
+    return found
+
+
 def optimize_coding(req: OptimizationRequest) -> OptimizationResult:
     """Choose synonymous codons for ``req.aa`` so that no forbidden site appears
     anywhere in ``prefix + dna + suffix`` that overlaps ``dna``.
+
+    ``forbidden`` is a hard requirement.  ``soft_forbidden`` patterns are avoided as far as
+    the hard ones and each other allow; any that remain are named in a warning.
 
     On failure ``dna`` is the naive best-codon sequence and the result carries an
     ``unavoidable_site`` error; callers must check ``result.ok`` before using it.
@@ -227,32 +271,36 @@ def optimize_coding(req: OptimizationRequest) -> OptimizationResult:
     aa = req.aa.upper()
     if aa != req.aa:
         req = OptimizationRequest(**{**req.__dict__, "aa": aa})
-    dfa = Automaton(req.forbidden)
-
     sampling = req.strategy is CodonStrategy.WEIGHTED_SAMPLE
     noise = _gumbel_noise(req) if sampling else None
     issues: list[Issue] = []
 
-    # The floor keeps sampling away from rare codons.  If it leaves no path, drop
-    # it before concluding a site is unavoidable: that is a statement about the
-    # protein, not about codon preference.
-    floors = [req.usage_floor, 0.0] if sampling and req.usage_floor > 0 else [0.0]
-    codons: list[str] | None = None
-    failure: _Failure | None = None
-    for floor in floors:
-        options = _options(req, noise, floor)
-        codons, failure = _solve(options, dfa, req.prefix, req.suffix)
+    hard = list(req.forbidden)
+    soft = [p for p in req.soft_forbidden if p not in hard]
+    codons, failure, note, floor = _attempt(req, hard + soft, noise)
+
+    if codons is None and soft:
+        # Either the hard sites are unavoidable (report those), or the preferences do not all
+        # fit: honour as many as possible, in the order given, and say which were given up.
+        codons, failure, note, floor = _attempt(req, hard, noise)
         if codons is not None:
-            if floor != floors[0]:
+            chosen: list[str] = []
+            for pattern in soft:
+                if _attempt(req, hard + chosen + [pattern], noise)[0] is not None:
+                    chosen.append(pattern)
+            codons, failure, note, floor = _attempt(req, hard + chosen, noise)
+            for pattern in _present(req, "".join(codons), [p for p in soft if p not in chosen]):
                 issues.append(
                     Issue(
-                        Severity.INFO,
-                        "usage_floor_relaxed",
-                        f"no site-free path used only codons with usage >= {floors[0]:g}; "
-                        "rarer codons were allowed",
+                        Severity.WARNING,
+                        "soft_site_kept",
+                        f"{pattern} ({req.soft_forbidden[pattern]}) could not be avoided "
+                        "together with the cloning sites and your protein, so it stays "
+                        "in the sequence.",
                     )
                 )
-            break
+    if note:
+        issues.append(note)
 
     if codons is None:
         assert failure is not None
@@ -289,6 +337,10 @@ def optimize_coding(req: OptimizationRequest) -> OptimizationResult:
             )
         )
 
+    dna = "".join(codons)
     return OptimizationResult(
-        dna="".join(codons), issues=issues, metrics=_metrics(req, codons) | {"feasible": True}
+        dna=dna,
+        issues=issues,
+        metrics=_metrics(req, codons)
+        | {"feasible": True, "soft_kept": len(_present(req, dna, soft))},
     )
