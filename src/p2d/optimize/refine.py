@@ -226,7 +226,8 @@ def refine(
     """Swap synonymous codons to bring ``codons`` inside ``limits``; sites stay out.
 
     GC first: each round ranks the useful single-codon swaps and applies them best-first,
-    re-scoring each against what has already changed.  Then repeats, one swap at a time, never at the cost of GC.
+    re-scoring each against what has already changed.  Then repeats, one swap at a time,
+    never at the cost of GC.
     A swap is taken only if it adds no occurrence of any pattern near the codon.
     """
     codons = list(codons)
