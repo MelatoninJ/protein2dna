@@ -41,6 +41,7 @@ def _static_bytes(name: str) -> bytes:
 POST_ROUTES = {
     "/api/vector": service.load_vector,
     "/api/sites": service.sites,
+    "/api/pairs": service.pairs,
     "/api/design": service.design,
 }
 # an uploaded plasmid arrives base64-encoded, so its route may carry up to ~5 MB of file

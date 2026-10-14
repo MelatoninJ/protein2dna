@@ -392,3 +392,18 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .ordermeta b { color: var(--text); font: 500 14px var(--font-mono); }
 .ligation { margin-top: 10px; font-size: 14px; padding: 10px 12px; border-radius: var(--radius); border-left: 3px solid var(--accent); background: var(--accent-wash); }
 .ligation.bad { border-color: var(--error); background: var(--error-wash); }
+
+/* pair suggestions */
+.suggest { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; margin-top: 12px; }
+.suggest .field { width: 190px; }
+.suggestions { margin-top: 12px; display: grid; gap: 0; }
+.suggestions .note { color: var(--muted); font-size: 13px; padding-bottom: 8px; }
+.sug { padding: 12px 0; border-top: 1px solid var(--border); display: grid; gap: 6px; }
+.sug .what { font-size: 14px; }
+.sug .what b { font: 500 13px var(--font-mono); overflow-wrap: anywhere; }
+.sug .facts { color: var(--muted); font-size: 13px; }
+.sug .use { justify-self: start; }
+.sug details { font-size: 13px; color: var(--muted); }
+.sug details summary { cursor: pointer; width: max-content; text-decoration: underline; text-underline-offset: 3px; }
+.sug details .alts { display: grid; gap: 6px; margin-top: 8px; }
+.sug details .alts button { justify-self: start; }

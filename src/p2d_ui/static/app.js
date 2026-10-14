@@ -371,6 +371,68 @@ function renderPairNote() {
   $("pair-note").textContent = text;
 }
 
+/* ----------------------------------------------------------- pair suggestions */
+const shortAa = (a) => (a.length > 26 ? `${a.slice(0, 12)}...${a.slice(-12)}` : a);
+
+function outcomeLine(g) {
+  const front = g.n_tag
+    ? h("span", null, "Keeps the vector's N-terminal sequence, ", h("b", { text: shortAa(g.before) }), ", in front of your protein.")
+    : g.before
+      ? h("span", null, "Starts with ", h("b", { text: shortAa(g.before) }), " then your protein.")
+      : h("span", null, "Starts with your first residue.");
+  const back = g.after
+    ? h("span", null, " Then ", h("b", { text: shortAa(g.after) }), " after it.")
+    : h("span", null, " Ends with your last residue.");
+  return h("p", { class: "what" }, front, back);
+}
+
+async function useSites(upId, downId) {
+  $("upstream").value = upId;
+  if ($("upstream").value !== upId) { // not in the current list, so widen the view first
+    $("win-all").click();
+    await new Promise((r) => setTimeout(r, 900));
+    $("upstream").value = upId;
+  }
+  await refreshSites();
+  $("downstream").value = downId;
+  if (enz) { syncCterm(); renderMap(); renderPairNote(); }
+  $("pair-note").scrollIntoView({ block: "nearest" });
+}
+
+async function suggestPairs() {
+  const box = $("suggestions");
+  if (!checkProtein(true)) return;
+  if (currentStart() == null) { box.hidden = false; box.replaceChildren(h("p", { class: "note", text: "Choose where translation starts first." })); return; }
+  box.hidden = false;
+  box.replaceChildren(h("p", { class: "note", text: "Trying every pair..." }));
+  try {
+    const data = await post("/api/pairs", { ...siteBody({}), n_tag: $("ntag-filter").value });
+    if (!data.groups.length) {
+      box.replaceChildren(h("p", { class: "note", text: `None of the ${data.considered} pairs in this window can clone this protein. Widen the window or relax the tag choice.` }));
+      return;
+    }
+    const intro = h("p", { class: "note", text: `${data.workable} of ${data.considered} pairs work, giving ${data.total_groups} different results. Ordered by how little they add to your protein, so the first is not necessarily the one you want. Pairs that give the same protein are grouped.` });
+    const rows = data.groups.map((g) => {
+      const best = g.pairs[0];
+      const facts = [`${g.pad_bases ? `${g.pad_bases} frame base${g.pad_bases > 1 ? "s" : ""} added` : "no frame bases added"}`, `${bp(best.plasmid_bp)} plasmid`, best.single_cutters ? "both enzymes cut once" : "an enzyme cuts more than once"].join(", ");
+      const alts = g.pairs.slice(1);
+      return h("div", { class: "sug" },
+        outcomeLine(g),
+        h("p", { class: "facts", text: facts }),
+        h("button", { type: "button", class: "secondary use", text: `Use ${best.up_label} + ${best.down_label}`, onclick: () => useSites(best.up, best.down) }),
+        alts.length
+          ? h("details", null,
+              h("summary", { text: `${g.n_pairs - 1} other pair${g.n_pairs > 2 ? "s" : ""} give the same protein` }),
+              h("div", { class: "alts" }, alts.map((p) => h("button", { type: "button", class: "secondary", text: `${p.up_label} + ${p.down_label}`, onclick: () => useSites(p.up, p.down) }))))
+          : null);
+    });
+    const more = data.total_groups > data.groups.length ? [h("p", { class: "note", text: `${data.total_groups - data.groups.length} more results are not shown. Narrow the window to see them.` })] : [];
+    box.replaceChildren(intro, ...rows, ...more);
+  } catch (err) {
+    box.replaceChildren(h("p", { class: "field-error", text: err.message }));
+  }
+}
+
 /* ------------------------------------------------------------------ results */
 function setResult(...nodes) {
   const box = $("result");
@@ -657,6 +719,7 @@ function initForm() {
   document.querySelectorAll('input[name="cterm"]').forEach((r) => r.addEventListener("change", refreshSites));
   for (const id of ["win-from", "win-to"]) $(id).addEventListener("input", () => { winTouched = true; scheduleSites(); });
   $("win-all").addEventListener("click", () => { winTouched = true; $("win-from").value = 1; $("win-to").value = vec.length; refreshSites(); });
+  $("suggest-btn").addEventListener("click", suggestPairs);
   $("win-orf").addEventListener("click", () => { winTouched = false; refreshSites(); });
   $("win-mcs").addEventListener("click", () => {
     if (!vec || !vec.mcs) return;

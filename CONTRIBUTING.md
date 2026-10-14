@@ -44,7 +44,7 @@ A vector without a golden test will not be merged.
 ## Scope
 
 Open an issue before starting anything on the v0.3+ roadmap (GC windows and mRNA
-folding, automatic enzyme-pair ranking, Addgene integration, multi-chain linkage).
+folding, Addgene integration, multi-chain linkage).
 These have design decisions attached that are worth settling in an issue first.
 The rules a change must respect are listed under "Architecture and rules" below.
 
@@ -99,6 +99,7 @@ src/p2d/
   enzymes.py    every cloning-grade site of a vector by position (list_cut_sites),
                 the rules for a chosen pair of *sites* (plan_cut), and the older
                 name-based picker for enzymes that cut once (candidate_enzymes)
+  recommend.py  every workable site pair designed and ranked by what it adds to the protein
   report.py     sizes, check-digest fragments, frame pads and protein stats of a design
   vectorio.py   read a plasmid from GenBank, SnapGene .dna, FASTA or pasted text, and
                 reverse-complement it if the expression cassette is on the minus strand

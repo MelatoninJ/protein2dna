@@ -91,6 +91,18 @@
           <button type="button" class="link" id="win-mcs" hidden>Annotated MCS</button>
         </div>
         <label class="check"><input type="checkbox" id="multi" checked> Include enzymes that cut more than once</label>
+        <div class="suggest">
+          <button type="button" class="secondary" id="suggest-btn">Suggest site pairs</button>
+          <div class="field">
+            <label for="ntag-filter">N-terminal tag</label>
+            <select id="ntag-filter">
+              <option value="any">Any</option>
+              <option value="keep">Keep the vector's</option>
+              <option value="remove">Remove it</option>
+            </select>
+          </div>
+        </div>
+        <div id="suggestions" class="suggestions" hidden aria-live="polite"></div>
         <div class="pair">
           <div class="field">
             <label for="upstream">5' site</label>

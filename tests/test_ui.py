@@ -584,3 +584,76 @@ def test_the_page_asks_for_the_extra_bases():
         assert needle in html
     js = static_text("app.js")
     assert "clamp_5" in js and "DNA to order" in js
+
+
+# ------------------------------------------------------------------ pair suggestions
+
+
+def test_pairs_group_workable_pairs_by_the_protein_they_give(pt1):
+    r = service.pairs(req(pt1))
+    assert (
+        r["workable"] == 16 and r["considered"] == 16 and r["total_groups"] == len(r["groups"]) == 4
+    )
+    first = r["groups"][0]
+    assert (first["before"], first["after"], first["n_tag"]) == ("MG", "", False)
+    assert first["n_pairs"] == 6 and len(first["pairs"]) == 6
+    row = first["pairs"][0]
+    assert (row["up"], row["up_label"]) == ("NcoI:85", "NcoI at 86")
+    assert set(row) >= {"down", "down_label", "single_cutters", "replaced_bp", "plasmid_bp"}
+    counted = sum(g["n_pairs"] for g in r["groups"])
+    assert counted == r["workable"], "every pair is in exactly one group"
+
+
+def test_a_suggested_pair_designs_to_exactly_what_was_promised(pt1):
+    r = service.pairs(req(pt1))
+    for g in r["groups"]:
+        p = g["pairs"][0]
+        d = service.design(req(pt1, upstream=p["up"], downstream=p["down"], cterm="stop"))
+        assert d["ok"] and d["plasmid_bp"] == p["plasmid_bp"]
+        assert d["protein"].startswith(g["before"] + PEPTIDE) and d["protein"].endswith(PEPTIDE)
+
+
+def test_the_tag_filter_and_the_c_terminus_reach_the_suggestions(pt1):
+    keep = service.pairs(req(pt1, n_tag="keep"))["groups"]
+    drop = service.pairs(req(pt1, n_tag="remove"))["groups"]
+    assert keep and all(g["n_tag"] for g in keep) and drop and not any(g["n_tag"] for g in drop)
+    tag = service.pairs(req(pt1, cterm="tag"))["groups"]
+    assert all(g["after"].endswith("HHHHHH") for g in tag)
+
+
+def test_pairs_input_errors_are_clean(pt1):
+    for patch, message in [
+        ({"n_tag": "maybe"}, "keep or remove"),
+        ({"cterm": "x"}, "Unknown C-terminus"),
+        ({"host": "yeast"}, "Unknown host"),
+        ({"protein": ""}, "Paste a protein"),
+        ({"window": [5, 5]}, "end after it starts"),
+    ]:
+        with pytest.raises(service.InputError, match=message):
+            service.pairs(req(pt1, **patch))
+    with pytest.raises(service.InputError, match="Choose the start codon"):
+        service.pairs({"vector_id": pt1[0], "protein": PEPTIDE})
+
+
+def test_too_wide_a_window_asks_to_be_narrowed(pt1):
+    seq = p2d.load_bundled().seq
+    many = seq[:300] + ("GAATTCGGATCCCTCGAGAAGCTTGCTAGC" * 25) + seq[300:]
+    r = service.load_vector({"text": many, "filename": "many"})
+    with pytest.raises(service.InputError, match="narrow the window"):
+        service.pairs(
+            {"vector_id": r["id"], "start": 87, "protein": PEPTIDE, "window": [0, len(many)]}
+        )
+
+
+def test_pairs_over_http_and_the_page_has_the_button(server):
+    resp, data = call(server, "POST", "/api/vector", {"bundled": "pTEST1"})
+    vid = json.loads(data)["id"]
+    resp, data = call(
+        server, "POST", "/api/pairs", {"vector_id": vid, "start": 87, "protein": PEPTIDE}
+    )
+    assert resp.status == 200 and json.loads(data)["groups"]
+    resp, data = call(server, "POST", "/api/pairs", {"vector_id": vid, "start": 87})
+    assert resp.status == 422
+    resp, _ = call(server, "POST", "/api/pairs", {}, {"Host": "evil.example"})
+    assert resp.status == 403
+    assert 'id="suggest-btn"' in static_text("index.html") and "/api/pairs" in static_text("app.js")

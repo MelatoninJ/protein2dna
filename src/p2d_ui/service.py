@@ -30,6 +30,7 @@ from p2d.enzymes import CutSite, find_cut_site, list_cut_sites, plan_cut, upstre
 from p2d.frame import find_cterm_tag
 from p2d.optimize import OptimizationRequest, optimize_coding
 from p2d.order import DEFAULT_CLAMP, MAX_CLAMP, make_order
+from p2d.recommend import group_by_outcome, rank_pairs
 from p2d.report import construct_report
 from p2d.vector import Vector
 from p2d.vectorio import (
@@ -50,6 +51,8 @@ STRATEGIES = {
     "max_cai": CodonStrategy.MAX_CAI,
 }
 CTERMS = {"stop": CTerm.STOP, "tag": CTerm.TAG, "vector_frame": CTerm.VECTOR_FRAME}
+MAX_GROUPS = 12  # distinct results returned by pairs()
+MAX_PAIRS_PER_GROUP = 12
 WINDOW_PAST_ORF = 150  # bp shown beyond the end of the expression ORF by default
 HOLDS_START_SLACK = 10  # bp shown before the start codon (NcoI-style sites begin there)
 
@@ -296,6 +299,28 @@ def _site_row(c: CutSite) -> dict:
     }
 
 
+def _window(entry: _Entry, v: Vector | None, window) -> tuple[int, int]:
+    """The stretch of plasmid to consider: the user's window, else the expression region."""
+    base = entry.analysis.vector
+    if window:
+        try:
+            lo, hi = int(window[0]), int(window[1])
+        except (TypeError, ValueError, IndexError):
+            raise InputError("The window must be two whole numbers.") from None
+        lo, hi = max(0, lo), min(len(base.seq), hi)
+        if lo >= hi:
+            raise InputError("The window must end after it starts.")
+        return lo, hi
+    if v is None:
+        return 0, len(base.seq)
+    orf_end = next(
+        (s.orf_end for s in entry.analysis.starts if s.position == v.expression_start), None
+    )
+    # a site that holds the start codon begins a few bases before it
+    lo = max(0, v.expression_start - HOLDS_START_SLACK)
+    return lo, min(len(base.seq), (orf_end or lo + 600) + WINDOW_PAST_ORF)
+
+
 def sites(request: dict) -> dict:
     """Sites in a window, judged as 5' sites and, once one is chosen, as its 3' partner."""
     entry = _entry(request.get("vector_id"))
@@ -309,24 +334,7 @@ def sites(request: dict) -> dict:
 
     start = request.get("start")
     v = _with_start(entry, start) if start not in (None, "") else None
-    window = request.get("window")
-    if window:
-        try:
-            lo, hi = int(window[0]), int(window[1])
-        except (TypeError, ValueError, IndexError):
-            raise InputError("The window must be two whole numbers.") from None
-        lo, hi = max(0, lo), min(len(base.seq), hi)
-        if lo >= hi:
-            raise InputError("The window must end after it starts.")
-    elif v is not None:
-        orf_end = next(
-            (s.orf_end for s in entry.analysis.starts if s.position == v.expression_start), None
-        )
-        # a site that holds the start codon begins a few bases before it
-        lo = max(0, v.expression_start - HOLDS_START_SLACK)
-        hi = min(len(base.seq), (orf_end or lo + 600) + WINDOW_PAST_ORF)
-    else:
-        lo, hi = 0, len(base.seq)
+    lo, hi = _window(entry, v, request.get("window"))
 
     shown = [c for c in entry.sites if lo <= c.start and c.end <= hi]
     if not request.get("include_multi", True):
@@ -405,6 +413,60 @@ def _downstream_verdict(v, up, c, protein, host, host_slug, cterm, conflict) -> 
         if not a.ok:
             return {**verdict, "ok": False, "reason": a.errors[0].message}
     return verdict
+
+
+def pairs(request: dict) -> dict:
+    """Every workable pair of sites for the protein, grouped by the protein each one gives."""
+    entry = _entry(request.get("vector_id"))
+    v = _with_start(entry, request.get("start"))
+    protein = parse_protein(str(request.get("protein", "")))
+    host_slug = str(request.get("host") or "ecoli_bl21")
+    if host_slug not in available_hosts():
+        raise InputError(f"Unknown host {host_slug!r}.")
+    cterm = CTERMS.get(str(request.get("cterm") or "stop"))
+    if cterm is None:
+        raise InputError("Unknown C-terminus choice.")
+    keep = {"any": None, "keep": True, "remove": False}.get(str(request.get("n_tag") or "any"))
+    if str(request.get("n_tag") or "any") not in ("any", "keep", "remove"):
+        raise InputError("N-terminal tag must be any, keep or remove.")
+    lo, hi = _window(entry, v, request.get("window"))
+
+    try:
+        options, tried = rank_pairs(
+            v, protein, load_host(host_slug), window=(lo, hi), cterm=cterm, n_tag=keep
+        )
+    except ValueError as exc:
+        raise InputError(str(exc)) from exc
+    groups = group_by_outcome(options)
+
+    def row(o):
+        return {
+            "up": o.up.id,
+            "down": o.down.id,
+            "up_label": o.up.label,
+            "down_label": o.down.label,
+            "single_cutters": o.single_cutters,
+            "replaced_bp": o.replaced_bp,
+            "plasmid_bp": o.plasmid_bp,
+        }
+
+    return {
+        "window": {"start": lo, "end": hi},
+        "considered": tried,
+        "workable": len(options),
+        "total_groups": len(groups),
+        "groups": [
+            {
+                "before": g.before,
+                "after": g.after,
+                "n_tag": g.n_tag,
+                "pad_bases": g.pad_bases,
+                "n_pairs": len(g.pairs),
+                "pairs": [row(o) for o in g.pairs[:MAX_PAIRS_PER_GROUP]],
+            }
+            for g in groups[:MAX_GROUPS]
+        ],
+    }
 
 
 # ---------------------------------------------------------------------- design
