@@ -69,8 +69,8 @@ def design(
         if site not in v.sites:
             typer.secho(
                 f"vector {v.name} has no registered insertion site {site!r}. "
-                "v0.1 needs the site defined in code (see p2d/vectors.py); "
-                "automatic enzyme-pair search lands in v0.4.",
+                "The command line needs the site defined in code (see p2d/vectors.py); "
+                "the website (`p2d ui`) lets you pick any two sites of your own plasmid.",
                 fg=typer.colors.RED,
             )
             raise typer.Exit(2)

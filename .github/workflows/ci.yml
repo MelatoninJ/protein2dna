@@ -22,3 +22,23 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
+      - if: matrix.python-version == '3.12'
+        run: pytest -q --cov=p2d --cov=p2d_ui --cov-report=term-missing:skip-covered --cov-fail-under=85
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - name: Install the wheel on its own and run it
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/clean/bin/python -I -c "import p2d, p2d_ui; assert p2d.run('KVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE').ok"
+          /tmp/clean/bin/p2d version

@@ -231,3 +231,13 @@ validation and shaping; no `innerHTML`; no em or en dashes in UI text; one accen
 colour, one radius; both light and dark themes; honour `prefers-reduced-motion`.
 
 Next: v0.3 (first PyPI release).
+
+## Releasing
+
+1. Move the `CHANGELOG.md` entries under a new version heading and set the same version in
+   `pyproject.toml`, `src/p2d/__init__.py` and `CITATION.cff`.
+2. Check `ruff check .`, `ruff format --check .` and `pytest -q`; CI also builds the package,
+   runs `twine check` and installs the wheel on its own.
+3. Tag `vX.Y.Z` and publish a GitHub release. The `Release` workflow builds the package and,
+   once PyPI trusted publishing is set up for this repository and the repository variable
+   `PUBLISH_TO_PYPI` is `true`, uploads it. No PyPI token is stored anywhere.
