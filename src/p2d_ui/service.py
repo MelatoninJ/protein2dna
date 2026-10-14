@@ -185,6 +185,38 @@ def _plan(protein: str, host_slug: str, request: dict) -> ConstructPlan:
     return ConstructPlan([chain], host=host_slug)
 
 
+LIMIT_FIELDS = {  # request key -> (Limits fields set, multiplier from the unit the user types)
+    "gc_min": (("gc_min",), 0.01),
+    "gc_max": (("gc_max",), 0.01),
+    "window_min": (("window_min",), 0.01),
+    "window_max": (("window_max",), 0.01),
+    "window_size": (("window_size",), 1),
+    "repeat_max": (("direct_max", "inverted_max"), 1),
+}
+
+
+def _limits(request: dict, host):
+    """The host's GC and repeat limits with any the user changed (percent, bases)."""
+    given = request.get("limits") or {}
+    if not isinstance(given, dict):
+        raise InputError("Limits must be a set of named numbers.")
+    override = {}
+    for key, raw in given.items():
+        if key not in LIMIT_FIELDS:
+            raise InputError(f"Unknown limit {key!r}.")
+        if raw in (None, ""):
+            continue
+        if isinstance(raw, bool) or not isinstance(raw, int | float):
+            raise InputError(f"{key} must be a number.")
+        fields, unit = LIMIT_FIELDS[key]
+        for field in fields:
+            override[field] = int(raw) if unit == 1 else round(raw * unit, 4)
+    try:
+        return host.limits(**override)
+    except ValueError as exc:
+        raise InputError(str(exc)[:1].upper() + str(exc)[1:] + ".") from exc
+
+
 def _catalog() -> dict:
     def rows(table):
         return [{"key": k, "name": p.name, "aa": p.aa} for k, p in table.items()]
@@ -196,7 +228,22 @@ def meta() -> dict:
     hosts = []
     for slug in available_hosts():
         h = load_host(slug)
-        hosts.append({"slug": slug, "name": h.name, "verified": h.codon_table_verified})
+        lim = h.limits()
+        hosts.append(
+            {
+                "slug": slug,
+                "name": h.name,
+                "verified": h.codon_table_verified,
+                "limits": {
+                    "gc_min": round(lim.gc_min * 100),
+                    "gc_max": round(lim.gc_max * 100),
+                    "window_size": lim.window_size,
+                    "window_min": round(lim.window_min * 100),
+                    "window_max": round(lim.window_max * 100),
+                    "repeat_max": lim.direct_max,
+                },
+            }
+        )
     return {
         "bundled": [
             {"id": n, "name": n, "length": len(load_bundled(n))} for n in available_bundled()
@@ -449,6 +496,7 @@ def _downstream_verdict(v, up, c, protein, host, host_slug, cterm, conflict, req
                     host,
                     strategy=CodonStrategy.MAX_CAI,
                     cterm=cterm,
+                    limits=_limits(request, host),
                 )
             )
         except ValueError as exc:
@@ -482,6 +530,7 @@ def pairs(request: dict) -> dict:
             window=(lo, hi),
             cterm=cterm,
             n_tag=keep,
+            limits=_limits(request, load_host(host_slug)),
             n_parts=tuple(resolve_parts(_part_keys(request, "n_parts"))),
             c_parts=tuple(resolve_parts(_part_keys(request, "c_parts"))),
         )
@@ -572,6 +621,7 @@ def design(request: dict) -> dict:
         raise InputError(str(exc)) from exc
 
     host = load_host(host_slug)
+    limits = _limits(request, host)
     plan = _plan(protein, host_slug, request)
     try:
         a = assemble(
@@ -583,6 +633,7 @@ def design(request: dict) -> dict:
                 strategy=STRATEGIES[strategy_key],
                 seed=seed,
                 cterm=CTERMS[cterm_key],
+                limits=limits,
             )
         )
     except ValueError as exc:
@@ -646,6 +697,11 @@ def design(request: dict) -> dict:
             "cai": d.metrics.get("cai"),
             "gc": d.metrics.get("gc"),
             "n_rare": d.metrics.get("n_rare"),
+            "gc_window_low": d.metrics.get("gc_window_low"),
+            "gc_window_high": d.metrics.get("gc_window_high"),
+            "repeat_bases": d.metrics.get("repeat_bases"),
+            "refined_swaps": d.metrics.get("refined_swaps"),
+            "window_size": limits.window_size,
             "strategy": d.metrics.get("strategy"),
         },
         "report": construct_report(a),

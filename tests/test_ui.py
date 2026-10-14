@@ -703,3 +703,48 @@ def test_unknown_or_malformed_parts_are_refused(pt1):
 def test_the_page_has_the_tag_and_linker_selects():
     html = static_text("index.html")
     assert all(f'id="{i}"' in html for i in ("n-tag", "n-linker", "c-linker", "c-tag"))
+
+
+# ---------------------------------------------------------------- GC and repeat limits
+
+
+def test_meta_gives_each_host_its_limits_in_percent():
+    host = service.meta()["hosts"][0]
+    assert host["limits"] == {
+        "gc_min": 35,
+        "gc_max": 65,
+        "window_size": 50,
+        "window_min": 25,
+        "window_max": 75,
+        "repeat_max": 20,
+    }
+
+
+def test_the_limits_chosen_reach_the_design(pt1):
+    base = dict(upstream="NcoI:85", downstream="XhoI:174")
+    tight = service.design(req(pt1, **base, limits={"gc_min": 55, "gc_max": 60}))
+    assert tight["ok"] and 0.55 <= tight["metrics"]["gc"] <= 0.60
+    assert tight["metrics"]["window_size"] == 50 and tight["metrics"]["gc_window_low"] is not None
+    open_ = service.design(req(pt1, **base, limits={"gc_min": 0, "gc_max": 100}))
+    assert open_["metrics"]["gc"] != tight["metrics"]["gc"]
+
+
+def test_bad_limits_are_refused(pt1):
+    base = dict(upstream="NcoI:85", downstream="XhoI:174")
+    for limits, message in [
+        ({"gc_min": 70, "gc_max": 30}, "above the upper"),
+        ({"window_size": 3}, "between 10 and 500"),
+        ({"nope": 1}, "Unknown limit"),
+        ({"gc_min": "lots"}, "must be a number"),
+        ({"gc_min": True}, "must be a number"),
+        ("gc", "named numbers"),
+    ]:
+        for call, extra in ((service.design, base), (service.pairs, {})):
+            with pytest.raises(service.InputError, match=message):
+                call(req(pt1, **extra, limits=limits))
+
+
+def test_the_page_has_the_limit_inputs():
+    html = static_text("index.html")
+    for i in ("gc-min", "gc-max", "window-size", "window-min", "window-max", "repeat-max"):
+        assert f'id="lim-{i}"' in html

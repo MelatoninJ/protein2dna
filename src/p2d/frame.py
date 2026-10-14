@@ -26,7 +26,7 @@ from Bio.Seq import Seq
 from .host import HostProfile
 from .issues import Issue, Severity
 from .model import TAGS, Chain, ConstructPlan, PartKind, PartSource, StopPolicy
-from .optimize import Automaton, CodonStrategy, OptimizationRequest, optimize_coding
+from .optimize import Automaton, CodonStrategy, Limits, OptimizationRequest, optimize_coding
 from .vector import EnzymeHit, InsertionSite, StartSource, Vector, enzyme_site, site_regex
 
 PAD_BASES = ["GC", "GG", "CG", "GA", "AC", "CA", "TC", "CT", "AG", "GT"]
@@ -201,6 +201,7 @@ def design_insert(
     strategy: CodonStrategy = CodonStrategy.WEIGHTED_SAMPLE,
     seed: int | None = None,
     cterm: CTerm = CTerm.VECTOR_FRAME,
+    limits: Limits | None = None,
 ) -> InsertDesign:
     if len(plan.chains) != 1:
         raise NotImplementedError("v0.1 handles single-chain constructs only")
@@ -344,6 +345,7 @@ def design_insert(
                 suffix=stop_dna + pad_down + down_site + vector_after,
                 forbidden=forbidden,
                 soft_forbidden=host.soft_motifs(),
+                limits=limits if limits is not None else host.limits(),
                 strategy=strategy,
                 seed=seed,
             )

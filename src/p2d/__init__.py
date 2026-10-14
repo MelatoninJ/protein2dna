@@ -21,7 +21,7 @@ from .model import (
     PartSource,
     StopPolicy,
 )
-from .optimize import CodonStrategy
+from .optimize import CodonStrategy, Limits
 from .order import Order, make_order
 from .vector import InsertionSite, StartSource, Vector
 from .vectors import available_bundled, load_bundled
@@ -40,6 +40,7 @@ __all__ = [
     "Issue",
     "LINKERS",
     "LinkageStrategy",
+    "Limits",
     "PROTEASE_SITES",
     "Order",
     "Part",

@@ -407,3 +407,6 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .sug details summary { cursor: pointer; width: max-content; text-decoration: underline; text-underline-offset: 3px; }
 .sug details .alts { display: grid; gap: 6px; margin-top: 8px; }
 .sug details .alts button { justify-self: start; }
+
+#limits-box summary { cursor: pointer; width: max-content; text-decoration: underline; text-underline-offset: 3px; }
+#limits-box .pair { margin-bottom: 12px; }

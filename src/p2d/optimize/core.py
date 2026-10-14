@@ -18,6 +18,7 @@ from enum import Enum
 from ..host import HostProfile
 from ..issues import Issue, Severity
 from .automaton import Automaton
+from .refine import Limits, measure, refine
 
 DEFAULT_USAGE_FLOOR = 0.10
 
@@ -44,6 +45,8 @@ class OptimizationRequest:
     # Preferences, ``{pattern: why}``: avoided when a path exists, otherwise kept and
     # reported.  ``forbidden`` stays a hard requirement and always wins.
     soft_forbidden: dict[str, str] = field(default_factory=dict)
+    # GC and repeat limits for the local-search stage after the DP; None skips that stage
+    limits: Limits | None = None
 
 
 @dataclass
@@ -337,10 +340,70 @@ def optimize_coding(req: OptimizationRequest) -> OptimizationResult:
             )
         )
 
+    refinement = None
+    if req.limits is not None:
+        refinement = refine(
+            aa,
+            codons,
+            {r: _codons(req, r) for r in set(aa)},
+            req.prefix,
+            req.suffix,
+            hard + soft,
+            req.limits,
+        )
+        codons = refinement.codons
+        issues += _refine_issues(refinement, req.limits)
+
     dna = "".join(codons)
-    return OptimizationResult(
-        dna=dna,
-        issues=issues,
-        metrics=_metrics(req, codons)
-        | {"feasible": True, "soft_kept": len(_present(req, dna, soft))},
-    )
+    metrics = _metrics(req, codons) | {"feasible": True, "soft_kept": len(_present(req, dna, soft))}
+    if req.limits is not None:
+        shape = measure(dna, req.limits)
+        metrics |= {
+            "gc_window_low": shape.window_low,
+            "gc_window_high": shape.window_high,
+            "repeat_bases": shape.repeats,
+            "refined_swaps": refinement.swaps,
+        }
+    return OptimizationResult(dna=dna, issues=issues, metrics=metrics)
+
+
+def _refine_issues(result, limits: Limits) -> list[Issue]:
+    out = []
+    if result.swaps:
+        out.append(
+            Issue(
+                Severity.INFO,
+                "refined",
+                f"{result.swaps} codon(s) changed to keep GC content and repeats within the limits",
+            )
+        )
+    after = result.after
+    if after.gc_excess:
+        out.append(
+            Issue(
+                Severity.WARNING,
+                "gc_out_of_range",
+                f"overall GC is {after.gc:.0%}, outside {limits.gc_min:.0%} to "
+                f"{limits.gc_max:.0%}; synonymous codons cannot bring it inside",
+            )
+        )
+    if after.window_excess:
+        out.append(
+            Issue(
+                Severity.WARNING,
+                "gc_window_out_of_range",
+                f"GC over {limits.window_size} bases runs from {after.window_low:.0%} to "
+                f"{after.window_high:.0%}, outside {limits.window_min:.0%} to "
+                f"{limits.window_max:.0%} in places synonymous codons cannot fix",
+            )
+        )
+    if after.repeats:
+        out.append(
+            Issue(
+                Severity.WARNING,
+                "repeat_kept",
+                f"repeated stretches longer than {limits.direct_max} bases (direct) or "
+                f"{limits.inverted_max} (inverted) remain; the protein sequence forces them",
+            )
+        )
+    return out

@@ -18,6 +18,7 @@ from .frame import CTerm, design_insert
 from .host import HostProfile
 from .model import Chain, ConstructPlan, Part, PartKind
 from .optimize import CodonStrategy
+from .optimize.refine import Limits
 from .order import make_order
 from .report import construct_report
 from .vector import Vector
@@ -73,13 +74,15 @@ class OutcomeGroup:
         return self.pairs[0]
 
 
-def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts):
+def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits):
     """Design one pair; returns ``(PairOption, None)`` or ``(None, reason)``."""
     try:
         site = plan_cut(vector, up, down)
         chain = Chain("payload", protein, n_terminal=list(n_parts), c_terminal=list(c_parts))
         plan = ConstructPlan([chain], host=host.slug)
-        a = assemble(design_insert(plan, vector, site, host, strategy=strategy, cterm=cterm))
+        a = assemble(
+            design_insert(plan, vector, site, host, strategy=strategy, cterm=cterm, limits=limits)
+        )
     except ValueError as exc:
         return None, str(exc)
     if not a.ok:
@@ -125,6 +128,7 @@ def rank_pairs(
     limit: int | None = None,
     n_parts: tuple[Part, ...] = (),
     c_parts: tuple[Part, ...] = (),
+    limits: Limits | None = None,
 ) -> tuple[list[PairOption], int]:
     """Every pair that clones ``protein`` into ``vector``, best first, and how many were tried.
 
@@ -149,7 +153,9 @@ def rank_pairs(
         )
     options: list[PairOption] = []
     for up, down in candidates:
-        option, _ = _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts)
+        option, _ = _describe(
+            vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits
+        )
         if option is not None and (n_tag is None or option.n_tag == n_tag):
             options.append(option)
     options.sort(key=lambda o: o.sort_key)

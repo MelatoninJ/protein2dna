@@ -48,6 +48,12 @@ class HostProfile:
             )
         return out
 
+    def limits(self, **override):
+        """GC and repeat limits from the profile; keyword arguments replace single values."""
+        from .optimize.refine import Limits
+
+        return Limits.from_profile(self.raw, **override)
+
     @property
     def codon_table_verified(self) -> bool:
         return bool(self.raw.get("codon_usage", {}).get("verified", False))

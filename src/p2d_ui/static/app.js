@@ -237,8 +237,21 @@ function partKeys(ids) {
   return ids.map((id) => $(id).value).filter(Boolean);
 }
 
+const LIMIT_IDS = { gc_min: "lim-gc-min", gc_max: "lim-gc-max", window_size: "lim-window-size", window_min: "lim-window-min", window_max: "lim-window-max", repeat_max: "lim-repeat-max" };
+
+function fillLimits() {
+  const host = meta.hosts.find((x) => x.slug === $("host").value);
+  for (const [key, id] of Object.entries(LIMIT_IDS)) $(id).value = host && host.limits ? host.limits[key] : "";
+}
+
+function limitsBody() {
+  const out = {};
+  for (const [key, id] of Object.entries(LIMIT_IDS)) if ($(id).value !== "") out[key] = Number($(id).value);
+  return out;
+}
+
 function partsBody() {
-  return { n_parts: partKeys(["n-tag", "n-linker"]), c_parts: partKeys(["c-linker", "c-tag"]) };
+  return { n_parts: partKeys(["n-tag", "n-linker"]), c_parts: partKeys(["c-linker", "c-tag"]), limits: limitsBody() };
 }
 
 function siteBody(extra) {
@@ -609,7 +622,8 @@ function renderResult(r) {
     stat("Plasmid", bp(r.plasmid_bp)),
     stat("CAI", r.metrics.cai == null ? "n/a" : r.metrics.cai.toFixed(2)),
     stat("GC", r.metrics.gc == null ? "n/a" : `${(r.metrics.gc * 100).toFixed(1)}%`),
-    stat("Rare codons", String(r.metrics.n_rare ?? 0)));
+    stat("Rare codons", String(r.metrics.n_rare ?? 0)),
+    ...(r.metrics.gc_window_low == null ? [] : [stat(`GC in ${r.metrics.window_size} bp windows`, `${(r.metrics.gc_window_low * 100).toFixed(0)}-${(r.metrics.gc_window_high * 100).toFixed(0)}%`)]));
 
   const map = h("section", { "aria-labelledby": "map-h" },
     h("div", { class: "map-title" }, h("h2", { id: "map-h", text: "Fusion protein map" }), h("p", { text: `${total} residues from the start codon` })),
@@ -708,6 +722,8 @@ function initForm() {
         h("input", { type: "radio", name: "strategy", value: s.value, checked: i === 0 }),
         h("b", { text: s.label }),
         h("span", { text: s.note }))));
+  fillLimits();
+  $("lim-reset").addEventListener("click", fillLimits);
   showHostNote();
 
   $("vector").addEventListener("change", onVectorSelect);
@@ -726,7 +742,7 @@ function initForm() {
   });
   $("start").addEventListener("change", () => onStartChange(true));
   $("start-manual").addEventListener("input", () => { winTouched = false; scheduleSites(); });
-  $("host").addEventListener("change", () => { showHostNote(); refreshSites(); });
+  $("host").addEventListener("change", () => { showHostNote(); fillLimits(); refreshSites(); });
   $("multi").addEventListener("change", refreshSites);
   $("upstream").addEventListener("change", refreshSites);
   $("downstream").addEventListener("change", () => { if (enz) { syncCterm(); renderMap(); renderPairNote(); } });

@@ -180,6 +180,20 @@
         <p id="host-note" class="help"></p>
       </div>
 
+      <details class="field" id="limits-box">
+        <summary>GC and repeat limits</summary>
+        <p class="help">After choosing codons, p2d swaps synonymous codons to bring the DNA inside these limits, without ever adding a cloning site. The starting values are the host profile's defaults and have not been checked against a reference, so set the ones your synthesis or cloning work needs. Anything the protein forces stays and is reported.</p>
+        <div class="pair">
+          <div class="field"><label for="lim-gc-min">Overall GC from (%)</label><input id="lim-gc-min" type="number" min="0" max="100" inputmode="numeric"></div>
+          <div class="field"><label for="lim-gc-max">Overall GC to (%)</label><input id="lim-gc-max" type="number" min="0" max="100" inputmode="numeric"></div>
+          <div class="field"><label for="lim-window-size">Window size (bases)</label><input id="lim-window-size" type="number" min="10" max="500" inputmode="numeric"></div>
+          <div class="field"><label for="lim-repeat-max">Longest repeat (bases)</label><input id="lim-repeat-max" type="number" min="8" max="200" inputmode="numeric"></div>
+          <div class="field"><label for="lim-window-min">Window GC from (%)</label><input id="lim-window-min" type="number" min="0" max="100" inputmode="numeric"></div>
+          <div class="field"><label for="lim-window-max">Window GC to (%)</label><input id="lim-window-max" type="number" min="0" max="100" inputmode="numeric"></div>
+        </div>
+        <button type="button" class="secondary" id="lim-reset">Use the host's values</button>
+      </details>
+
       <fieldset class="field">
         <legend>Codon strategy</legend>
         <div id="strategies" class="choices"></div>

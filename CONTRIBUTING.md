@@ -43,7 +43,7 @@ A vector without a golden test will not be merged.
 
 ## Scope
 
-Open an issue before starting anything on the v0.3+ roadmap (GC windows and mRNA
+Open an issue before starting anything on the v0.3+ roadmap (mRNA
 folding, Addgene integration, multi-chain linkage).
 These have design decisions attached that are worth settling in an issue first.
 The rules a change must respect are listed under "Architecture and rules" below.
@@ -108,6 +108,8 @@ src/p2d/
   issues.py     Issue / Severity (shared so optimize/ need not import frame)
   optimize/     automaton.py  Aho-Corasick DFA (IUPAC, both strands)
                 core.py       DP over (residue, DFA state); strategies; metrics
+                refine.py     local search after the DP: GC windows and repeats within limits,
+                              never adding a forbidden pattern
   assemble.py   splice insert into vector, run the hard gates
   vectors.py    bundled vector registry + InsertionSite definitions
   cli.py        thin typer wrapper, no logic (`p2d ui` starts the web UI)
@@ -228,4 +230,4 @@ UI rules (`tests/test_ui.py` enforces some): no logic in `p2d_ui` beyond input
 validation and shaping; no `innerHTML`; no em or en dashes in UI text; one accent
 colour, one radius; both light and dark themes; honour `prefers-reduced-motion`.
 
-Next: v0.3 (non-local constraints as a local-search stage after the DP, keeping the DFA as a hard constraint).
+Next: v0.3 (first PyPI release).
