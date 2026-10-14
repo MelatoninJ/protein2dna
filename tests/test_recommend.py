@@ -218,3 +218,23 @@ def test_real_pet28a_results_are_correct_and_distinct(host):
     tagged, _ = rank_pairs(v, PROTEIN, host, window=window, cterm=p2d.CTerm.TAG)
     best = min(tagged, key=lambda o: (o.extra_residues, o.sort_key))
     assert best.up.enzyme == "NcoI" and best.down.enzyme == "XhoI" and best.after == "LEHHHHHH"
+
+
+# ----------------------------------------------------------- tags and linkers you add
+
+
+def test_added_parts_are_built_in_and_do_not_change_what_the_vector_adds(vector, host):
+    from p2d.model import LINKERS, TAGS
+
+    n, c = (TAGS["flag"], LINKERS["gs"]), (LINKERS["g4s"], TAGS["strep2"])
+    plain, _ = rank_pairs(vector, PROTEIN, host)
+    built, _ = rank_pairs(vector, PROTEIN, host, n_parts=n, c_parts=c)
+    key = lambda o: (o.up.id, o.down.id)  # noqa: E731
+    assert {key(o): o.outcome for o in plain} == {key(o): o.outcome for o in built}
+    option = built[0]
+    site = plan_cut(vector, option.up, option.down)
+    chain = p2d.Chain("payload", PROTEIN, n_terminal=list(n), c_terminal=list(c))
+    a = p2d.assemble(
+        p2d.design_insert(p2d.ConstructPlan([chain]), vector, site, host, cterm=p2d.CTerm.STOP)
+    )
+    assert a.ok and "DYKDDDDKGS" + PROTEIN + "GGGGSWSHPQFEK" in a.protein

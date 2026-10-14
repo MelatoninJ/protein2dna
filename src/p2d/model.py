@@ -144,6 +144,7 @@ TAGS: dict[str, Part] = {
     "myc": Part("Myc", "EQKLISEEDL", PartKind.TAG),
     "strep2": Part("Strep-II", "WSHPQFEK", PartKind.TAG),
     "ha": Part("HA", "YPYDVPDYA", PartKind.TAG),
+    "v5": Part("V5", "GKPIPNPLLGLDST", PartKind.TAG),
 }
 
 LINKERS: dict[str, Part] = {
@@ -152,6 +153,18 @@ LINKERS: dict[str, Part] = {
     "g4s3": Part("(G4S)3", "GGGGSGGGGSGGGGS", PartKind.LINKER),
     "eaaak": Part("EAAAK", "EAAAK", PartKind.LINKER),
 }
+
+
+def resolve_parts(keys: list[str]) -> list[Part]:
+    """Library tags, linkers and protease sites by key, in the order given."""
+    library = {**TAGS, **LINKERS, **PROTEASE_SITES}
+    parts = []
+    for key in keys:
+        if key not in library:
+            raise ValueError(f"unknown tag or linker {key!r}")
+        parts.append(library[key])
+    return parts
+
 
 PROTEASE_SITES: dict[str, Part] = {
     # cleavage is C-terminal to the last residue listed unless noted

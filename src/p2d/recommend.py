@@ -16,7 +16,7 @@ from .assemble import assemble
 from .enzymes import CutSite, list_cut_sites, plan_cut
 from .frame import CTerm, design_insert
 from .host import HostProfile
-from .model import ConstructPlan, PartKind
+from .model import Chain, ConstructPlan, Part, PartKind
 from .optimize import CodonStrategy
 from .order import make_order
 from .report import construct_report
@@ -73,11 +73,12 @@ class OutcomeGroup:
         return self.pairs[0]
 
 
-def _describe(vector: Vector, up: CutSite, down: CutSite, protein, host, cterm, strategy):
+def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts):
     """Design one pair; returns ``(PairOption, None)`` or ``(None, reason)``."""
     try:
         site = plan_cut(vector, up, down)
-        plan = ConstructPlan.single_chain(protein, host=host.slug)
+        chain = Chain("payload", protein, n_terminal=list(n_parts), c_terminal=list(c_parts))
+        plan = ConstructPlan([chain], host=host.slug)
         a = assemble(design_insert(plan, vector, site, host, strategy=strategy, cterm=cterm))
     except ValueError as exc:
         return None, str(exc)
@@ -87,11 +88,11 @@ def _describe(vector: Vector, up: CutSite, down: CutSite, protein, host, cterm, 
     if not order.ok:
         return None, order.ligation.message
 
-    payload = a.design.chain.payload
-    at = a.protein.find(payload)
+    built = a.design.chain.insert_aa  # your protein with any tags and linkers you added
+    at = a.protein.find(built)
     if at < 0:
         return None, "the protein is not found in the translation"
-    before, after = a.protein[:at], a.protein[at + len(payload) :]
+    before, after = a.protein[:at], a.protein[at + len(built) :]
     n_tag = bool(a.segments) and a.segments[0].kind is PartKind.TAG
     rep = construct_report(a)["sizes"]
     return (
@@ -122,11 +123,15 @@ def rank_pairs(
     n_tag: bool | None = None,
     strategy: CodonStrategy = CodonStrategy.MAX_CAI,
     limit: int | None = None,
+    n_parts: tuple[Part, ...] = (),
+    c_parts: tuple[Part, ...] = (),
 ) -> tuple[list[PairOption], int]:
     """Every pair that clones ``protein`` into ``vector``, best first, and how many were tried.
 
     ``n_tag`` keeps only pairs that keep (True) or drop (False) the vector's N-terminal sequence;
-    None keeps both.  ``window`` limits which sites are considered.
+    None keeps both.  ``window`` limits which sites are considered.  ``n_parts`` / ``c_parts``
+    are tags and linkers built onto the protein; ``before`` / ``after`` still describe only what
+    the vector and the sites add around that.
     """
     if vector.expression_start is None:
         raise ValueError("The start codon has not been confirmed.")
@@ -144,7 +149,7 @@ def rank_pairs(
         )
     options: list[PairOption] = []
     for up, down in candidates:
-        option, _ = _describe(vector, up, down, protein, host, cterm, strategy)
+        option, _ = _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts)
         if option is not None and (n_tag is None or option.n_tag == n_tag):
             options.append(option)
     options.sort(key=lambda o: o.sort_key)

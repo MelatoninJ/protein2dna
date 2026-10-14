@@ -25,7 +25,7 @@ from Bio.Seq import Seq
 
 from .host import HostProfile
 from .issues import Issue, Severity
-from .model import Chain, ConstructPlan, PartKind, PartSource, StopPolicy
+from .model import TAGS, Chain, ConstructPlan, PartKind, PartSource, StopPolicy
 from .optimize import Automaton, CodonStrategy, OptimizationRequest, optimize_coding
 from .vector import EnzymeHit, InsertionSite, StartSource, Vector, enzyme_site, site_regex
 
@@ -161,19 +161,31 @@ class CTerm(str, Enum):
 class CTermTag:
     position: int  # 0-based start of the first tag codon in the vector
     residues: str  # the tag as translated, e.g. "HHHHHH"
+    name: str = "His6"
+
+
+# tags looked for after the cloning site; His6 is matched as a run, the rest exactly
+_KNOWN_TAGS = (("His6", "HHHHHH"),) + tuple(
+    (p.name, p.aa) for k, p in TAGS.items() if k not in ("his6", "his8")
+)
 
 
 def find_cterm_tag(vector: Vector, after: int, window: int = 240) -> CTermTag | None:
-    """A His6 run in one of the three frames after ``after``, before that frame's stop."""
+    """The earliest known tag (His, FLAG, HA, Myc, Strep-II, V5) in any frame before its stop."""
     best = None
     for frame in range(3):
         seg = vector.seq[after + frame : after + frame + window]
         seg = seg[: len(seg) - len(seg) % 3]
         aa = str(Seq(seg).translate(to_stop=True))
-        k = aa.find("HHHHHH")
-        if k >= 0 and (best is None or k < best[0]):
-            run = len(aa[k:]) - len(aa[k:].lstrip("H"))
-            best = (k, CTermTag(after + frame + 3 * k, "H" * run))
+        for name, tag in _KNOWN_TAGS:
+            k = aa.find(tag)
+            at = frame + 3 * k
+            if k < 0 or (best is not None and at >= best[0]):
+                continue
+            end = k + len(tag)
+            if name == "His6":
+                end = k + (len(aa[k:]) - len(aa[k:].lstrip("H")))
+            best = (at, CTermTag(after + at, aa[k:end], name))
     return best[1] if best else None
 
 
@@ -249,7 +261,7 @@ def design_insert(
         tag = find_cterm_tag(vector, down.end)
         if tag is None:
             raise ValueError(
-                f"No C-terminal His tag follows the {site.downstream_enzyme} site; "
+                f"No C-terminal tag follows the {site.downstream_enzyme} site; "
                 "choose a stop codon or the vector's own frame instead"
             )
         frame_grid = tag.position

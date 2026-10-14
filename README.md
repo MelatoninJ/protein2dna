@@ -58,14 +58,18 @@ p2d ui
    protein and groups them by the protein each gives (for example NcoI drops the vector's
    N-terminal tag, NdeI keeps it), fewest added residues first, with a **Use** button that
    fills in the two sites. A window with hundreds of pairs must be narrowed first.
-4. **Choose the C-terminus.** A stop codon, or read on into the vector's tag (p2d adds
+4. **Add tags and linkers if you want them.** An N-terminal tag and linker, and a
+   C-terminal linker and tag (His6, His8, FLAG, Myc, Strep-II, HA, V5; GS, G4S, (G4S)3,
+   EAAAK) are built onto your protein and shown as their own parts in the summary.
+5. **Choose the C-terminus.** A stop codon, or read on into the vector's own tag (His, FLAG,
+   Myc, Strep-II, HA or V5; p2d adds
    the bases that put it in frame; some vectors, pET-28a(+) among them, have the tag one
    base off the start codon's frame).
-5. **Set the extra bases for ordering.** A restriction site at the very end of a synthetic
+6. **Set the extra bases for ordering.** A restriction site at the very end of a synthetic
    fragment often fails to cut, so p2d adds bases outside each site (six per side by default,
    NEB's [general guideline](https://www.neb.com/tools-and-resources/usage-guidelines/cleavage-close-to-the-end-of-dna-fragments);
    some enzymes need fewer). They are cut away and never reach the plasmid.
-6. **Read the summary and take the DNA to order.** Fusion protein, plasmid size before and
+7. **Read the summary and take the DNA to order.** Fusion protein, plasmid size before and
    after, the piece replaced, the bases added for the reading frame, and a check digest
    (fragment sizes before and after). The order is checked in silico: it is cut with
    Biopython's cut positions and ligated into the vector, and must give the planned plasmid
@@ -238,8 +242,8 @@ Three, and they are load-bearing:
 |---|---|
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
-| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position, with suggested pairs ranked by what they add to the protein; C-terminus choice; construct report; host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
-| 0.3 | GC and repeat refinement, tag and linker choices in the website, first PyPI release |
+| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position, with suggested pairs ranked by what they add to the protein; C-terminus choice; tags and linkers; construct report; host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
+| 0.3 | GC and repeat refinement, first PyPI release |
 | 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy, more host profiles |
 | 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
 | later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, a vector-free mode, Addgene |

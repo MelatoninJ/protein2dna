@@ -28,6 +28,7 @@ from p2d.analysis import VectorAnalysis, analyze_vector, feature_label
 from p2d.assemble import assemble
 from p2d.enzymes import CutSite, find_cut_site, list_cut_sites, plan_cut, upstream_problem
 from p2d.frame import find_cterm_tag
+from p2d.model import LINKERS, PROTEASE_SITES, TAGS, Chain, resolve_parts
 from p2d.optimize import OptimizationRequest, optimize_coding
 from p2d.order import DEFAULT_CLAMP, MAX_CLAMP, make_order
 from p2d.recommend import group_by_outcome, rank_pairs
@@ -155,6 +156,42 @@ def _with_start(entry: _Entry, start) -> Vector:
 # ------------------------------------------------------------------------ meta
 
 
+MAX_PARTS = 4
+
+
+def _part_keys(request: dict, key: str) -> list[str]:
+    raw = request.get(key) or []
+    if (
+        not isinstance(raw, list)
+        or len(raw) > MAX_PARTS
+        or not all(isinstance(k, str) for k in raw)
+    ):
+        raise InputError(f"{key} must be a short list of tag or linker names.")
+    try:
+        resolve_parts(raw)
+    except ValueError as exc:
+        raise InputError(str(exc).capitalize() + ".") from exc
+    return raw
+
+
+def _plan(protein: str, host_slug: str, request: dict) -> ConstructPlan:
+    """The protein with any tags and linkers asked for, N-terminal ones first."""
+    chain = Chain(
+        "payload",
+        protein,
+        n_terminal=resolve_parts(_part_keys(request, "n_parts")),
+        c_terminal=resolve_parts(_part_keys(request, "c_parts")),
+    )
+    return ConstructPlan([chain], host=host_slug)
+
+
+def _catalog() -> dict:
+    def rows(table):
+        return [{"key": k, "name": p.name, "aa": p.aa} for k, p in table.items()]
+
+    return {"tags": rows(TAGS), "linkers": rows(LINKERS), "cleavage": rows(PROTEASE_SITES)}
+
+
 def meta() -> dict:
     hosts = []
     for slug in available_hosts():
@@ -182,6 +219,7 @@ def meta() -> dict:
             },
         ],
         "max_residues": MAX_RESIDUES,
+        "parts": _catalog(),
     }
 
 
@@ -374,7 +412,7 @@ def sites(request: dict) -> dict:
                 down = {"ok": False, "reason": None, "hidden": True}
             else:
                 down = _downstream_verdict(
-                    v, chosen_up, c, protein, host, host_slug, cterm, conflict
+                    v, chosen_up, c, protein, host, host_slug, cterm, conflict, request
                 )
         rows.append({**_site_row(c), "as_upstream": up, "as_downstream": down})
 
@@ -387,20 +425,25 @@ def sites(request: dict) -> dict:
     }
 
 
-def _downstream_verdict(v, up, c, protein, host, host_slug, cterm, conflict) -> dict:
+def _downstream_verdict(v, up, c, protein, host, host_slug, cterm, conflict, request) -> dict:
     try:
         site = plan_cut(v, up, c)
     except ValueError as exc:
         return {"ok": False, "reason": str(exc), "has_tag": False}
     tag = find_cterm_tag(v, c.end)
-    verdict = {"ok": True, "reason": None, "has_tag": tag is not None}
+    verdict = {
+        "ok": True,
+        "reason": None,
+        "has_tag": tag is not None,
+        "tag_name": tag.name if tag else None,
+    }
     if reason := conflict(c):
         return {**verdict, "ok": False, "reason": reason}
     if protein:
         try:
             a = assemble(
                 design_insert(
-                    ConstructPlan.single_chain(protein, host=host_slug),
+                    _plan(protein, host_slug, request),
                     v,
                     site,
                     host,
@@ -433,7 +476,14 @@ def pairs(request: dict) -> dict:
 
     try:
         options, tried = rank_pairs(
-            v, protein, load_host(host_slug), window=(lo, hi), cterm=cterm, n_tag=keep
+            v,
+            protein,
+            load_host(host_slug),
+            window=(lo, hi),
+            cterm=cterm,
+            n_tag=keep,
+            n_parts=tuple(resolve_parts(_part_keys(request, "n_parts"))),
+            c_parts=tuple(resolve_parts(_part_keys(request, "c_parts"))),
         )
     except ValueError as exc:
         raise InputError(str(exc)) from exc
@@ -522,7 +572,7 @@ def design(request: dict) -> dict:
         raise InputError(str(exc)) from exc
 
     host = load_host(host_slug)
-    plan = ConstructPlan.single_chain(protein, host=host_slug)
+    plan = _plan(protein, host_slug, request)
     try:
         a = assemble(
             design_insert(

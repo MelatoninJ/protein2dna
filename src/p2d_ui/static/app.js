@@ -233,10 +233,19 @@ function windowParam() {
   return Number.isFinite(a) && Number.isFinite(b) ? [a - 1, b] : undefined;
 }
 
+function partKeys(ids) {
+  return ids.map((id) => $(id).value).filter(Boolean);
+}
+
+function partsBody() {
+  return { n_parts: partKeys(["n-tag", "n-linker"]), c_parts: partKeys(["c-linker", "c-tag"]) };
+}
+
 function siteBody(extra) {
   return {
     vector_id: vec.id, start: currentStart(), protein: $("protein").value, host: $("host").value,
     window: windowParam(), include_multi: $("multi").checked, cterm: document.querySelector('input[name="cterm"]:checked').value,
+    ...partsBody(),
     ...extra,
   };
 }
@@ -282,8 +291,8 @@ function syncCterm() {
   $("cterm-tag").disabled = !hasTag;
   $("cterm-tag-choice").classList.toggle("off", !hasTag);
   $("cterm-tag-note").textContent = hasTag
-    ? "Adds only the bases that put the tag in frame with your protein."
-    : "No His tag follows the chosen 3' site.";
+    ? `Adds only the bases that put the ${row.as_downstream.tag_name} tag in frame with your protein.`
+    : "No known tag follows the chosen 3' site.";
   if (!hasTag && $("cterm-tag").checked) document.querySelector('input[name="cterm"][value="stop"]').checked = true;
 }
 
@@ -665,6 +674,7 @@ async function onSubmit(e) {
     upstream: form.get("upstream"), downstream: form.get("downstream"), cterm: form.get("cterm"),
     host: form.get("host"), strategy: form.get("strategy"), seed: form.get("seed"),
     clamp_5: form.get("clamp_5"), clamp_3: form.get("clamp_3"),
+    ...partsBody(),
   };
   try {
     const data = await post("/api/design", body);
@@ -687,6 +697,10 @@ function showHostNote() {
 
 function initForm() {
   vectorOptions();
+  const partOptions = (rows) => [h("option", { value: "", text: "None" }), ...rows.map((p) => h("option", { value: p.key, text: `${p.name} (${p.aa})` }))];
+  for (const id of ["n-tag", "c-tag"]) $(id).replaceChildren(...partOptions(meta.parts.tags));
+  for (const id of ["n-linker", "c-linker"]) $(id).replaceChildren(...partOptions(meta.parts.linkers));
+  for (const id of ["n-tag", "n-linker", "c-linker", "c-tag"]) $(id).addEventListener("change", refreshSites);
   $("host").replaceChildren(...meta.hosts.map((x) => h("option", { value: x.slug, text: x.name })));
   $("strategies").replaceChildren(
     ...meta.strategies.map((s, i) =>

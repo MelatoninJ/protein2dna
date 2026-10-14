@@ -121,6 +121,29 @@
       </fieldset>
 
       <fieldset class="field">
+        <legend>Tags and linkers</legend>
+        <p class="help">Built onto your protein as extra residues. Leave them out if your sequence already carries them.</p>
+        <div class="pair">
+          <div class="field">
+            <label for="n-tag">N-terminal tag</label>
+            <select id="n-tag"></select>
+          </div>
+          <div class="field">
+            <label for="n-linker">Linker after it</label>
+            <select id="n-linker"></select>
+          </div>
+          <div class="field">
+            <label for="c-linker">Linker before the C-terminal tag</label>
+            <select id="c-linker"></select>
+          </div>
+          <div class="field">
+            <label for="c-tag">C-terminal tag</label>
+            <select id="c-tag"></select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
         <legend>C-terminus</legend>
         <div class="choices">
           <label class="choice">
@@ -130,7 +153,7 @@
           </label>
           <label class="choice" id="cterm-tag-choice">
             <input type="radio" name="cterm" value="tag" id="cterm-tag">
-            <b>Read into the vector's His tag</b>
+            <b>Read into the vector's own C-terminal tag</b>
             <span id="cterm-tag-note">Adds the bases that put the tag in frame.</span>
           </label>
         </div>

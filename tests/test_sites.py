@@ -370,7 +370,7 @@ def test_tag_mode_without_a_tag_says_so(vector, host):
     seq = vector.seq[:180] + "GCCGCCGCCGCCGCCGCC" + vector.seq[198:]  # the His6 codons become Ala
     v = Vector.from_sequence(seq, name="notag")
     v.expression_start = 87
-    with pytest.raises(ValueError, match="No C-terminal His tag"):
+    with pytest.raises(ValueError, match="No C-terminal tag"):
         design(v, host, "NdeI:144", "XhoI:174", cterm=p2d.CTerm.TAG)
 
 
@@ -380,3 +380,46 @@ def test_find_cterm_tag_reports_where_the_tag_starts(vector):
     tag = find_cterm_tag(vector, 180)
     assert tag and tag.position == 180 and tag.residues == "HHHHHH"
     assert find_cterm_tag(vector, 300) is None
+
+
+# --------------------------------------------------------------- C-terminal tag detection
+
+CODON = {"A": "GCT", "D": "GAT", "E": "GAA", "G": "GGT", "H": "CAT", "I": "ATT", "K": "AAA",
+         "L": "CTG", "N": "AAT", "P": "CCG", "Q": "CAG", "S": "TCT", "T": "ACC", "V": "GTT",
+         "W": "TGG", "Y": "TAT", "F": "TTT"}  # fmt: skip
+
+
+def dna(aa):
+    return "".join(CODON[c] for c in aa)
+
+
+@pytest.mark.parametrize("frame", [0, 1, 2])
+@pytest.mark.parametrize(
+    "name,aa",
+    [("His6", "HHHHHH"), ("FLAG", "DYKDDDDK"), ("Myc", "EQKLISEEDL"), ("Strep-II", "WSHPQFEK"),
+     ("HA", "YPYDVPDYA"), ("V5", "GKPIPNPLLGLDST")],
+)  # fmt: skip
+def test_every_known_tag_is_found_in_any_frame(name, aa, frame):
+    from p2d.frame import find_cterm_tag
+
+    lead = "C" * frame + dna("LEAAA")
+    seq = "ACGT" * 5 + lead + dna(aa) + "TAA" + "ACGT" * 20
+    found = find_cterm_tag(Vector.from_sequence(seq, name="t"), 20)
+    assert found is not None and found.name == name and found.residues == aa
+    assert found.position == 20 + frame + len(dna("LEAAA"))
+
+
+def test_the_earliest_tag_wins_and_a_stop_hides_what_follows():
+    from p2d.frame import find_cterm_tag
+
+    both = "A" * 10 + dna("GSDYKDDDDKGSHHHHHH") + "TAA" + "C" * 12
+    assert find_cterm_tag(Vector.from_sequence(both, name="t"), 10).name == "FLAG"
+    hidden = "A" * 10 + dna("GS") + "TAA" + dna("HHHHHH") + "TAA" + "C" * 12
+    assert find_cterm_tag(Vector.from_sequence(hidden, name="t"), 10) is None
+
+
+def test_a_his_run_is_reported_whole():
+    from p2d.frame import find_cterm_tag
+
+    seq = "A" * 10 + dna("GSHHHHHHHH") + "TAA" + "C" * 12
+    assert find_cterm_tag(Vector.from_sequence(seq, name="t"), 10).residues == "HHHHHHHH"

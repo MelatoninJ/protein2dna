@@ -215,7 +215,12 @@ def test_a_site_the_protein_forces_is_unusable_with_the_reason(pt1, monkeypatch)
     )
     r = service.sites(req(pt1, upstream="BamHI:150"))
     eco = next(s for s in r["sites"] if s["id"] == "EcoRI:168")
-    assert eco["as_downstream"] == {"ok": False, "reason": "forced", "has_tag": True}
+    assert eco["as_downstream"] == {
+        "ok": False,
+        "reason": "forced",
+        "has_tag": True,
+        "tag_name": "His6",
+    }
 
 
 def test_protein_conflict_message_names_the_residue():
@@ -657,3 +662,44 @@ def test_pairs_over_http_and_the_page_has_the_button(server):
     resp, _ = call(server, "POST", "/api/pairs", {}, {"Host": "evil.example"})
     assert resp.status == 403
     assert 'id="suggest-btn"' in static_text("index.html") and "/api/pairs" in static_text("app.js")
+
+
+# ----------------------------------------------------------------- tags and linkers
+
+
+def test_meta_lists_the_tags_and_linkers():
+    parts = service.meta()["parts"]
+    assert {"his6", "flag", "v5"} <= {p["key"] for p in parts["tags"]}
+    assert {"gs", "g4s"} <= {p["key"] for p in parts["linkers"]}
+    assert all(p["aa"] for rows in parts.values() for p in rows)
+
+
+def test_design_builds_the_chosen_tags_and_linkers_into_the_protein(pt1):
+    d = service.design(
+        req(
+            pt1,
+            upstream="NcoI:85",
+            downstream="XhoI:174",
+            n_parts=["flag", "gs"],
+            c_parts=["strep2"],
+        )
+    )
+    assert d["ok"] and "DYKDDDDKGS" + PEPTIDE + "WSHPQFEK" in d["protein"]
+
+
+def test_the_suggestions_describe_only_what_the_vector_adds(pt1):
+    plain = service.pairs(req(pt1))["groups"]
+    built = service.pairs(req(pt1, n_parts=["flag"], c_parts=["gs", "ha"]))["groups"]
+    assert [(g["before"], g["after"]) for g in plain] == [(g["before"], g["after"]) for g in built]
+
+
+def test_unknown_or_malformed_parts_are_refused(pt1):
+    for bad in (["nope"], "his6", ["his6"] * 5, [1]):
+        for fn in (service.design, service.pairs):
+            with pytest.raises(service.InputError):
+                fn(req(pt1, upstream="NcoI:85", downstream="XhoI:174", n_parts=bad))
+
+
+def test_the_page_has_the_tag_and_linker_selects():
+    html = static_text("index.html")
+    assert all(f'id="{i}"' in html for i in ("n-tag", "n-linker", "c-linker", "c-tag"))
