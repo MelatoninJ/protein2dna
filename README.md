@@ -201,8 +201,10 @@ you will make.
 
 - **No experimental validation.** Codons follow a published usage table (the *E. coli* K-12
   table stands in for BL21). That they raise expression in your hands has not been tested.
-- **Not implemented:** GC-content windows and repeat checks, 5′ mRNA folding, vendor synthesis
-  limits (length, GC, complexity), Dam/Dcm methylation and double-digest buffers.
+- **Not implemented:** GC-content windows and repeat checks, 5′ mRNA folding, and Dam/Dcm
+  methylation and double-digest buffers. p2d also does not model any synthesis vendor's rules
+  (length, GC or complexity limits): those differ between vendors and change, so they are out of
+  scope. Check a design against the rules of whoever makes it.
 - **Host limits are defaults, not citations.** The homopolymer lengths and motifs in the host
   profile come from the project template, not from a reference. They are soft preferences, so
   they never block a design, but do not read them as vetted thresholds.
@@ -233,7 +235,7 @@ Three, and they are load-bearing:
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
 | **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position; C-terminus choice; construct report; host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
-| 0.3 | vendor synthesis limits with references, GC and repeat refinement, automatic enzyme-pair ranking, tag and linker choices in the website, first PyPI release |
+| 0.3 | GC and repeat refinement, automatic enzyme-pair ranking, tag and linker choices in the website, first PyPI release |
 | 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy, more host profiles |
 | 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
 | later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, a vector-free mode, Addgene |

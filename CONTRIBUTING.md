@@ -221,14 +221,7 @@ non-obvious biology or non-obvious algorithmic choices — not narration.
 
 ### Roadmap
 
-| version | adds |
-|---|---|
-| 0.1 | data model, frame engine, round-trip validation, CLI — **done** |
-| 0.2 | Aho–Corasick DFA + DP codon optimiser; verified codon tables — **done** |
-| 0.3 | GC windows, 5′ ΔG (ViennaRNA, optional dep), repeats, synthesis limits |
-| 0.4 | enzyme-pair search, Dam/Dcm methylation, buffer compatibility |
-| 0.5 | Addgene API, Gibson assembly, Streamlit UI |
-| 1.0 | multi-chain linkage, mammalian hosts, Golden Gate |
+The roadmap lives in the README, so it is kept in one place.
 
 UI rules (`tests/test_ui.py` enforces some): no logic in `p2d_ui` beyond input
 validation and shaping; no `innerHTML`; no em or en dashes in UI text; one accent
