@@ -157,6 +157,7 @@ def _with_start(entry: _Entry, start) -> Vector:
 
 
 MAX_PARTS = 4
+DEFAULT_HOST = "ecoli_bl21"
 
 
 def _part_keys(request: dict, key: str) -> list[str]:
@@ -234,6 +235,7 @@ def meta() -> dict:
                 "slug": slug,
                 "name": h.name,
                 "verified": h.codon_table_verified,
+                "note": str(h.raw.get("codon_usage", {}).get("note", "")),
                 "limits": {
                     "gc_min": round(lim.gc_min * 100),
                     "gc_max": round(lim.gc_max * 100),
@@ -250,6 +252,7 @@ def meta() -> dict:
         ],
         "library": list_library(),
         "hosts": hosts,
+        "default_host": DEFAULT_HOST,
         "strategies": [
             {
                 "value": "weighted_sample",
@@ -410,7 +413,7 @@ def sites(request: dict) -> dict:
     """Sites in a window, judged as 5' sites and, once one is chosen, as its 3' partner."""
     entry = _entry(request.get("vector_id"))
     base = entry.analysis.vector
-    host_slug = str(request.get("host") or "ecoli_bl21")
+    host_slug = str(request.get("host") or DEFAULT_HOST)
     if host_slug not in available_hosts():
         raise InputError(f"Unknown host {host_slug!r}.")
     cterm = CTERMS.get(str(request.get("cterm") or "stop"))
@@ -511,7 +514,7 @@ def pairs(request: dict) -> dict:
     entry = _entry(request.get("vector_id"))
     v = _with_start(entry, request.get("start"))
     protein = parse_protein(str(request.get("protein", "")))
-    host_slug = str(request.get("host") or "ecoli_bl21")
+    host_slug = str(request.get("host") or DEFAULT_HOST)
     if host_slug not in available_hosts():
         raise InputError(f"Unknown host {host_slug!r}.")
     cterm = CTERMS.get(str(request.get("cterm") or "stop"))
@@ -578,7 +581,7 @@ def design(request: dict) -> dict:
     entry = _entry(request.get("vector_id"))
     v = _with_start(entry, request.get("start"))
 
-    host_slug = str(request.get("host") or "ecoli_bl21")
+    host_slug = str(request.get("host") or DEFAULT_HOST)
     if host_slug not in available_hosts():
         raise InputError(f"Unknown host {host_slug!r}.")
     strategy_key = str(request.get("strategy") or "weighted_sample")

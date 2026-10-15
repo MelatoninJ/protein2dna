@@ -1,0 +1,55 @@
+name: Saccharomyces cerevisiae (baker's yeast)
+slug: scerevisiae
+taxid: 4932
+
+# The codon_usage block is generated -- do not edit by hand.
+# Regenerate with: python tools/build_codon_table.py --host scerevisiae --write
+codon_usage:
+  source: "python_codon_tables 0.1.18, table 's_cerevisiae_4932' (Saccharomyces cerevisiae, Kazusa CUTG)"
+  note: "Whole-genome usage for the species, not for a cell line, strain or expression level"
+  verified: true
+  # fraction of each amino acid's codons, per codon
+  table:
+    A: {GCT: 0.38, GCA: 0.29, GCC: 0.22, GCG: 0.11}
+    C: {TGT: 0.63, TGC: 0.37}
+    D: {GAT: 0.65, GAC: 0.35}
+    E: {GAA: 0.7, GAG: 0.3}
+    F: {TTT: 0.59, TTC: 0.41}
+    G: {GGT: 0.47, GGA: 0.22, GGC: 0.19, GGG: 0.12}
+    H: {CAT: 0.64, CAC: 0.36}
+    I: {ATT: 0.46, ATA: 0.27, ATC: 0.26}
+    K: {AAA: 0.58, AAG: 0.42}
+    L: {TTG: 0.29, TTA: 0.28, CTA: 0.14, CTT: 0.13, CTG: 0.11, CTC: 0.06}
+    M: {ATG: 1}
+    N: {AAT: 0.59, AAC: 0.41}
+    P: {CCA: 0.42, CCT: 0.31, CCC: 0.15, CCG: 0.12}
+    Q: {CAA: 0.69, CAG: 0.31}
+    R: {AGA: 0.48, AGG: 0.21, CGT: 0.14, CGA: 0.07, CGC: 0.06, CGG: 0.04}
+    S: {TCT: 0.26, TCA: 0.21, AGT: 0.16, TCC: 0.16, AGC: 0.11, TCG: 0.1}
+    T: {ACT: 0.35, ACA: 0.3, ACC: 0.22, ACG: 0.14}
+    V: {GTT: 0.39, GTA: 0.21, GTC: 0.21, GTG: 0.19}
+    W: {TGG: 1}
+    Y: {TAT: 0.56, TAC: 0.44}
+  stop: {TAA: 0.47, TGA: 0.3, TAG: 0.23}
+
+# Derived from the table above: codons used for under 10% of their amino acid's codons.
+# This is a statement about the table, not a claim about tRNA supply.
+rare_codons: [CGA, CGC, CGG, CTC]
+
+# Only the codon table above is taken from a cited source. Everything below is a project
+# default that has not been checked against a reference. The motifs and homopolymer
+# limits are soft preferences: the optimiser avoids them when it can and names any that
+# stay. The GC and repeat limits steer a local search and can be changed per design.
+forbidden_motifs: []  # none listed for this host
+
+homopolymer_max: {A: 8, T: 8, G: 5, C: 5}
+
+gc:
+  global: [0.35, 0.65]
+  window: {size: 50, range: [0.25, 0.75]}
+
+repeats:
+  direct_max: 20
+  inverted_max: 20
+
+required_elements: []

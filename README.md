@@ -9,9 +9,9 @@ really get, scar residues included.
 > Codons are chosen by a DFA-constrained dynamic programme, so the insert is
 > provably free of both enzymes' recognition sites on either strand, including
 > sites that would straddle the vector junctions.
-> The bundled `ecoli_bl21` table is *E. coli* K-12 usage from
-> `python_codon_tables`, used for BL21 as is standard — see the profile's
-> `codon_usage.note`. Review a design before you order it.
+> The bundled codon tables come from `python_codon_tables` (see *Hosts* below). The
+> `ecoli_bl21` table is *E. coli* K-12 usage, used for BL21 as is standard; each profile's
+> `codon_usage.note` says what its table is. Review a design before you order it.
 
 ## Two ways to use it
 
@@ -189,8 +189,9 @@ p2d ui                                     # the local website
   avoid stop codons and new restriction sites, and reported to you
 - **Cloning sites kept out of the coding DNA**, on both strands and across the junctions
   with the vector, by a search; a site your protein forces is reported, not hidden
-- **Host preferences**: internal Shine-Dalgarno, Chi sites and long homopolymer runs are
-  avoided when a path exists, and any that the protein forces are named in a warning
+- **Host preferences**: a host's own motifs (internal Shine-Dalgarno and Chi sites in *E. coli*;
+  polyadenylation signals and AU-rich elements in human and mouse) and long homopolymer runs
+  are avoided when a path exists, and any that the protein forces are named in a warning
 - **The order itself**: extra bases outside each site that create no new cloning site or host
   motif, and an in-silico digest and ligation of the whole order that must reproduce the plasmid
 - **Which sites you can use**: order, spacing, compatible ends, and whether a second site of
@@ -211,8 +212,10 @@ p2d makes promises about the *sequence*: the reading frame, which sites are in t
 fusion protein you get, and the sizes. It does not yet promise anything about how much protein
 you will make.
 
-- **No experimental validation.** Codons follow a published usage table (the *E. coli* K-12
-  table stands in for BL21). That they raise expression in your hands has not been tested.
+- **No experimental validation.** Codons follow a published usage table for the species (the
+  *E. coli* K-12 table stands in for BL21; the human, mouse, yeast, *B. subtilis*, fly and worm
+  tables are whole-genome usage, not tuned to a cell line, strain or expression level). That
+  they raise expression in your hands has not been tested.
 - **Not implemented:** 5′ mRNA folding, and Dam/Dcm
   methylation and double-digest buffers. p2d also does not model any synthesis vendor's rules
   (length, GC or complexity limits): those differ between vendors and change, so they are out of
@@ -223,9 +226,9 @@ you will make.
   as vetted thresholds. Swapping codons to meet them lowers CAI; the page shows both.
 - **Scope.** One protein chain at a time, and restriction-site cloning only (no Gibson or
   Golden Gate). Tested on bacterial vectors: pET-28a(+), pGEX-4T-1/3X/2T, pUC19 and a
-  synthetic one. For a mammalian vector (mOrange2-C1 was tried) p2d works out the reading
-  frame, the pad bases and the fusion protein, and these agree with a hand design, but the
-  only host profile is *E. coli*, so the codons it picks are not mammalian ones.
+  synthetic one, plus a mammalian vector (mOrange2-C1) for the reading frame, the pad bases and
+  the fusion protein, which agree with a hand design. Choose the host profile that matches
+  where the vector is used; the default is *E. coli*.
 
 Review a design before you order it.
 
@@ -243,6 +246,27 @@ Three, and they are load-bearing:
    sequence; the record's own features are used only for reporting.
    
 
+## Hosts
+
+`p2d hosts` lists the profiles. Each one is a YAML file generated from a table in
+`python_codon_tables`, never typed by hand.
+
+| profile | species | table |
+|---|---|---|
+| `ecoli_bl21` (default) | *Escherichia coli* BL21(DE3) | K-12 usage |
+| `hsapiens` | human | *Homo sapiens* |
+| `mmusculus` | mouse | *Mus musculus* |
+| `scerevisiae` | baker's yeast | *Saccharomyces cerevisiae* |
+| `bsubtilis` | *Bacillus subtilis* | *B. subtilis* |
+| `dmelanogaster` | fruit fly | *Drosophila melanogaster* |
+| `celegans` | roundworm | *Caenorhabditis elegans* |
+
+Only the codon table is cited. A profile's rare codons (outside `ecoli_bl21`) are the codons
+used for under 10% of their amino acid's codons, read off the table. Its motifs, homopolymer
+limits and GC and repeat limits are project defaults, and are listed as soft preferences. The
+motifs for human and mouse (`AATAAA`, `ATTAAA`, `ATTTA`) are textbook sequences that have not
+been checked against a reference here. The other hosts list none.
+
 ## Roadmap
 
 | version | adds |
@@ -251,7 +275,7 @@ Three, and they are load-bearing:
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
 | **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position, with suggested pairs ranked by what they add to the protein; C-terminus choice; tags and linkers; construct report; GC and repeat refinement with adjustable limits; host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
 | 0.3 | first PyPI release |
-| 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy, more host profiles |
+| 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy |
 | 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
 | later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, a vector-free mode, Addgene |
 
@@ -269,8 +293,8 @@ the core package stays permissively licensed and installs without a compiler.
 ### Third-party data
 
 * **Codon usage** comes from [`python_codon_tables`](https://pypi.org/project/python_codon_tables/)
-  (CC0, derived from Kazusa CUTG). The bundled `ecoli_bl21` profile uses the *E. coli* K-12
-  table for BL21, which is standard practice and is recorded in the profile.
+  (CC0, derived from Kazusa CUTG). The `ecoli_bl21` profile uses the *E. coli* K-12 table for
+  BL21, which is standard practice and is recorded in the profile.
 * **Plasmid files are not redistributed.** `pTEST1` is synthetic. SnapGene, Addgene and vendor
   maps carry their own terms (SnapGene's, for example, require attribution and a licence for
   commercial use), so keep them on your own computer: put them in `~/.p2d/vectors` or upload

@@ -709,7 +709,10 @@ def test_the_page_has_the_tag_and_linker_selects():
 
 
 def test_meta_gives_each_host_its_limits_in_percent():
-    host = service.meta()["hosts"][0]
+    meta = service.meta()
+    assert meta["default_host"] == "ecoli_bl21"
+    assert {"hsapiens", "scerevisiae", "bsubtilis"} <= {h["slug"] for h in meta["hosts"]}
+    host = next(h for h in meta["hosts"] if h["slug"] == "ecoli_bl21")
     assert host["limits"] == {
         "gc_min": 35,
         "gc_max": 65,
@@ -748,3 +751,18 @@ def test_the_page_has_the_limit_inputs():
     html = static_text("index.html")
     for i in ("gc-min", "gc-max", "window-size", "window-min", "window-max", "repeat-max"):
         assert f'id="lim-{i}"' in html
+
+
+def test_every_host_can_design_through_the_service(pt1):
+    names = {}
+    for slug in service.meta()["hosts"]:
+        d = service.design(req(pt1, upstream="NcoI:85", downstream="XhoI:174", host=slug["slug"]))
+        assert d["ok"], slug["slug"]
+        names[slug["slug"]] = d["insert_fasta"]
+    assert len(set(names.values())) == len(names), "each host gives its own codons"
+
+
+def test_each_host_note_reaches_the_page_data():
+    hosts = {h["slug"]: h for h in service.meta()["hosts"]}
+    assert "K-12" in hosts["ecoli_bl21"]["note"]
+    assert "not for a cell line" in hosts["hsapiens"]["note"]

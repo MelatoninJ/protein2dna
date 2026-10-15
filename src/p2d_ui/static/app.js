@@ -709,7 +709,7 @@ async function onSubmit(e) {
 /* --------------------------------------------------------------------- boot */
 function showHostNote() {
   const host = meta.hosts.find((x) => x.slug === $("host").value);
-  $("host-note").textContent = host ? (host.verified ? "Codon table from a cited source." : "Codon table is an unverified placeholder.") : "";
+  $("host-note").textContent = host ? `${host.verified ? "Codon table from a cited source." : "Codon table is an unverified placeholder."} ${host.note || ""}` : "";
 }
 
 function initForm() {
@@ -719,6 +719,7 @@ function initForm() {
   for (const id of ["n-linker", "c-linker"]) $(id).replaceChildren(...partOptions(meta.parts.linkers));
   for (const id of ["n-tag", "n-linker", "c-linker", "c-tag"]) $(id).addEventListener("change", refreshSites);
   $("host").replaceChildren(...meta.hosts.map((x) => h("option", { value: x.slug, text: x.name })));
+  $("host").value = meta.default_host;
   $("strategies").replaceChildren(
     ...meta.strategies.map((s, i) =>
       h("label", { class: "choice" },

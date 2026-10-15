@@ -1,0 +1,55 @@
+name: Drosophila melanogaster (fruit fly)
+slug: dmelanogaster
+taxid: 7227
+
+# The codon_usage block is generated -- do not edit by hand.
+# Regenerate with: python tools/build_codon_table.py --host dmelanogaster --write
+codon_usage:
+  source: "python_codon_tables 0.1.18, table 'd_melanogaster_7227' (Drosophila melanogaster, Kazusa CUTG)"
+  note: "Whole-genome usage for the species, not for a cell line, strain or expression level"
+  verified: true
+  # fraction of each amino acid's codons, per codon
+  table:
+    A: {GCC: 0.45, GCG: 0.19, GCT: 0.19, GCA: 0.17}
+    C: {TGC: 0.71, TGT: 0.29}
+    D: {GAT: 0.53, GAC: 0.47}
+    E: {GAG: 0.67, GAA: 0.33}
+    F: {TTC: 0.62, TTT: 0.38}
+    G: {GGC: 0.43, GGA: 0.29, GGT: 0.21, GGG: 0.07}
+    H: {CAC: 0.6, CAT: 0.4}
+    I: {ATC: 0.47, ATT: 0.34, ATA: 0.19}
+    K: {AAG: 0.7, AAA: 0.3}
+    L: {CTG: 0.43, TTG: 0.18, CTC: 0.15, CTT: 0.1, CTA: 0.09, TTA: 0.05}
+    M: {ATG: 1}
+    N: {AAC: 0.56, AAT: 0.44}
+    P: {CCC: 0.33, CCG: 0.29, CCA: 0.25, CCT: 0.13}
+    Q: {CAG: 0.7, CAA: 0.3}
+    R: {CGC: 0.33, CGT: 0.16, CGA: 0.15, CGG: 0.15, AGG: 0.11, AGA: 0.09}
+    S: {AGC: 0.25, TCC: 0.24, TCG: 0.2, AGT: 0.14, TCA: 0.09, TCT: 0.08}
+    T: {ACC: 0.38, ACG: 0.26, ACA: 0.2, ACT: 0.17}
+    V: {GTG: 0.47, GTC: 0.24, GTT: 0.19, GTA: 0.11}
+    W: {TGG: 1}
+    Y: {TAC: 0.63, TAT: 0.37}
+  stop: {TAA: 0.41, TAG: 0.33, TGA: 0.25}
+
+# Derived from the table above: codons used for under 10% of their amino acid's codons.
+# This is a statement about the table, not a claim about tRNA supply.
+rare_codons: [AGA, CTA, GGG, TCA, TCT, TTA]
+
+# Only the codon table above is taken from a cited source. Everything below is a project
+# default that has not been checked against a reference. The motifs and homopolymer
+# limits are soft preferences: the optimiser avoids them when it can and names any that
+# stay. The GC and repeat limits steer a local search and can be changed per design.
+forbidden_motifs: []  # none listed for this host
+
+homopolymer_max: {A: 8, T: 8, G: 5, C: 5}
+
+gc:
+  global: [0.35, 0.65]
+  window: {size: 50, range: [0.25, 0.75]}
+
+repeats:
+  direct_max: 20
+  inverted_max: 20
+
+required_elements: []

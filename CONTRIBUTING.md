@@ -22,12 +22,12 @@ adding **one YAML file** to `src/p2d/hosts/` and nothing else.
    means internal Shine–Dalgarno sequences and Chi sites.
    `homopolymer_max` (the longest run of each base allowed) is read the same way: both are
    soft preferences, so give a reference for any number you change.
-4. Add the slug to `test_structure.py::test_every_residue_has_a_codon` —
-   `test_codon_table_is_self_consistent` and `test_codon_table_is_complete`
-   will catch most transcription errors for you.
+4. Add the slug to `tools/build_codon_table.py` (`HOSTS`) and generate the profile with
+   `python tools/build_codon_table.py --host <slug> --write`; `tests/test_hosts.py` then runs
+   every check on it, including that its table equals the one in `python_codon_tables`.
 
-Wanted: *S. cerevisiae*, *P. pastoris*, human/CHO, *S. frugiperda*,
-*N. benthamiana*.
+Wanted: *P. pastoris*, CHO, *S. frugiperda*, *N. benthamiana*, and any host whose table is
+not in `python_codon_tables` (these need a cited table you supply).
 
 ## Adding a vector
 

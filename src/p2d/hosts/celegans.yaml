@@ -1,0 +1,55 @@
+name: Caenorhabditis elegans
+slug: celegans
+taxid: 6239
+
+# The codon_usage block is generated -- do not edit by hand.
+# Regenerate with: python tools/build_codon_table.py --host celegans --write
+codon_usage:
+  source: "python_codon_tables 0.1.18, table 'c_elegans_6239' (Caenorhabditis elegans, Kazusa CUTG)"
+  note: "Whole-genome usage for the species, not for a cell line, strain or expression level"
+  verified: true
+  # fraction of each amino acid's codons, per codon
+  table:
+    A: {GCT: 0.36, GCA: 0.31, GCC: 0.2, GCG: 0.13}
+    C: {TGT: 0.55, TGC: 0.45}
+    D: {GAT: 0.68, GAC: 0.32}
+    E: {GAA: 0.62, GAG: 0.38}
+    F: {TTC: 0.51, TTT: 0.49}
+    G: {GGA: 0.59, GGT: 0.2, GGC: 0.12, GGG: 0.08}
+    H: {CAT: 0.61, CAC: 0.39}
+    I: {ATT: 0.53, ATC: 0.31, ATA: 0.16}
+    K: {AAA: 0.59, AAG: 0.41}
+    L: {CTT: 0.25, TTG: 0.23, CTC: 0.17, CTG: 0.14, TTA: 0.11, CTA: 0.09}
+    M: {ATG: 1}
+    N: {AAT: 0.62, AAC: 0.38}
+    P: {CCA: 0.53, CCG: 0.2, CCT: 0.18, CCC: 0.09}
+    Q: {CAA: 0.66, CAG: 0.34}
+    R: {AGA: 0.29, CGA: 0.23, CGT: 0.21, CGC: 0.1, CGG: 0.09, AGG: 0.08}
+    S: {TCA: 0.26, TCT: 0.21, AGT: 0.15, TCG: 0.15, TCC: 0.13, AGC: 0.1}
+    T: {ACA: 0.34, ACT: 0.32, ACC: 0.18, ACG: 0.15}
+    V: {GTT: 0.39, GTG: 0.23, GTC: 0.22, GTA: 0.16}
+    W: {TGG: 1}
+    Y: {TAT: 0.56, TAC: 0.44}
+  stop: {TAA: 0.43, TGA: 0.39, TAG: 0.18}
+
+# Derived from the table above: codons used for under 10% of their amino acid's codons.
+# This is a statement about the table, not a claim about tRNA supply.
+rare_codons: [AGG, CCC, CGG, CTA, GGG]
+
+# Only the codon table above is taken from a cited source. Everything below is a project
+# default that has not been checked against a reference. The motifs and homopolymer
+# limits are soft preferences: the optimiser avoids them when it can and names any that
+# stay. The GC and repeat limits steer a local search and can be changed per design.
+forbidden_motifs: []  # none listed for this host
+
+homopolymer_max: {A: 8, T: 8, G: 5, C: 5}
+
+gc:
+  global: [0.35, 0.65]
+  window: {size: 50, range: [0.25, 0.75]}
+
+repeats:
+  direct_max: 20
+  inverted_max: 20
+
+required_elements: []

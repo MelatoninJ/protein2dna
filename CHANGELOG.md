@@ -14,6 +14,12 @@ All notable changes are listed here. The format follows
   start, so a plasmid such as mOrange2-C1 can be started without a bacterial binding site.
   It was checked against a hand-designed MEK1 into mOrange2-C1 cloning.
 
+### Added (hosts)
+- Host profiles for human, mouse, *S. cerevisiae*, *B. subtilis*, *D. melanogaster* and
+  *C. elegans*, generated from `python_codon_tables`, with the default staying *E. coli*.
+  `tools/build_codon_table.py` now builds any of them, and `tests/test_hosts.py` checks each
+  table against the cited package, among other things.
+
 ### Changed
 - When a cut splits a codon, the bases that complete it are the vector's own, so the residue
   there is the one the vector reads. Before, an arbitrary pair could change the last residue
