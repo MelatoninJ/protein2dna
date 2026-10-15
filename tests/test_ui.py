@@ -895,3 +895,35 @@ def test_designing_for_a_host_in_development_carries_a_warning(pt1):
         codes = [i["code"] for i in d["issues"]]
         assert ("host_in_development" in codes) is expected, slug
         assert d["ok"], "a warning, not a refusal"
+
+
+def test_the_page_grid_has_the_form_and_one_stage_so_the_result_stays_in_its_column():
+    """A third direct child of <main> once pushed the result under the form."""
+    from html.parser import HTMLParser
+
+    class Tree(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.depth, self.in_main, self.children = 0, False, []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "main":
+                self.in_main, self.depth = True, 0
+            elif self.in_main:
+                if self.depth == 0 and tag not in ("input", "br"):
+                    self.children.append((tag, dict(attrs).get("id") or dict(attrs).get("class")))
+                if tag not in ("input", "br", "meta", "link", "img", "hr"):
+                    self.depth += 1
+
+        def handle_endtag(self, tag):
+            if tag == "main":
+                self.in_main = False
+            elif self.in_main and tag not in ("input", "br", "meta", "link", "img", "hr"):
+                self.depth -= 1
+
+    tree = Tree()
+    tree.feed(static_text("index.html"))
+    assert tree.children == [("form", "design-form"), ("div", "stage")], tree.children
+    html = static_text("index.html")
+    stage = html[html.index('class="stage"') :]
+    assert stage.index('id="result"') < stage.index('id="batch-box"'), "the result comes first"

@@ -208,20 +208,21 @@
       <button type="submit" class="primary" id="submit">Design insert</button>
     </form>
 
-    <details class="batch" id="batch-box">
-      <summary>Design many proteins at once</summary>
-      <p class="help">Uses the vector, start codon, sites, C-terminus, tags, host, limits and extra bases chosen above for every protein. Paste FASTA text, or load a file. A protein that cannot be cloned is reported by name and the rest carry on.</p>
-      <label for="batch-input">Proteins (FASTA, one record each)</label>
-      <textarea id="batch-input" rows="8" spellcheck="false" autocomplete="off" placeholder=">binder_1&#10;MKVL...&#10;>binder_2&#10;SKGE..."></textarea>
-      <div class="row">
-        <button type="button" class="secondary" id="batch-file-btn">Load a FASTA file</button>
-        <input id="batch-file" type="file" accept=".fa,.fasta,.faa,.txt" hidden>
-        <button type="button" class="primary" id="batch-btn">Design all</button>
-      </div>
-      <div id="batch-result" aria-live="polite"></div>
-    </details>
-
-    <section id="result" class="result" tabindex="-1" aria-live="polite" aria-label="Design result"></section>
+    <div class="stage">
+      <section id="result" class="result" tabindex="-1" aria-live="polite" aria-label="Design result"></section>
+      <details class="batch" id="batch-box">
+        <summary>Design many proteins at once</summary>
+        <p class="help">Uses the vector, start codon, sites, C-terminus, tags, host, limits and extra bases chosen above for every protein. Paste FASTA text, or load a file. A protein that cannot be cloned is reported by name and the rest carry on.</p>
+        <label for="batch-input">Proteins (FASTA, one record each)</label>
+        <textarea id="batch-input" rows="8" spellcheck="false" autocomplete="off" placeholder=">binder_1&#10;MKVL...&#10;>binder_2&#10;SKGE..."></textarea>
+        <div class="row">
+          <button type="button" class="secondary" id="batch-file-btn">Load a FASTA file</button>
+          <input id="batch-file" type="file" accept=".fa,.fasta,.faa,.txt" hidden>
+          <button type="button" class="primary" id="batch-btn">Design all</button>
+        </div>
+        <div id="batch-result" aria-live="polite"></div>
+      </details>
+    </div>
   </main>
 
   <footer class="wrap foot">

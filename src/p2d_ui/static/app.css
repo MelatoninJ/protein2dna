@@ -213,9 +213,9 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .why ul { display: grid; gap: 6px; margin-top: 8px; }
 .why b { color: var(--text); font-weight: 500; }
 
-.mcs { position: relative; height: 92px; margin: 28px 6px 6px; }
+.mcs { position: relative; height: 92px; margin: 34px 6px 6px; }
 .mcs-bar { position: absolute; left: 0; right: 0; top: 10px; height: 8px; background: var(--accent-wash); border: 1px solid var(--border-strong); border-radius: 3px; }
-.mcs-end { position: absolute; top: -34px; font: 11px var(--font-mono); color: var(--muted); }
+.mcs-end { position: absolute; top: -22px; font: 11px var(--font-mono); color: var(--muted); }
 .mcs-end.l { left: -6px; }
 .mcs-end.r { right: -6px; }
 .mcs-tick { position: absolute; top: 5px; width: 2px; height: 18px; background: var(--muted); transform: translateX(-1px); border-radius: 1px; }
@@ -413,7 +413,7 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .what .warn { color: var(--warn); font-weight: 500; }
 
 /* batch design */
-.batch { margin-top: 24px; }
+.stage { min-width: 0; display: grid; gap: 24px; align-content: start; }
 .batch summary { cursor: pointer; font-weight: 500; }
 .batch textarea { width: 100%; font: 13px var(--font-mono); margin: 8px 0 12px; }
 .batch .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
