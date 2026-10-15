@@ -37,6 +37,10 @@ All notable changes are listed here. The format follows
 - Site-pair suggestions count the residues of the vector's own protein a pair would change and
   rank those pairs last; the website says so.
 
+### Release process
+- A manual `TestPyPI` workflow rehearses publishing on test.pypi.org (trusted publishing, no token).
+  The development version is `0.3.0.dev1`; the plain number is kept for the real release.
+
 ### Removed
 - The optional `fold` extra (ViennaRNA) and the unused `initiation` block of `ecoli_bl21.yaml`
   (a folding window and a free-energy limit that had no source). p2d does not fold mRNA.

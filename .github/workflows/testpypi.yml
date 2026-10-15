@@ -1,0 +1,39 @@
+name: TestPyPI
+# A rehearsal of publishing, run by hand from the Actions tab. It uploads to test.pypi.org, a
+# separate index for trying the release process; nothing here reaches the real PyPI.
+# Trusted publishing, so no token is stored: register a publisher on test.pypi.org first
+# (project protein2dna, this repository, workflow testpypi.yml, environment testpypi).
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true

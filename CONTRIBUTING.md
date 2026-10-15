@@ -237,6 +237,20 @@ Next: v0.3 (first PyPI release).
 
 ## Releasing
 
+**Rehearse on TestPyPI first.** It is a separate index (and a separate account) for trying the
+process. Register a trusted publisher at test.pypi.org (project `protein2dna`, this repository,
+workflow `testpypi.yml`, environment `testpypi`), run the `TestPyPI` workflow by hand from the
+Actions tab, then check the result in a clean environment:
+
+```bash
+python -m venv /tmp/try && /tmp/try/bin/pip install --pre \
+  --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ protein2dna
+/tmp/try/bin/p2d version
+```
+
+A version can be uploaded once and never replaced, so rehearse with a development version
+(`0.3.0.dev1`, then `.dev2`) and keep the plain number for the real release.
+
 1. Move the `CHANGELOG.md` entries under a new version heading and set the same version in
    `pyproject.toml`, `src/p2d/__init__.py` and `CITATION.cff`.
 2. Check `ruff check .`, `ruff format --check .` and `pytest -q`; CI also builds the package,

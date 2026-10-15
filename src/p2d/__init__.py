@@ -26,7 +26,7 @@ from .order import Order, make_order
 from .vector import InsertionSite, StartSource, Vector
 from .vectors import available_bundled, load_bundled
 
-__version__ = "0.2.0"
+__version__ = "0.3.0.dev1"
 
 __all__ = [
     "Assembly",

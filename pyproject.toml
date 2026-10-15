@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "protein2dna"
-version = "0.2.0"
+version = "0.3.0.dev1"
 description = "Protein-to-DNA reverse translation that knows about your vector"
 readme = "README.md"
 requires-python = ">=3.10"
