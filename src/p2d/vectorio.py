@@ -154,6 +154,8 @@ def _clean_name(name: str) -> str:
 
 _HTML = re.compile(r"<[^>]+>")
 T7_PROMOTER = "TAATACGACTCACTATAG"
+# the first residues of lacZ-alpha (MTMITPS), shared by the pUC and pBluescript families
+LACZ_ALPHA_START = "ATGACCATGATTACGCCAAGC"
 _EXPRESSION_PROMOTER = re.compile(r"\b(t7|t5|tac|trc|lacuv5|arabad|pbad)\b", re.I)
 
 
@@ -216,6 +218,14 @@ def orientation_votes(vector: Vector) -> tuple[int, int, list[str]]:
     if rev:
         minus += 2 * rev
         reasons.append(f"T7 promoter sequence on the minus strand ({rev}x)")
+    lac_f = seq.count(LACZ_ALPHA_START)
+    lac_r = seq.count(str(Seq(LACZ_ALPHA_START).reverse_complement()))
+    if lac_f:
+        plus += 3 * lac_f
+        reasons.append("start of lacZ-alpha (MTMITPS) on the plus strand")
+    if lac_r:
+        minus += 3 * lac_r
+        reasons.append("start of lacZ-alpha (MTMITPS) on the minus strand")
     return plus, minus, reasons
 
 

@@ -21,6 +21,7 @@ from Bio.Seq import Seq
 
 from .vector import STOP_CODONS, Vector
 from .vectorio import (
+    LACZ_ALPHA_START,
     T7_PROMOTER,
     feature_text,
     is_start_codon_feature,
@@ -138,6 +139,9 @@ def find_starts(vector: Vector, region: Region | None) -> list[StartCandidate]:
                     f"ribosome-binding-site-like motif ({sd} nt) upstream, ORF reaches the MCS",
                     1 + (sd >= 5),
                 )
+
+    for hit in re.finditer(LACZ_ALPHA_START, seq):
+        add(hit.start(), "matches the start of lacZ-alpha (MTMITPS...)", 3)
 
     if not region:
         for hit in re.finditer(T7_PROMOTER, seq):

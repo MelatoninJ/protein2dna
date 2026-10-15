@@ -57,8 +57,9 @@ read the folder named by `P2D_VECTOR_SAMPLES` and are skipped when it is unset:
 P2D_VECTOR_SAMPLES=~/vectors pytest -q
 ```
 
-The suite looks for `pET-28a_plus.dna` (SnapGene) and `U13853.gb`, `U13852.gb`, `U13850.gb`
-(pGEX-4T-1, 3X, 2T from NCBI). Please do not commit plasmid files.
+The suite looks for `pET-28a_plus.dna` (SnapGene), `U13853.gb`, `U13852.gb`, `U13850.gb`
+(pGEX-4T-1, 3X, 2T from NCBI), `pUC19_L09137.gb` (NCBI) and `GFP_pGLO.txt` (a FASTA of the
+GFP coding sequence). Please do not commit plasmid files.
 
 ## Architecture and rules
 

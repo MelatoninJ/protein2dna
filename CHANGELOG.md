@@ -4,6 +4,13 @@ All notable changes are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Plasmids with no annotation: the start of lacZ-alpha (MTMITPS, in the pUC and pBluescript
+  families) is recognised from the sequence, so an unannotated pUC19 is oriented and its start
+  codon offered. It was checked against a hand-designed GFP into pUC19 cloning.
+
 ## [0.2.0] - 2026-10-14
 
 First tagged release.
