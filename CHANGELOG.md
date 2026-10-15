@@ -10,6 +10,16 @@ All notable changes are listed here. The format follows
 - Plasmids with no annotation: the start of lacZ-alpha (MTMITPS, in the pUC and pBluescript
   families) is recognised from the sequence, so an unannotated pUC19 is oriented and its start
   codon offered. It was checked against a hand-designed GFP into pUC19 cloning.
+- A Kozak consensus (`GCCRCCATGG`) with a long ORF behind it is offered as a medium-confidence
+  start, so a plasmid such as mOrange2-C1 can be started without a bacterial binding site.
+  It was checked against a hand-designed MEK1 into mOrange2-C1 cloning.
+
+### Changed
+- When a cut splits a codon, the bases that complete it are the vector's own, so the residue
+  there is the one the vector reads. Before, an arbitrary pair could change the last residue
+  of a tag or fusion partner (for example the final K of mOrange2).
+- Site-pair suggestions count the residues of the vector's own protein a pair would change and
+  rank those pairs last; the website says so.
 
 ## [0.2.0] - 2026-10-14
 

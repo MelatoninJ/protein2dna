@@ -222,8 +222,10 @@ you will make.
   reference. They never block a design (what cannot be met is reported), but do not read them
   as vetted thresholds. Swapping codons to meet them lowers CAI; the page shows both.
 - **Scope.** One protein chain at a time, and restriction-site cloning only (no Gibson or
-  Golden Gate). Tested on bacterial vectors: pET-28a(+), pGEX-4T-1/3X/2T and a synthetic one.
-  Eukaryotic vectors are not supported.
+  Golden Gate). Tested on bacterial vectors: pET-28a(+), pGEX-4T-1/3X/2T, pUC19 and a
+  synthetic one. For a mammalian vector (mOrange2-C1 was tried) p2d works out the reading
+  frame, the pad bases and the fusion protein, and these agree with a hand design, but the
+  only host profile is *E. coli*, so the codons it picks are not mammalian ones.
 
 Review a design before you order it.
 
