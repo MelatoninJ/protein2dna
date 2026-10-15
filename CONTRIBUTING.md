@@ -43,8 +43,8 @@ A vector without a golden test will not be merged.
 
 ## Scope
 
-Open an issue before starting anything on the v0.3+ roadmap (mRNA
-folding, Addgene integration, multi-chain linkage).
+Open an issue before starting anything on the v0.3+ roadmap (Addgene
+integration, multi-chain linkage).
 These have design decisions attached that are worth settling in an issue first.
 The rules a change must respect are listed under "Architecture and rules" below.
 

@@ -249,7 +249,13 @@ you will make.
   *E. coli* K-12 table stands in for BL21; the human, mouse, yeast, *B. subtilis*, fly and worm
   tables are whole-genome usage, not tuned to a cell line, strain or expression level). That
   they raise expression in your hands has not been tested.
-- **Not implemented:** 5′ mRNA folding, and Dam/Dcm
+- **mRNA folding and its energy are deliberately not included.** The evidence that 5′ structure
+  limits translation in *E. coli* is real (see [Kudla 2009](https://pmc.ncbi.nlm.nih.gov/articles/PMC3902468) and
+  [Goodman 2013](https://pubmed.ncbi.nlm.nih.gov/24072823/)), but it is
+  correlational and built on a few reporters, the sources use different software and windows,
+  and none gives a free-energy cut-off, so p2d would have nothing citable to check a design
+  against. Choose the codons near the start with that in mind if it matters for your protein.
+- **Not implemented:** Dam/Dcm
   methylation and double-digest buffers. p2d also does not model any synthesis vendor's rules
   (length, GC or complexity limits): those differ between vendors and change, so they are out of
   scope. Check a design against the rules of whoever makes it.
@@ -314,7 +320,7 @@ been checked against a reference here. The other hosts list none.
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
 | **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position, with suggested pairs ranked by what they add to the protein; C-terminus choice; tags and linkers; construct report; GC and repeat refinement with adjustable limits; batch design from a FASTA; host profiles (bacteria released, eukaryotes in development); host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
 | 0.3 | first PyPI release |
-| 0.4 | 5′ mRNA structure (ViennaRNA, optional), the `HARMONIZED` strategy |
+| 0.4 | the `HARMONIZED` strategy |
 | 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
 | later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, a vector-free mode, Addgene |
 
@@ -326,8 +332,7 @@ Python, or the website's upload and `~/.p2d/vectors` folder.
 
 ## Licence
 
-MIT, see `LICENSE`. ViennaRNA is an optional extra (`pip install protein2dna[fold]`) so that
-the core package stays permissively licensed and installs without a compiler.
+MIT, see `LICENSE`. p2d has no compiled or non-permissive dependencies.
 
 ### Third-party data
 

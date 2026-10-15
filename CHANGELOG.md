@@ -37,6 +37,10 @@ All notable changes are listed here. The format follows
 - Site-pair suggestions count the residues of the vector's own protein a pair would change and
   rank those pairs last; the website says so.
 
+### Removed
+- The optional `fold` extra (ViennaRNA) and the unused `initiation` block of `ecoli_bl21.yaml`
+  (a folding window and a free-energy limit that had no source). p2d does not fold mRNA.
+
 ## [0.2.0] - 2026-10-14
 
 First tagged release.

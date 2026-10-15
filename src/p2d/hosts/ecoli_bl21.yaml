@@ -58,10 +58,4 @@ repeats:
   direct_max: 20
   inverted_max: 20
 
-initiation:
-  # 5' mRNA structure dominates expression in E. coli; fold this window
-  # relative to the start codon A (position 0) and penalise strong structure.
-  fold_window: [-30, 40]
-  dg_min: -10.0  # kcal/mol, soft constraint
-
 required_elements: []
