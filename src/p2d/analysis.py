@@ -101,6 +101,9 @@ def _sd_score(seq: str, atg: int) -> int:
     return max((len(m) for m in _SD if m in window), default=0)
 
 
+KOZAK = re.compile(r"(?=(GCC[AG]CCATGG))")
+
+
 def find_starts(vector: Vector, region: Region | None) -> list[StartCandidate]:
     seq = vector.seq
     found: dict[int, dict] = {}
@@ -139,6 +142,14 @@ def find_starts(vector: Vector, region: Region | None) -> list[StartCandidate]:
                     f"ribosome-binding-site-like motif ({sd} nt) upstream, ORF reaches the MCS",
                     1 + (sd >= 5),
                 )
+
+    # a full Kozak consensus is rare by chance (about 1 in 1000 sites), so a long ORF behind one
+    # is worth offering, though only as a medium-confidence start
+    for hit in re.finditer(KOZAK, seq):
+        pos = hit.start() + 6
+        stop = _orf_end(seq, pos)
+        if stop and stop - pos >= 90:
+            add(pos, "Kozak consensus (GCCRCCATGG) around the ATG", 2)
 
     for hit in re.finditer(LACZ_ALPHA_START, seq):
         add(hit.start(), "matches the start of lacZ-alpha (MTMITPS...)", 3)

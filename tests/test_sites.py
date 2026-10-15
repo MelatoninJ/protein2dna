@@ -331,7 +331,8 @@ def test_real_pet28a_c_terminus_is_a_choice(host):
     """XhoI and the His6 tag are one base off the start codon's frame in pET-28a(+)."""
     v = real("pET-28a_plus.dna")
     keep = design(v, host, "BamHI:5166", "XhoI:5206")  # default: the vector's own frame
-    assert keep.protein.endswith(PAYLOAD + "ARAPPPPPLRSGC"), "reads vector junk, not the tag"
+    # the pad is the vector's own base, so the residue is the one the vector itself reads here
+    assert keep.protein.endswith(PAYLOAD + "TRAPPPPPLRSGC"), "reads vector junk, not the tag"
     tag = design(v, host, "BamHI:5166", "XhoI:5206", cterm=p2d.CTerm.TAG)
     assert tag.ok and tag.protein.endswith(PAYLOAD + "LEHHHHHH")
     # the tag follows XhoI in its own frame, so reaching it needs no extra base; staying

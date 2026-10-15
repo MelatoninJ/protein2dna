@@ -410,3 +410,4 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 
 #limits-box summary { cursor: pointer; width: max-content; text-decoration: underline; text-underline-offset: 3px; }
 #limits-box .pair { margin-bottom: 12px; }
+.what .warn { color: var(--warn); font-weight: 500; }

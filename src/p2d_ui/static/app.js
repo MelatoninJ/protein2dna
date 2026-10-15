@@ -405,7 +405,10 @@ function outcomeLine(g) {
   const back = g.after
     ? h("span", null, " Then ", h("b", { text: shortAa(g.after) }), " after it.")
     : h("span", null, " Ends with your last residue.");
-  return h("p", { class: "what" }, front, back);
+  const altered = g.altered
+    ? [h("span", { class: "warn", text: ` Changes ${g.altered} residue${g.altered > 1 ? "s" : ""} of the vector's own protein.` })]
+    : [];
+  return h("p", { class: "what" }, front, back, ...altered);
 }
 
 async function useSites(upId, downId) {

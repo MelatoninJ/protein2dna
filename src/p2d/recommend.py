@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from Bio.Seq import Seq
+
 from .assemble import assemble
 from .enzymes import CutSite, list_cut_sites, plan_cut
 from .frame import CTerm, design_insert
@@ -35,6 +37,7 @@ class PairOption:
     n_tag: bool  # the vector's own N-terminal sequence stays on the protein
     pad_bases: int  # bases added only to keep the reading frame
     extra_residues: int
+    altered: int  # residues of the vector's own protein this pair changes
     single_cutters: bool  # both enzymes cut the whole vector once
     replaced_bp: int
     plasmid_bp: int
@@ -50,6 +53,7 @@ class PairOption:
         # least added to the protein first; then, among equal results, cleaner digests and the
         # smaller piece cut out of the vector
         return (
+            self.altered,
             self.extra_residues,
             self.pad_bases,
             not self.single_cutters,
@@ -72,6 +76,23 @@ class OutcomeGroup:
     @property
     def best(self) -> PairOption:
         return self.pairs[0]
+
+    @property
+    def altered(self) -> int:
+        return self.best.altered
+
+
+def _altered(vector: Vector, before: str) -> int:
+    """How many residues in front of the protein differ from the vector's own reading.
+
+    The vector's native protein (its tag, or a fusion partner such as a fluorescent protein) is
+    read from its start codon.  A cut inside a codon can change a residue of it, for instance
+    the last K of a tag, if the bases that complete the codon are not the vector's own.
+    """
+    start = vector.expression_start
+    window = vector.seq[start : start + 3 * (len(before) + 1)]
+    native = str(Seq(window[: len(window) - len(window) % 3]).translate(to_stop=True))
+    return sum(1 for a, b in zip(before, native, strict=False) if a != b)
 
 
 def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits):
@@ -96,6 +117,7 @@ def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts
     if at < 0:
         return None, "the protein is not found in the translation"
     before, after = a.protein[:at], a.protein[at + len(built) :]
+    altered = _altered(vector, before)
     n_tag = bool(a.segments) and a.segments[0].kind is PartKind.TAG
     rep = construct_report(a)["sizes"]
     return (
@@ -107,6 +129,7 @@ def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts
             n_tag=n_tag,
             pad_bases=len(a.design.pad_up) + len(a.design.pad_down),
             extra_residues=len(before) + len(after),
+            altered=altered,
             single_cutters=up.count == 1 and down.count == 1,
             replaced_bp=rep["replaced_bp"],
             plasmid_bp=rep["plasmid_bp"],

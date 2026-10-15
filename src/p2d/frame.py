@@ -93,8 +93,12 @@ def _pad_candidates(
     suffix: str,
     forbidden: list[str],
     frame_offset: int,
+    native: str = "",
 ) -> list[str]:
     """All ``n``-base pads that introduce neither a stop codon nor a new site.
+
+    ``native`` is what the vector itself has in that place; it is tried first, so a codon cut
+    in two by the site is completed the way the vector had it and its residue is unchanged.
 
     ``frame_offset`` is the position of ``prefix``'s first base within its
     codon, so stop codons can be read in the correct frame.  Sites running into
@@ -105,6 +109,8 @@ def _pad_candidates(
     if n == 0:
         return [""]
     candidates = [p[:n] for p in PAD_BASES] if n <= 2 else ["GCG", "GGC"]
+    if len(native) == n and set(native) <= set("ACGT"):
+        candidates.insert(0, native)
     pad_lo, pad_hi = len(prefix), len(prefix) + n
     usable = []
     for pad in dict.fromkeys(candidates):
@@ -323,6 +329,7 @@ def design_insert(
         suffix="",
         forbidden=forbidden,
         frame_offset=(up.start - lead - orf_start) % 3,
+        native=vector.seq[up.end : up.end + n_pad_up],
     )
     down_pads = _pad_candidates(
         n_pad_down,
@@ -330,6 +337,7 @@ def design_insert(
         suffix=down_site + vector.seq[down.end : down.end + 2],
         forbidden=forbidden,
         frame_offset=0,
+        native=vector.seq[down.start - n_pad_down : down.start] if n_pad_down else "",
     )
     context = Automaton(forbidden).max_len
     vector_before = vector.seq[max(0, up.start - context) : up.start]

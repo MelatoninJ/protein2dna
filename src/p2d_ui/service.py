@@ -559,6 +559,7 @@ def pairs(request: dict) -> dict:
                 "before": g.before,
                 "after": g.after,
                 "n_tag": g.n_tag,
+                "altered": g.altered,
                 "pad_bases": g.pad_bases,
                 "n_pairs": len(g.pairs),
                 "pairs": [row(o) for o in g.pairs[:MAX_PAIRS_PER_GROUP]],

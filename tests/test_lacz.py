@@ -153,3 +153,132 @@ def test_a_pcr_made_with_the_hand_designed_primers_agrees_with_p2d(puc19, gfp):
     assert ours.ok and ours.protein == "MTMITPSLHA" + protein
     # p2d ends with a double stop (TAATGA); the hand design has a single one
     assert len(ours.seq) - len(made) == 3
+
+
+# ------------------------------------------------------- Kozak start in a mammalian vector
+
+
+def kozak_plasmid(context="GCCACCATGG", orf_codons=120):
+    rng = random.Random(7)
+    rand = lambda n: "".join(rng.choice("ACGT") for _ in range(n))  # noqa: E731
+    orf = context[6:] + "CT" + "GCT" * orf_codons + "TAA"  # ATG GCT GCT ... TAA, in frame
+    return Vector.from_sequence(rand(300) + context[:6] + orf + rand(300), name="mammalian")
+
+
+def test_a_kozak_consensus_start_is_offered_with_medium_confidence():
+    a = analyze_vector(kozak_plasmid())
+    assert len(a.starts) == 1 and a.starts[0].confidence == "medium"
+    assert "Kozak" in a.starts[0].evidence[0]
+    assert a.vector.seq[a.starts[0].position : a.starts[0].position + 4] == "ATGG"
+    assert not a.ready, "a medium start must be confirmed by the user"
+
+
+def test_the_kozak_start_needs_the_full_consensus_and_a_real_orf():
+    assert not analyze_vector(kozak_plasmid("GCCTCCATGG")).starts, "position -3 must be A or G"
+    assert not analyze_vector(kozak_plasmid("GCCACCATGC")).starts, "G at +4 is part of the motif"
+    assert not analyze_vector(kozak_plasmid(orf_codons=10)).starts, "too short to be a gene"
+
+
+# ---------------------------------- the pad completes a split codon as the vector had it
+
+
+def test_the_vectors_own_bases_are_tried_first_as_pad():
+    from p2d.frame import _pad_candidates
+
+    pads = _pad_candidates(2, prefix="CTCGAG", suffix="", forbidden=[], frame_offset=0, native="CT")
+    assert pads[0] == "CT" and len(pads) == len(set(pads))
+    odd = _pad_candidates(2, prefix="CTCGAG", suffix="", forbidden=[], frame_offset=0, native="NN")
+    assert "NN" not in odd, "only real bases count as native"
+
+
+def test_altered_counts_residues_that_differ_from_the_vectors_own_reading():
+    from p2d.recommend import _altered
+
+    v = p2d.load_bundled()
+    native = str(Seq(v.seq[v.expression_start :]).translate(to_stop=True))
+    assert _altered(v, native[:12]) == 0
+    edited = native[:5] + ("A" if native[5] != "A" else "G") + native[6:12]
+    assert _altered(v, edited) == 1
+
+
+# ------------------------------------------------------ the real mOrange2-C1 and MEK1
+
+
+@pytest.fixture(scope="module")
+def orange():
+    a = analyze_vector(vectorio.read_vector_file(sample("mOrange2-C1.fa")))
+    return a, confirm(a, start=a.starts[0].position)
+
+
+@pytest.fixture(scope="module")
+def mek1():
+    from Bio import SeqIO
+
+    rec = SeqIO.read(sample("MEK1_BC089772.gb"), "genbank")
+    cds = next(f for f in rec.features if f.type == "CDS").location.extract(rec.seq)
+    return str(cds)
+
+
+def test_real_morange2_start_is_the_kozak_atg_of_morange2(orange):
+    a, _ = orange
+    assert [s.position for s in a.starts] == [645] and a.starts[0].confidence == "medium"
+    assert a.starts[0].n_terminal.startswith("MVSKGEENNMAIIKEFMRFK")
+
+
+def test_mek1_into_morange2_keeps_the_fusion_partner_intact(orange, mek1):
+    _, v = orange
+    protein = str(Seq(mek1).translate(to_stop=True))
+    assert len(protein) == 393
+    host = p2d.load_host("ecoli_bl21")
+    options, _ = rank_pairs(v, protein, host, window=(1330, 1445))
+    assert options and all(o.altered == 0 for o in options), "no pair may change mOrange2"
+    by_pair = {(o.up.enzyme, o.down.enzyme): o for o in options}
+    xho = by_pair[("XhoI", "BamHI")]
+    assert xho.before.endswith("ELYKSGLRSRA") and xho.pad_bases == 2
+    assert xho.before[-7:] == "SGLRSRA", "the seven residues the hand design predicts"
+    groups = group_by_outcome(options)
+    first = groups[0].best
+    assert {first.up.enzyme, first.down.enzyme} == {"Bsp1407I", "AccIII"} or first.before.endswith(
+        "ELYK"
+    )
+    assert groups[0].before.endswith("MDELYK"), "BsrGI keeps mOrange2 and adds nothing"
+
+
+def test_the_hand_designed_mek1_primers_agree_with_p2d(orange, mek1):
+    from Bio.Restriction import BamHI, BsrGI, XhoI
+
+    _, v = orange
+    mek = str(Seq(mek1).translate(to_stop=True))
+    host = p2d.load_host("ecoli_bl21")
+
+    def by_hand(fwd, rev, up, down, n_f, n_r):
+        assert mek1.startswith(fwd[-n_f:]) and mek1.endswith(rc(rev[-n_r:]))
+        product = fwd[:-n_f] + mek1 + rc(rev[:-n_r])
+        cut = lambda enz, s: enz.search(Seq(s), linear=True)  # noqa: E731
+        frag = product[cut(up, product)[0] - 1 : cut(down, product)[0] - 1]
+        made = v.seq[: cut(up, v.seq)[0] - 1] + frag + v.seq[cut(down, v.seq)[0] - 1 :]
+        read = made[v.expression_start :]
+        return made, str(Seq(read[: len(read) - len(read) % 3]).translate(to_stop=True))
+
+    from p2d.enzymes import list_cut_sites, plan_cut
+
+    sites = {}
+    for c in list_cut_sites(v, (1330, 1445)):
+        for name in (c.enzyme, *c.aliases):
+            sites.setdefault(name, c)
+
+    cases = [
+        ("GCGCCTCGAGCTATGCCCAAGAAGAAGCC", "GCGCGGATCCTCAGATGCTGGCAGCGT", XhoI, BamHI, 17, 17),
+        ("GCGCTGTACAAGATGCCCAAGAAGAAGCCG", "GCGCGGATCCTCAGATGCTGGCAGCGT", BsrGI, BamHI, 18, 17),
+    ]
+    for fwd, rev, up, down, n_f, n_r in cases:
+        made, protein = by_hand(fwd, rev, up, down, n_f, n_r)
+        assert protein.endswith(mek) and len(protein) - len(mek) in (236 + 7, 236)
+        site = plan_cut(v, sites[str(up)], sites[str(down)])
+        ours = p2d.assemble(
+            p2d.design_insert(
+                p2d.ConstructPlan.single_chain(mek), v, site, host, cterm=p2d.CTerm.STOP
+            )
+        )
+        assert ours.ok and ours.protein == protein
+        assert len(ours.seq) - len(made) == 3, "p2d's double stop against the hand design's one"
