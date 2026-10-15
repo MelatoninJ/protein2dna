@@ -28,6 +28,7 @@ class HostProfile:
     rare_codons: set[str] = field(default_factory=set)
     forbidden_motifs: list[dict] = field(default_factory=list)
     homopolymer_max: dict[str, int] = field(default_factory=dict)
+    status: str = "released"  # "development" profiles are usable but warned about
 
     def soft_motifs(self) -> dict[str, str]:
         """Sequences the optimiser should avoid when it can: ``{pattern: why}``.
@@ -89,6 +90,7 @@ def _parse(data: dict) -> HostProfile:
         rare_codons=set(data.get("rare_codons", [])),
         forbidden_motifs=list(data.get("forbidden_motifs", [])),
         homopolymer_max=dict(data.get("homopolymer_max", {})),
+        status=str(data.get("status", "released")),
     )
     if not profile.codon_table_verified:
         warnings.warn(

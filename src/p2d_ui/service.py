@@ -18,12 +18,14 @@ import io
 import re
 import secrets
 import threading
+import zipfile
 from collections import OrderedDict
 from dataclasses import dataclass
 
 from Bio import SeqIO
 
 from p2d import CodonStrategy, ConstructPlan, CTerm, available_hosts, design_insert, load_host
+from p2d import batch as batching
 from p2d.analysis import VectorAnalysis, analyze_vector, feature_label
 from p2d.assemble import assemble
 from p2d.enzymes import CutSite, find_cut_site, list_cut_sites, plan_cut, upstream_problem
@@ -157,6 +159,7 @@ def _with_start(entry: _Entry, start) -> Vector:
 
 
 MAX_PARTS = 4
+MAX_BATCH = 100  # proteins per batch request
 DEFAULT_HOST = "ecoli_bl21"
 
 
@@ -227,7 +230,7 @@ def _catalog() -> dict:
 
 def meta() -> dict:
     hosts = []
-    for slug in available_hosts():
+    for slug in sorted(available_hosts(), key=lambda s: (load_host(s).status != "released", s)):
         h = load_host(slug)
         lim = h.limits()
         hosts.append(
@@ -235,6 +238,7 @@ def meta() -> dict:
                 "slug": slug,
                 "name": h.name,
                 "verified": h.codon_table_verified,
+                "status": h.status,
                 "note": str(h.raw.get("codon_usage", {}).get("note", "")),
                 "limits": {
                     "gc_min": round(lim.gc_min * 100),
@@ -575,9 +579,23 @@ def pairs(request: dict) -> dict:
 # ---------------------------------------------------------------------- design
 
 
-def design(request: dict) -> dict:
-    """Run one design and return everything the UI renders."""
-    protein = parse_protein(str(request.get("protein", "")))
+@dataclass
+class _Settings:
+    vector: Vector
+    host_slug: str
+    host: object
+    strategy_key: str
+    cterm_key: str
+    seed: int | None
+    clamps: list[int]
+    up: CutSite
+    down: CutSite
+    site: object
+    limits: object
+
+
+def _settings(request: dict) -> _Settings:
+    """Everything a design needs besides the protein, checked the same way for one or many."""
     entry = _entry(request.get("vector_id"))
     v = _with_start(entry, request.get("start"))
 
@@ -625,7 +643,28 @@ def design(request: dict) -> dict:
         raise InputError(str(exc)) from exc
 
     host = load_host(host_slug)
-    limits = _limits(request, host)
+    return _Settings(
+        v,
+        host_slug,
+        host,
+        strategy_key,
+        cterm_key,
+        seed,
+        clamps,
+        up,
+        down,
+        site,
+        _limits(request, host),
+    )
+
+
+def design(request: dict) -> dict:
+    """Run one design and return everything the UI renders."""
+    protein = parse_protein(str(request.get("protein", "")))
+    s = _settings(request)
+    v, host_slug, host, limits = s.vector, s.host_slug, s.host, s.limits
+    strategy_key, cterm_key, seed, clamps = s.strategy_key, s.cterm_key, s.seed, s.clamps
+    up, down, site = s.up, s.down, s.site
     plan = _plan(protein, host_slug, request)
     try:
         a = assemble(
@@ -713,4 +752,67 @@ def design(request: dict) -> dict:
         "fasta": f">{name}_order\n{order.dna}\n",
         "insert_fasta": f">{name}_insert\n{a.insert_dna}\n",
         "filename": name,
+    }
+
+
+# ----------------------------------------------------------------------- batch
+
+
+def _zip_b64(result) -> str:
+    """The whole batch as a zip (summary, orders, inserts, one GenBank each), base64 encoded."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for rel, text in batching.files(result).items():
+            info = zipfile.ZipInfo(rel, date_time=(2020, 1, 1, 0, 0, 0))  # same bytes every time
+            info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, text)
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def batch(request: dict) -> dict:
+    """Design every protein in a FASTA text with one set of options; failures stay per protein."""
+    text = request.get("fasta")
+    if not isinstance(text, str) or not text.strip():
+        raise InputError("Paste or load a FASTA file with at least one protein.")
+    proteins = batching.read_proteins(text, max_residues=MAX_RESIDUES)
+    if not proteins:
+        raise InputError("No protein records found.")
+    if len(proteins) > MAX_BATCH:
+        raise InputError(
+            f"{len(proteins)} proteins is too many; the limit is {MAX_BATCH} at a time."
+        )
+    s = _settings(request)
+    parts = (
+        tuple(resolve_parts(_part_keys(request, "n_parts"))),
+        tuple(resolve_parts(_part_keys(request, "c_parts"))),
+    )
+    result = batching.design_batch(
+        proteins,
+        s.vector,
+        s.up,
+        s.down,
+        s.host,
+        cterm=CTERMS[s.cterm_key],
+        strategy=STRATEGIES[s.strategy_key],
+        seed=s.seed,
+        limits=s.limits,
+        clamp_5=s.clamps[0],
+        clamp_3=s.clamps[1],
+        n_parts=parts[0],
+        c_parts=parts[1],
+    )
+    rows = [{k: v for k, v in r.items() if k != "order_dna"} for r in batching.summary_rows(result)]
+    return {
+        "vector": s.vector.name,
+        "upstream": s.up.label,
+        "downstream": s.down.label,
+        "host": s.host_slug,
+        "n": len(result.entries),
+        "n_ok": result.n_ok,
+        "rows": rows,
+        "csv": batching.summary_csv(result),
+        "orders_fasta": batching.orders_fasta(result),
+        "inserts_fasta": batching.inserts_fasta(result),
+        "zip_b64": _zip_b64(result),
+        "filename": f"{s.vector.name}_{s.up.enzyme}-{s.down.enzyme}_batch",
     }

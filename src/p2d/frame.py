@@ -369,6 +369,17 @@ def design_insert(
     insert_dna = up_site + pad_up + coding + stop_dna + pad_down + down_site
     coding_start = up.start + len(up_site) + len(pad_up)
 
+    if host.status == "development":
+        issues.append(
+            Issue(
+                Severity.WARNING,
+                "host_in_development",
+                f"The {host.name} profile is still in development: its codon table is cited, but "
+                "its motifs and limits are unchecked defaults and designs for this host have not "
+                "been validated. Do not rely on it yet.",
+            )
+        )
+
     # --- duplicate initiator Met --------------------------------------------
     if site.start_source is StartSource.UPSTREAM_SITE and insert_aa.startswith("M"):
         issues.append(

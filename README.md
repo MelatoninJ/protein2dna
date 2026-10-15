@@ -75,6 +75,12 @@ p2d ui
    Biopython's cut positions and ligated into the vector, and must give the planned plasmid
    exactly. The whole finished plasmid is available as GenBank with the vector's annotations.
 
+8. **Many proteins at once.** Open **Design many proteins at once**, paste FASTA text or load a
+   file, and press **Design all**. Every protein uses the plasmid, sites, C-terminus, tags,
+   host, limits and extra bases chosen above. A protein that cannot be cloned is named in the
+   table with the reason and the others carry on. Download the summary (CSV), the DNA to order
+   (FASTA), or everything, with one annotated GenBank file per construct, as a zip.
+
 It runs only on your computer, binds to loopback, and needs no dependencies beyond the
 library itself. The same steps are available from code, below.
 
@@ -148,6 +154,24 @@ print(order.ligation.message)  # the order was cut and ligated into the vector i
 `plan_cut` refuses a pair that would not work and says why (wrong way round, touching, same
 ends, or another site of the enzyme in the part of the plasmid you keep).
 
+### Many proteins at once
+
+```python
+import p2d
+from p2d.batch import design_batch, read_proteins, write_batch
+from p2d.enzymes import resolve_site
+
+vector = p2d.load_bundled()
+proteins = read_proteins(open("binders.fasta").read())  # one FASTA record per protein
+up, down = resolve_site(vector, "NdeI"), resolve_site(vector, "XhoI")
+result = design_batch(proteins, vector, up, down, p2d.load_host("ecoli_bl21"))
+
+print(result.n_ok, "of", len(result.entries), "designed")
+for entry in result.entries:
+    print(entry.name, entry.ok, entry.message)  # message is None when it worked
+write_batch(result, "results")  # summary.csv, orders.fasta, inserts.fasta, constructs/*.gb
+```
+
 ### The main entry points
 
 | Task | Function |
@@ -178,8 +202,17 @@ you left in that silently deletes the tag.
 p2d hosts                                  # list host profiles
 p2d vectors                                # list bundled vectors
 p2d design KVFLDWINEAYQ... --site NdeI-XhoI --gb out.gb
+p2d batch binders.fasta --out results/     # every protein in a FASTA file, into one vector
 p2d ui                                     # the local website
 ```
+
+`p2d batch` takes the same choices as the website: `--vector` (a GenBank, SnapGene or FASTA
+plasmid) with `--start` unless the file shows the start codon outright, `--upstream` and
+`--downstream` (an enzyme name when it cuts once, or an id such as `XhoI:5206`), `--host`,
+`--cterm`, `--n-part` and `--c-part` for tags and linkers, `--clamp-5` and `--clamp-3`. It
+writes `summary.csv`, `orders.fasta`, `inserts.fasta`, `constructs/<name>.gb` and, if anything
+failed, `failed.txt`. It exits 1 when some protein failed (the rest are still written) and 2
+for a mistake in the options.
 
 ## What it checks
 
@@ -251,15 +284,21 @@ Three, and they are load-bearing:
 `p2d hosts` lists the profiles. Each one is a YAML file generated from a table in
 `python_codon_tables`, never typed by hand.
 
-| profile | species | table |
-|---|---|---|
-| `ecoli_bl21` (default) | *Escherichia coli* BL21(DE3) | K-12 usage |
-| `hsapiens` | human | *Homo sapiens* |
-| `mmusculus` | mouse | *Mus musculus* |
-| `scerevisiae` | baker's yeast | *Saccharomyces cerevisiae* |
-| `bsubtilis` | *Bacillus subtilis* | *B. subtilis* |
-| `dmelanogaster` | fruit fly | *Drosophila melanogaster* |
-| `celegans` | roundworm | *Caenorhabditis elegans* |
+| profile | species | table | status |
+|---|---|---|---|
+| `ecoli_bl21` (default) | *Escherichia coli* BL21(DE3) | K-12 usage | released |
+| `bsubtilis` | *Bacillus subtilis* | *B. subtilis* | released |
+| `hsapiens` | human | *Homo sapiens* | in development |
+| `mmusculus` | mouse | *Mus musculus* | in development |
+| `scerevisiae` | baker's yeast | *Saccharomyces cerevisiae* | in development |
+| `dmelanogaster` | fruit fly | *Drosophila melanogaster* | in development |
+| `celegans` | roundworm | *Caenorhabditis elegans* | in development |
+
+**Bacterial hosts are released; every eukaryotic profile is in development.** A profile in
+development works, but the website and `p2d hosts` mark it, and every design made with it
+carries a warning (`host_in_development`). The reason is that nothing beyond a reading-frame
+check against one mammalian vector has been done for eukaryotes: their vectors, their start
+and polyadenylation signals and their expression behaviour are not validated here.
 
 Only the codon table is cited. A profile's rare codons (outside `ecoli_bl21`) are the codons
 used for under 10% of their amino acid's codons, read off the table. Its motifs, homopolymer
@@ -273,9 +312,9 @@ been checked against a reference here. The other hosts list none.
 |---|---|
 | **0.1** | data model, frame engine, round-trip validation, CLI ✅ |
 | **0.2** | Aho-Corasick DFA + DP codon optimiser (both strands, IUPAC, junction-aware, unavoidable sites reported); cited codon table; `MAX_CAI` and seeded `WEIGHTED_SAMPLE` strategies ✅ |
-| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position, with suggested pairs ranked by what they add to the protein; C-terminus choice; tags and linkers; construct report; GC and repeat refinement with adjustable limits; host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
+| **0.2.x** | the local website; reading your own plasmid (GenBank, SnapGene, FASTA); start-codon detection; picking two sites by position, with suggested pairs ranked by what they add to the protein; C-terminus choice; tags and linkers; construct report; GC and repeat refinement with adjustable limits; batch design from a FASTA; host profiles (bacteria released, eukaryotes in development); host motifs and homopolymer limits as soft preferences; the DNA to order with extra bases outside the sites and an in-silico digest and ligation check ✅ |
 | 0.3 | first PyPI release |
-| 0.4 | 5′ mRNA structure (ViennaRNA, optional), batch design from a FASTA, the `HARMONIZED` strategy |
+| 0.4 | 5′ mRNA structure (ViennaRNA, optional), the `HARMONIZED` strategy |
 | 0.5 | Dam/Dcm methylation and buffers, validation on more real vectors, a hosted version of the website if it can run in the browser, a Korean interface |
 | later | Gibson and Golden Gate assembly, multi-chain constructs, eukaryotic vectors, a vector-free mode, Addgene |
 

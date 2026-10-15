@@ -159,3 +159,35 @@ def test_generated_profiles_say_what_is_and_is_not_cited():
     for slug in HOSTS:
         text = (Path(p2d.__file__).parent / "hosts" / f"{slug}.yaml").read_text()
         assert re.search(r"Only the codon table .*cited source", text.replace("\n# ", " "), re.S)
+
+
+def test_bacteria_are_released_and_every_other_host_is_in_development():
+    released = {s for s in HOSTS if load(s).status == "released"}
+    assert released == {"ecoli_bl21", "bsubtilis"}
+    assert all(load(s).status == "development" for s in set(HOSTS) - released)
+    for slug in HOSTS:
+        assert load(slug).status == tool.STATUS[slug], slug
+
+
+def test_a_profile_without_a_status_counts_as_released(tmp_path):
+    path = tmp_path / "mine.yaml"
+    path.write_text((Path(p2d.__file__).parent / "hosts" / "ecoli_bl21.yaml").read_text())
+    assert p2d.load_host(path).status == "released"
+
+
+def test_a_design_for_a_host_in_development_says_so_and_still_works():
+    vector = p2d.load_bundled()
+    for slug, warned in (("ecoli_bl21", False), ("bsubtilis", False), ("hsapiens", True)):
+        a = p2d.run("KVFLDWINEAYQRGTRVLAEM", host=slug, vector=vector, site="NdeI-XhoI")
+        codes = [i.code for i in a.issues]
+        assert ("host_in_development" in codes) is warned and a.ok, slug
+
+
+def test_the_command_line_marks_hosts_in_development():
+    from typer.testing import CliRunner
+
+    from p2d.cli import app
+
+    out = CliRunner().invoke(app, ["hosts"]).output.splitlines()
+    marked = {line.split()[0] for line in out if "(in development)" in line}
+    assert marked == set(HOSTS) - {"ecoli_bl21", "bsubtilis"}

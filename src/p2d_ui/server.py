@@ -43,9 +43,10 @@ POST_ROUTES = {
     "/api/sites": service.sites,
     "/api/pairs": service.pairs,
     "/api/design": service.design,
+    "/api/batch": service.batch,
 }
 # an uploaded plasmid arrives base64-encoded, so its route may carry up to ~5 MB of file
-ROUTE_LIMITS = {"/api/vector": 7_000_000}
+ROUTE_LIMITS = {"/api/vector": 7_000_000, "/api/batch": 3_000_000}
 
 
 class Handler(BaseHTTPRequestHandler):

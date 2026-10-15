@@ -545,13 +545,60 @@ function dnaView(r) {
   return h("div", { class: "dna", tabindex: "0", role: "group", "aria-label": "DNA to order" }, rows);
 }
 
-function download(name, text) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+function download(name, text, type = "text/plain") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const a = h("a", { href: url, download: name });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function b64Bytes(b64) {
+  const bin = atob(b64);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+function renderBatch(r) {
+  const head = h("p", { class: "note", text: `${r.n_ok} of ${r.n} designed into ${r.vector}, ${r.upstream} to ${r.downstream}, host ${r.host}.` });
+  const cols = [["name", "Name"], ["status", "Result"], ["residues", "aa"], ["fusion_residues", "Fusion aa"], ["plasmid_bp", "Plasmid bp"], ["cai", "CAI"], ["warnings", "Warnings"], ["error", "Why it failed"]];
+  const table = h("table", { class: "btable" },
+    h("thead", null, h("tr", null, cols.map(([, label]) => h("th", { scope: "col", text: label })))),
+    h("tbody", null, r.rows.map((row) =>
+      h("tr", { class: row.status === "ok" ? "" : "bad" }, cols.map(([key]) => h("td", { text: String(row[key] ?? "") }))))));
+  const buttons = h("div", { class: "row" },
+    h("button", { type: "button", class: "secondary", text: "Summary (CSV)", onclick: () => download(`${r.filename}.csv`, r.csv, "text/csv") }),
+    h("button", { type: "button", class: "secondary", text: "DNA to order (FASTA)", onclick: () => download(`${r.filename}_orders.fasta`, r.orders_fasta) }),
+    h("button", { type: "button", class: "secondary", text: "All constructs (zip)", onclick: () => download(`${r.filename}.zip`, b64Bytes(r.zip_b64), "application/zip") }));
+  $("batch-result").replaceChildren(head, h("div", { class: "scroll" }, table), buttons);
+}
+
+async function runBatch() {
+  if (!vec) return;
+  const text = $("batch-input").value;
+  if (!text.trim()) { $("batch-result").replaceChildren(h("p", { class: "note", text: "Paste or load FASTA text first." })); return; }
+  if (currentStart() == null) { $("batch-result").replaceChildren(h("p", { class: "note", text: "Choose where translation starts first." })); return; }
+  if (!$("upstream").value || !$("downstream").value) { $("batch-result").replaceChildren(h("p", { class: "note", text: "Choose a usable 5' and 3' site first." })); return; }
+  const btn = $("batch-btn");
+  btn.disabled = true;
+  btn.textContent = "Designing...";
+  $("batch-result").replaceChildren(h("p", { class: "note", text: "Designing every protein..." }));
+  const form = new FormData($("design-form"));
+  const body = {
+    vector_id: vec.id, start: currentStart(), fasta: text,
+    upstream: form.get("upstream"), downstream: form.get("downstream"), cterm: form.get("cterm"),
+    host: form.get("host"), strategy: form.get("strategy"), seed: form.get("seed"),
+    clamp_5: form.get("clamp_5"), clamp_3: form.get("clamp_3"),
+    ...partsBody(),
+  };
+  try {
+    renderBatch(await post("/api/batch", body));
+  } catch (err) {
+    $("batch-result").replaceChildren(h("p", { class: "note error", text: err.message }));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Design all";
+  }
 }
 
 async function copyText(btn, text) {
@@ -709,7 +756,8 @@ async function onSubmit(e) {
 /* --------------------------------------------------------------------- boot */
 function showHostNote() {
   const host = meta.hosts.find((x) => x.slug === $("host").value);
-  $("host-note").textContent = host ? `${host.verified ? "Codon table from a cited source." : "Codon table is an unverified placeholder."} ${host.note || ""}` : "";
+  const dev = host && host.status === "development" ? "In development: do not rely on this profile yet. " : "";
+  $("host-note").textContent = host ? `${dev}${host.verified ? "Codon table from a cited source." : "Codon table is an unverified placeholder."} ${host.note || ""}` : "";
 }
 
 function initForm() {
@@ -718,7 +766,7 @@ function initForm() {
   for (const id of ["n-tag", "c-tag"]) $(id).replaceChildren(...partOptions(meta.parts.tags));
   for (const id of ["n-linker", "c-linker"]) $(id).replaceChildren(...partOptions(meta.parts.linkers));
   for (const id of ["n-tag", "n-linker", "c-linker", "c-tag"]) $(id).addEventListener("change", refreshSites);
-  $("host").replaceChildren(...meta.hosts.map((x) => h("option", { value: x.slug, text: x.name })));
+  $("host").replaceChildren(...meta.hosts.map((x) => h("option", { value: x.slug, text: x.status === "development" ? `${x.name} (in development)` : x.name })));
   $("host").value = meta.default_host;
   $("strategies").replaceChildren(
     ...meta.strategies.map((s, i) =>
@@ -769,6 +817,13 @@ function initForm() {
   });
   $("load-example").addEventListener("click", loadExample);
   $("design-form").addEventListener("submit", onSubmit);
+  $("batch-btn").addEventListener("click", runBatch);
+  $("batch-file-btn").addEventListener("click", () => $("batch-file").click());
+  $("batch-file").addEventListener("change", async () => {
+    const file = $("batch-file").files[0];
+    if (file) $("batch-input").value = await file.text();
+    $("batch-file").value = "";
+  });
 }
 
 async function boot() {

@@ -4,6 +4,7 @@ import base64
 import http.client
 import json
 import os
+import re
 import threading
 from importlib import resources
 from io import StringIO
@@ -766,3 +767,131 @@ def test_each_host_note_reaches_the_page_data():
     hosts = {h["slug"]: h for h in service.meta()["hosts"]}
     assert "K-12" in hosts["ecoli_bl21"]["note"]
     assert "not for a cell line" in hosts["hsapiens"]["note"]
+
+
+# ------------------------------------------------------------------------ batch
+
+BATCH_FASTA = (
+    ">first one\nKVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE\n"
+    ">second\nMKVLAAGIVGLLL\n>oops\nMK#\n"
+)
+
+
+def batch_req(pt1, **extra):
+    return req(pt1, upstream="NdeI:144", downstream="XhoI:174", fasta=BATCH_FASTA, **extra)
+
+
+def test_batch_designs_every_protein_and_reports_the_one_that_fails(pt1):
+    r = service.batch(batch_req(pt1))
+    assert (r["n"], r["n_ok"]) == (3, 2)
+    assert [(x["name"], x["status"]) for x in r["rows"]] == [
+        ("first", "ok"),
+        ("second", "ok"),
+        ("oops", "failed"),
+    ]
+    assert all("order_dna" not in x for x in r["rows"]), "the DNA is in the downloads"
+    assert r["rows"][2]["error"] and r["filename"] == "pTEST1_NdeI-XhoI_batch"
+    assert r["orders_fasta"].count(">") == 2 and "first_order" in r["orders_fasta"]
+
+
+def test_batch_zip_holds_the_summary_orders_and_constructs(pt1):
+    import base64
+    import io
+    import zipfile
+
+    r = service.batch(batch_req(pt1))
+    z = zipfile.ZipFile(io.BytesIO(base64.b64decode(r["zip_b64"])))
+    assert z.testzip() is None
+    assert sorted(z.namelist()) == [
+        "constructs/first.gb",
+        "constructs/second.gb",
+        "failed.txt",
+        "inserts.fasta",
+        "orders.fasta",
+        "summary.csv",
+    ]
+    assert z.read("summary.csv").decode() == r["csv"]
+    assert service.batch(batch_req(pt1))["zip_b64"] == r["zip_b64"], "same bytes every time"
+    assert {i.date_time for i in z.infolist()} == {(2020, 1, 1, 0, 0, 0)}
+
+
+def test_batch_uses_the_same_options_as_a_single_design(pt1):
+    first_protein = BATCH_FASTA.split("\n")[1]
+    one = service.design(
+        req(
+            pt1,
+            upstream="NdeI:144",
+            downstream="XhoI:174",
+            n_parts=["flag"],
+            clamp_5=9,
+            protein=first_protein,
+        )
+    )
+    many = service.batch(batch_req(pt1, n_parts=["flag"], clamp_5=9, seed=5))
+    first = next(x for x in many["rows"] if x["name"] == "first")
+    assert first["fusion_residues"] == len(one["protein"]) and first["status"] == "ok"
+    for bad in ({"clamp_5": 99}, {"host": "nowhere"}, {"cterm": "x"}, {"n_parts": ["nope"]}):
+        with pytest.raises(service.InputError):
+            service.batch(batch_req(pt1, **bad))
+
+
+def test_batch_input_errors_are_clean(pt1):
+    for fasta, message in [
+        ("", "at least one protein"),
+        (None, "at least one protein"),
+        (5, "at least one protein"),
+        (">\n", "No protein records|no sequence"),
+    ]:
+        try:
+            r = service.batch(req(pt1, upstream="NdeI:144", downstream="XhoI:174", fasta=fasta))
+        except service.InputError as exc:
+            assert re.search(message, str(exc))
+        else:
+            assert r["n_ok"] == 0 and r["rows"][0]["error"]
+    many = "".join(f">p{i}\nMKV\n" for i in range(service.MAX_BATCH + 1))
+    with pytest.raises(service.InputError, match="too many"):
+        service.batch(req(pt1, upstream="NdeI:144", downstream="XhoI:174", fasta=many))
+    with pytest.raises(service.InputError, match="5' and a 3' site"):
+        service.batch(req(pt1, fasta=BATCH_FASTA))
+
+
+def test_batch_over_http_and_the_page_has_the_panel(server):
+    resp, data = call(server, "POST", "/api/vector", {"bundled": "pTEST1"})
+    vid = json.loads(data)["id"]
+    body = {
+        "vector_id": vid,
+        "start": 87,
+        "upstream": "NdeI:144",
+        "downstream": "XhoI:174",
+        "fasta": BATCH_FASTA,
+    }
+    resp, data = call(server, "POST", "/api/batch", body)
+    assert resp.status == 200 and json.loads(data)["n_ok"] == 2
+    resp, _ = call(server, "POST", "/api/batch", {}, {"Host": "evil.example"})
+    assert resp.status == 403
+    html = static_text("index.html")
+    assert all(
+        f'id="{i}"' in html for i in ("batch-box", "batch-input", "batch-btn", "batch-result")
+    )
+    assert "/api/batch" in static_text("app.js")
+
+
+# ------------------------------------------------------------------ host status
+
+
+def test_released_hosts_come_first_and_the_others_are_marked():
+    meta = service.meta()
+    status = {h["slug"]: h["status"] for h in meta["hosts"]}
+    assert status["ecoli_bl21"] == status["bsubtilis"] == "released"
+    assert all(status[s] == "development" for s in ("hsapiens", "mmusculus", "scerevisiae"))
+    order = [h["status"] for h in meta["hosts"]]
+    assert order == sorted(order, key=lambda s: s != "released"), "released hosts are listed first"
+    assert meta["default_host"] == "ecoli_bl21"
+
+
+def test_designing_for_a_host_in_development_carries_a_warning(pt1):
+    for slug, expected in (("ecoli_bl21", False), ("hsapiens", True)):
+        d = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", host=slug))
+        codes = [i["code"] for i in d["issues"]]
+        assert ("host_in_development" in codes) is expected, slug
+        assert d["ok"], "a warning, not a refusal"

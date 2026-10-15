@@ -102,6 +102,7 @@ src/p2d/
                 the rules for a chosen pair of *sites* (plan_cut), and the older
                 name-based picker for enzymes that cut once (candidate_enzymes)
   recommend.py  every workable site pair designed and ranked by what it adds to the protein
+  batch.py      many proteins into one vector and pair of sites; the summary and output files
   report.py     sizes, check-digest fragments, frame pads and protein stats of a design
   vectorio.py   read a plasmid from GenBank, SnapGene .dna, FASTA or pasted text, and
                 reverse-complement it if the expression cassette is on the minus strand

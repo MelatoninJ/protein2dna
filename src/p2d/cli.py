@@ -13,7 +13,7 @@ from Bio import SeqIO
 
 from . import __version__
 from .assemble import assemble
-from .frame import Severity, design_insert
+from .frame import CTerm, Severity, design_insert
 from .host import available_hosts, load_host
 from .model import ConstructPlan
 from .vector import Vector
@@ -39,6 +39,8 @@ def hosts() -> None:
     for slug in available_hosts():
         h = load_host(slug)
         mark = "" if h.codon_table_verified else "  (unverified placeholder table)"
+        if h.status == "development":
+            mark += "  (in development)"
         typer.echo(f"{slug:<16} {h.name}{mark}")
 
 
@@ -97,6 +99,95 @@ def design(
         typer.echo(f"wrote {fasta}")
 
     if not a.ok:
+        raise typer.Exit(1)
+
+
+@app.command()
+def batch(
+    fasta: Path = typer.Argument(..., help="FASTA file with one protein per record"),
+    out: Path = typer.Option(..., "--out", "-o", help="folder to write the results into"),
+    vector_path: Path | None = typer.Option(
+        None, "--vector", "-v", help="plasmid file (GenBank, SnapGene .dna or FASTA)"
+    ),
+    start: int | None = typer.Option(None, "--start", help="1-based position of the start codon"),
+    upstream: str = typer.Option("NdeI", "--upstream", "-u", help="5' site, ex. NcoI or XhoI:1367"),
+    downstream: str = typer.Option("XhoI", "--downstream", "-d", help="3' site"),
+    host: str = typer.Option("ecoli_bl21", "--host"),
+    cterm: str = typer.Option("stop", "--cterm", help="stop, tag or vector_frame"),
+    strategy: str = typer.Option(
+        "weighted_sample", "--strategy", help="weighted_sample or max_cai"
+    ),
+    seed: int | None = typer.Option(None, "--seed"),
+    clamp_5: int = typer.Option(6, "--clamp-5", help="extra bases outside the 5' site"),
+    clamp_3: int = typer.Option(6, "--clamp-3", help="extra bases outside the 3' site"),
+    n_part: list[str] = typer.Option([], "--n-part", help="tag or linker before the protein"),
+    c_part: list[str] = typer.Option([], "--c-part", help="tag or linker after the protein"),
+) -> None:
+    """Design every protein in a FASTA file into one vector and pair of sites."""
+    from .analysis import analyze_vector, confirm
+    from .batch import design_batch, read_proteins, write_batch
+    from .enzymes import resolve_site
+    from .model import resolve_parts
+    from .optimize import CodonStrategy
+    from .vectorio import read_vector_file
+
+    def fail(message: str) -> typer.Exit:
+        typer.secho(message, fg=typer.colors.RED, err=True)
+        return typer.Exit(2)
+
+    try:
+        proteins = read_proteins(fasta.read_text())
+    except OSError as exc:
+        raise fail(f"cannot read {fasta}: {exc}") from exc
+    if not proteins:
+        raise fail(f"no protein records found in {fasta}")
+    try:
+        cterm_value = CTerm(cterm)
+        strategy_value = CodonStrategy(strategy)
+        parts = (tuple(resolve_parts(n_part)), tuple(resolve_parts(c_part)))
+        host_profile = load_host(host)
+        if vector_path:
+            analysis = analyze_vector(read_vector_file(vector_path))
+            if start is None:
+                best = analysis.best_start
+                if best is None or best.confidence != "high":
+                    options = (
+                        ", ".join(str(s.position + 1) for s in analysis.starts) or "none found"
+                    )
+                    raise ValueError(f"choose the start codon with --start (candidates: {options})")
+                begin = best.position
+            else:
+                begin = start - 1
+            v = confirm(analysis, start=begin)
+        else:
+            v = load_bundled()
+        up, down = resolve_site(v, upstream), resolve_site(v, downstream)
+        result = design_batch(
+            proteins,
+            v,
+            up,
+            down,
+            host_profile,
+            cterm=cterm_value,
+            strategy=strategy_value,
+            seed=seed,
+            clamp_5=clamp_5,
+            clamp_3=clamp_3,
+            n_parts=parts[0],
+            c_parts=parts[1],
+        )
+    except ValueError as exc:
+        raise fail(str(exc)) from exc
+
+    write_batch(result, out)
+    typer.secho(f"{v.name}: {up.label} to {down.label}, host {host_profile.slug}", bold=True)
+    for e in result.entries:
+        if e.ok:
+            typer.echo(f"  ok      {e.name}  ({len(e.protein)} aa)")
+        else:
+            typer.secho(f"  failed  {e.name}  {e.message}", fg=typer.colors.RED)
+    typer.echo(f"\n{result.n_ok} of {len(result.entries)} designed; results are in {out}")
+    if not result.ok:
         raise typer.Exit(1)
 
 

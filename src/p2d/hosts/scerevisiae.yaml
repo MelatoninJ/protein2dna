@@ -1,6 +1,7 @@
 name: Saccharomyces cerevisiae (baker's yeast)
 slug: scerevisiae
 taxid: 4932
+status: development  # released, or development (shown as such and warned about)
 
 # The codon_usage block is generated -- do not edit by hand.
 # Regenerate with: python tools/build_codon_table.py --host scerevisiae --write

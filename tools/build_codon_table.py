@@ -61,6 +61,18 @@ MAMMALIAN_MOTIFS = [
 ]
 MOTIFS = {"hsapiens": MAMMALIAN_MOTIFS, "mmusculus": MAMMALIAN_MOTIFS}
 
+# Bacteria are released; every eukaryotic profile is still in development, because nothing about
+# the vector-side workflow for them has been validated beyond one mammalian vector
+STATUS = {
+    "ecoli_bl21": "released",
+    "bsubtilis": "released",
+    "hsapiens": "development",
+    "mmusculus": "development",
+    "scerevisiae": "development",
+    "dmelanogaster": "development",
+    "celegans": "development",
+}
+
 RARE_BELOW = 0.10  # a codon used for less than this share of its amino acid's codons
 
 
@@ -112,7 +124,8 @@ def render_new(slug: str) -> str:
     return (
         f"name: {name}\n"
         f"slug: {slug}\n"
-        f"taxid: {taxid}\n\n"
+        f"taxid: {taxid}\n"
+        f"status: {STATUS[slug]}  # released, or development (shown as such and warned about)\n\n"
         "# The codon_usage block is generated -- do not edit by hand.\n"
         f"# Regenerate with: python tools/build_codon_table.py --host {slug} --write\n"
         f"{build_block(slug)}\n"

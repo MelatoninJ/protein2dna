@@ -14,6 +14,16 @@ All notable changes are listed here. The format follows
   start, so a plasmid such as mOrange2-C1 can be started without a bacterial binding site.
   It was checked against a hand-designed MEK1 into mOrange2-C1 cloning.
 
+### Added (batch and host status)
+- **Batch design**: `p2d batch proteins.fasta --out results/`, `p2d.batch.design_batch` and a
+  panel in the website design every protein in a FASTA file into one vector and pair of sites.
+  A protein that cannot be cloned is reported by name and the others carry on. The outputs are
+  a summary CSV, the DNA to order, the inserts and one GenBank file per construct.
+- A site can be named by its enzyme alone when it cuts the plasmid once (`resolve_site`).
+- Host profiles have a status. Bacterial hosts (*E. coli*, *B. subtilis*) are released; the
+  eukaryotic ones are in development: listed after the released ones, marked in the website and
+  by `p2d hosts`, and every design made with them carries a `host_in_development` warning.
+
 ### Added (hosts)
 - Host profiles for human, mouse, *S. cerevisiae*, *B. subtilis*, *D. melanogaster* and
   *C. elegans*, generated from `python_codon_tables`, with the default staying *E. coli*.

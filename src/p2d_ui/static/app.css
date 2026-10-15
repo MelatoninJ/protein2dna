@@ -411,3 +411,14 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 #limits-box summary { cursor: pointer; width: max-content; text-decoration: underline; text-underline-offset: 3px; }
 #limits-box .pair { margin-bottom: 12px; }
 .what .warn { color: var(--warn); font-weight: 500; }
+
+/* batch design */
+.batch { margin-top: 24px; }
+.batch summary { cursor: pointer; font-weight: 500; }
+.batch textarea { width: 100%; font: 13px var(--font-mono); margin: 8px 0 12px; }
+.batch .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.batch .scroll { overflow-x: auto; }
+.btable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.btable th, .btable td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.btable th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.btable tr.bad td { color: var(--error); }

@@ -281,6 +281,24 @@ def find_cut_site(vector: Vector, site_id: str) -> CutSite:
     raise ValueError(f"No {name} site starts at position {int(pos) + 1} of {vector.name}")
 
 
+def resolve_site(vector: Vector, text: str) -> CutSite:
+    """An id such as ``"XhoI:5206"``, or just an enzyme name when the vector has one such site."""
+    text = text.strip()
+    if ":" in text:
+        return find_cut_site(vector, text)
+    matches = [
+        c
+        for c in list_cut_sites(vector)
+        if text.lower() in {n.lower() for n in (c.enzyme, *c.aliases)}
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise ValueError(f"{vector.name} has no {text} site that can be used for cloning")
+    ids = ", ".join(c.id for c in matches)
+    raise ValueError(f"{text} cuts {vector.name} {len(matches)} times; choose one of: {ids}")
+
+
 def backbone_conflicts(vector: Vector, up: CutSite, down: CutSite) -> list[tuple[str, int]]:
     """Other sites of either enzyme that a complete digest would cut in the kept backbone.
 
