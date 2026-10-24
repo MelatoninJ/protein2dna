@@ -352,7 +352,3 @@ MIT, see `LICENSE`. p2d has no compiled or non-permissive dependencies.
   commercial use), so keep them on your own computer: put them in `~/.p2d/vectors` or upload
   them in the UI, and they never leave it.
 * Depends on Biopython (Biopython License), PyYAML and Typer (MIT).
-
----
-
-Developed with AI assistance (Claude).

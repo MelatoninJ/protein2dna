@@ -1,87 +1,88 @@
 /* p2d UI
-   Direction: calm, precise instrument. One accent, one radius, hairline borders,
-   no shadows. Tokens first; the dark theme redefines the same names. */
+   Direction: a plain measuring instrument. Neutral greys, one cobalt accent, one 4px radius,
+   hairline borders, no shadows, tabular numerals. Tokens first; the dark theme redefines the
+   same names. */
 
 :root {
-  --bg: #f5f7f7;
+  --bg: #f4f4f5;
   --surface: #ffffff;
-  --sunken: #eef1f2;
-  --text: #13181b;
-  --muted: #55626b;
-  --border: #d9dfe3;
-  --border-strong: #b8c1c7;
+  --sunken: #ececee;
+  --text: #0e0f12;
+  --muted: #5b5e68;
+  --border: #dcdde2;
+  --border-strong: #b9bbc4;
 
-  --accent: #0a7a58;
-  --accent-hover: #086549;
+  --accent: #2a46e0;
+  --accent-hover: #1f36b8;
   --accent-ink: #ffffff;
-  --accent-wash: #e3f3ed;
+  --accent-wash: #e9edfc;
 
   --error: #b42318;
   --error-wash: #fdeceb;
   --warn: #8f5400;
   --warn-wash: #fbf1de;
-  --info: #3b5f73;
-  --info-wash: #e8f0f4;
+  --info: #4a4f5c;
+  --info-wash: #ececf0;
 
-  --vector: #d3dadf;
-  --vector-ink: #33414a;
+  --vector: #d5d6dc;
+  --vector-ink: #3a3c46;
 
-  --radius: 6px;
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 4px;
+  --font-sans: "Geist", "Avenir Next", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas, ui-monospace, monospace;
   --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d1113;
-    --surface: #141a1d;
-    --sunken: #101518;
-    --text: #e7ecee;
-    --muted: #9aa8b0;
-    --border: #243036;
-    --border-strong: #3a4952;
+    --bg: #0c0d10;
+    --surface: #131418;
+    --sunken: #0f1013;
+    --text: #ececf0;
+    --muted: #9a9ca8;
+    --border: #25262d;
+    --border-strong: #3c3e48;
 
-    --accent: #3fc79a;
-    --accent-hover: #5fd8af;
-    --accent-ink: #04150f;
-    --accent-wash: #11302a;
+    --accent: #8da0ff;
+    --accent-hover: #a9b8ff;
+    --accent-ink: #0a0f33;
+    --accent-wash: #171c3a;
 
     --error: #ff8a80;
     --error-wash: #3a1815;
     --warn: #f2b45a;
     --warn-wash: #33260f;
-    --info: #8fb6cc;
-    --info-wash: #15262f;
+    --info: #a3a8b8;
+    --info-wash: #1a1b22;
 
-    --vector: #2b363c;
-    --vector-ink: #c4d0d6;
+    --vector: #2c2d35;
+    --vector-ink: #c9cad3;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #0d1113;
-  --surface: #141a1d;
-  --sunken: #101518;
-  --text: #e7ecee;
-  --muted: #9aa8b0;
-  --border: #243036;
-  --border-strong: #3a4952;
+  --bg: #0c0d10;
+  --surface: #131418;
+  --sunken: #0f1013;
+  --text: #ececf0;
+  --muted: #9a9ca8;
+  --border: #25262d;
+  --border-strong: #3c3e48;
 
-  --accent: #3fc79a;
-  --accent-hover: #5fd8af;
-  --accent-ink: #04150f;
-  --accent-wash: #11302a;
+  --accent: #8da0ff;
+  --accent-hover: #a9b8ff;
+  --accent-ink: #0a0f33;
+  --accent-wash: #171c3a;
 
   --error: #ff8a80;
   --error-wash: #3a1815;
   --warn: #f2b45a;
   --warn-wash: #33260f;
-  --info: #8fb6cc;
-  --info-wash: #15262f;
+  --info: #a3a8b8;
+  --info-wash: #1a1b22;
 
-  --vector: #2b363c;
-  --vector-ink: #c4d0d6;
+  --vector: #2c2d35;
+  --vector-ink: #c9cad3;
 }
 
 * { box-sizing: border-box; }
@@ -97,6 +98,7 @@ body {
   color: var(--text);
   font: 15px/1.55 var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
 }
 
 h1, h2, h3, p, dl, dd, ul { margin: 0; padding: 0; }
@@ -214,7 +216,7 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .why b { color: var(--text); font-weight: 500; }
 
 .mcs { position: relative; height: 92px; margin: 34px 6px 6px; }
-.mcs-bar { position: absolute; left: 0; right: 0; top: 10px; height: 8px; background: var(--accent-wash); border: 1px solid var(--border-strong); border-radius: 3px; }
+.mcs-bar { position: absolute; left: 0; right: 0; top: 10px; height: 8px; background: var(--accent-wash); border: 1px solid var(--border-strong); border-radius: var(--radius); }
 .mcs-end { position: absolute; top: -22px; font: 11px var(--font-mono); color: var(--muted); }
 .mcs-end.l { left: -6px; }
 .mcs-end.r { right: -6px; }
@@ -242,7 +244,7 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .window input { padding: 7px 9px; }
 .check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-weight: 400; font-size: 14px; }
 .check input { accent-color: var(--accent); }
-.mcs-feat { position: absolute; height: 6px; border-radius: 3px; background: var(--border-strong); opacity: 0.9; }
+.mcs-feat { position: absolute; height: 6px; border-radius: var(--radius); background: var(--border-strong); opacity: 0.9; }
 .mcs-feat.l0 { top: 0; } .mcs-feat.l1 { top: -9px; } .mcs-feat.l2 { top: -18px; }
 .mcs-feat.cds { background: var(--accent-wash); border: 1px solid var(--accent); }
 .mcs-feat.start { background: var(--accent); }
@@ -296,7 +298,7 @@ button { font: inherit; cursor: pointer; border-radius: var(--radius); }
 .map-title p { color: var(--muted); font-size: 13px; }
 .map { display: flex; gap: 2px; height: 44px; }
 .seg {
-  flex: var(--w) 1 0; min-width: 52px; border-radius: 3px;
+  flex: var(--w) 1 0; min-width: 52px; border-radius: var(--radius);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
   font: 12px var(--font-mono); white-space: nowrap; padding: 0 4px;
 }
