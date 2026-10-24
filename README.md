@@ -49,7 +49,11 @@ p2d ui
    up in the list; nothing is copied or sent anywhere.
 2. **Confirm where translation starts.** p2d offers the likely start codons with their
    evidence (an annotated start codon, a ribosome binding site, a T7 promoter) and you
-   choose.
+   choose. A plasmid with no annotation at all is read from its sequence: an ATG that follows a
+   ribosome-binding-site-like motif and is part of an NcoI or NdeI site, or lies behind a T7
+   promoter or lac operator, is offered (pTrc99A, pBAD24, pET-3a/11a/30a and pColdI as published
+   at NCBI). A vector whose own sequence holds no start codon (pKK223-3, pT7-5, pBAD18/33, where
+   the insert brings the ATG) is reported as having none, and you give the position yourself.
 3. **Choose two restriction sites by position.** Every restriction site is listed, and
    an enzyme the plasmid cuts several times is shown as "2 of 3" and so on. Two sites work
    when no other site of either enzyme lies in the part you keep; each unavailable site

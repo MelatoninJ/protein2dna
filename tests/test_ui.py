@@ -118,8 +118,8 @@ def test_pasted_text_loads_and_is_labelled():
     seq = p2d.load_bundled().seq
     r = service.load_vector({"text": f">my plasmid\n{seq}\n", "filename": "mine"})
     assert r["source"] == "pasted text" and r["length"] == 1149
-    assert r["starts"][0]["position"] == 87 and r["starts"][0]["confidence"] == "medium"
-    assert any("not certain" in w for w in r["warnings"])
+    assert r["starts"][0]["position"] == 87 and r["starts"][0]["confidence"] == "high"
+    assert not any("not certain" in w for w in r["warnings"])
 
 
 def test_the_users_own_vector_folder_is_offered_but_only_by_listed_name(tmp_path, monkeypatch):

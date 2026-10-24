@@ -18,6 +18,7 @@ from __future__ import annotations
 import io
 import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from Bio import SeqIO
@@ -161,6 +162,13 @@ EXPRESSED_PARTNER = re.compile(
     r"glutathione|\bgst\b|maltose|\bmal[ek]\b|thioredoxin|\btrx[a-z]?\b|\bsumo\b|\bnus[a-z]?\b",
     re.I,
 )
+# the 17 bp lac operator core, as found in the pTrc99A, pET and pCold records
+LAC_OPERATOR = "TTGTGAGCGGATAACAA"
+_RBS = ("AGGAGG", "AGGAG", "GGAGG", "AGGA", "GGAG", "GAGG")
+_RBS_SPACING = range(4, 11)  # bases between the end of the motif and the ATG
+_PROMOTER_REACH = 250  # an expression promoter or operator lies this close behind the start
+# the vector's own ATG is often part of an NcoI (CCATGG) or NdeI (CATATG) site
+_ATG_SITES = {"CCATGG": ("NcoI", 2), "CATATG": ("NdeI", 3)}
 _EXPRESSION_PROMOTER = re.compile(r"\b(t7|t5|tac|trc|lacuv5|arabad|pbad)\b", re.I)
 
 
@@ -187,6 +195,58 @@ def is_start_codon_feature(feature, seq: str) -> bool:
     return (
         "start codon" in text or feature.qualifiers.get("label", [""])[0].strip().upper() == "ATG"
     )
+
+
+@dataclass(frozen=True)
+class CassetteStart:
+    position: int  # the A of ATG on the strand that was scanned
+    site: str  # "NcoI" / "NdeI" when the ATG is part of the site, else ""
+    rbs: int  # length of the ribosome-binding-site-like motif
+    promoter: str  # "T7 promoter" / "lac operator" when one lies behind it, else ""
+
+
+def _rbs_length(seq: str, atg: int) -> int:
+    best = 0
+    for gap in _RBS_SPACING:
+        window = seq[max(0, atg - gap - 6) : max(0, atg - gap)]
+        best = max([best] + [len(m) for m in _RBS if window.endswith(m)])
+    return best
+
+
+def cassette_starts(seq: str) -> list[CassetteStart]:
+    """Start codons of an expression cassette, recognised from the sequence alone.
+
+    An ATG counts when a ribosome-binding-site-like motif (AGGAGG and shorter cores) lies 4-10
+    bases before it and either the ATG is part of an NcoI or NdeI site, or an expression promoter
+    (a T7 promoter, a lac operator) lies within 250 bases before it.  Vectors with none of this,
+    such as pKK223-3 whose insert brings its own ATG, give nothing.  The reading frame is not
+    checked here: the caller decides how long an open frame it needs.
+    """
+    found = []
+    for hit in re.finditer("(?=ATG)", seq):
+        atg = hit.start()
+        rbs = _rbs_length(seq, atg)
+        if not rbs:
+            continue
+        site = next(
+            (
+                name
+                for motif, (name, offset) in _ATG_SITES.items()
+                if seq[atg - offset : atg - offset + 6] == motif
+            ),
+            "",
+        )
+        behind = seq[max(0, atg - _PROMOTER_REACH) : atg]
+        promoter = (
+            "T7 promoter"
+            if T7_PROMOTER in behind
+            else "lac operator"
+            if LAC_OPERATOR in behind
+            else ""
+        )
+        if site or promoter:
+            found.append(CassetteStart(atg, site, rbs, promoter))
+    return found
 
 
 def orientation_votes(vector: Vector) -> tuple[int, int, list[str]]:
@@ -238,6 +298,18 @@ def orientation_votes(vector: Vector) -> tuple[int, int, list[str]]:
     if lac_r:
         minus += 3 * lac_r
         reasons.append("start of lacZ-alpha (MTMITPS) on the minus strand")
+    # the sequence-only cassette is a fallback: annotated features, a T7 promoter or lacZ-alpha
+    # say more, and an unannotated vector (pTrc, pBAD, pET-3) has nothing else to go by
+    if not (plus or minus):
+        reverse = str(Seq(seq).reverse_complement())
+        for strand, scanned in (("plus", seq), ("minus", reverse)):
+            for c in cassette_starts(scanned):
+                if strand == "plus":
+                    plus += 1
+                else:
+                    minus += 1
+                where = f" in the {c.site} site" if c.site else ""
+                reasons.append(f"RBS-like motif and start codon{where} on the {strand} strand")
     return plus, minus, reasons
 
 

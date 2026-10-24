@@ -23,7 +23,7 @@ from .vector import STOP_CODONS, Vector
 from .vectorio import (
     EXPRESSED_PARTNER,
     LACZ_ALPHA_START,
-    T7_PROMOTER,
+    cassette_starts,
     feature_text,
     is_start_codon_feature,
     normalize_orientation,
@@ -167,17 +167,20 @@ def find_starts(vector: Vector, region: Region | None) -> list[StartCandidate]:
     for hit in re.finditer(LACZ_ALPHA_START, seq):
         add(hit.start(), "matches the start of lacZ-alpha (MTMITPS...)", 3)
 
-    if not region:
-        for hit in re.finditer(T7_PROMOTER, seq):
-            for pos in range(hit.end() + 8, min(hit.end() + 150, len(seq) - 2)):
-                stop = _orf_end(seq, pos) if seq[pos : pos + 3] == "ATG" else None
-                sd = _sd_score(seq, pos) if stop else 0
-                if sd >= 4 and stop and stop - pos >= 90:
-                    add(
-                        pos,
-                        f"RBS-like motif ({sd} nt) then ATG, downstream of a T7 promoter",
-                        1 + (sd >= 5),
-                    )
+    for c in cassette_starts(seq):
+        stop = _orf_end(seq, c.position)
+        # an ATG in an NcoI/NdeI site is the vector's own start however short the frame to
+        # the next stop; one found only by its promoter has to open a real reading frame
+        if not stop or not (c.site or stop - c.position >= 90):
+            continue
+        if region and c.position >= region.end:
+            continue
+        where = f"inside the {c.site} site" if c.site else f"behind a {c.promoter}"
+        add(
+            c.position,
+            f"RBS-like motif ({c.rbs} nt) then ATG {where}",
+            2 + bool(c.site and c.promoter),
+        )
 
     out = []
     for pos, entry in found.items():

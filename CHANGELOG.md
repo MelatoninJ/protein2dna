@@ -6,6 +6,17 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added (start codons without annotation)
+- An expression vector with no annotation is read from its sequence: an ATG with a
+  ribosome-binding-site-like motif 4-10 bases before it, inside an NcoI or NdeI site (medium
+  confidence, high when a T7 promoter or lac operator also lies behind it) or behind one of
+  those promoters with a reading frame of at least 30 codons (medium). The same motifs orient a
+  plasmid that has nothing else to go by. On the NCBI records pTrc99A, pBAD24, pET-3a, pET-11a,
+  pET-30a and pColdI this finds the start (the pET plasmids are flipped); pKK223-3, pT7-5,
+  pBAD18 and pBAD33 hold no start codon and still give none. Across the 37 vectors in the
+  evaluation set the starts found with high confidence went from 15 to 28 and those not found
+  from 10 to 6, with no change of orientation for the ones that had features to go by.
+
 ### Added
 - Plasmids with no annotation: the start of lacZ-alpha (MTMITPS, in the pUC and pBluescript
   families) is recognised from the sequence, so an unannotated pUC19 is oriented and its start

@@ -20,7 +20,7 @@ import p2d
 from p2d import vectorio
 from p2d.analysis import analyze_vector, confirm
 from p2d.enzymes import find_cut_site, list_cut_sites, plan_cut
-from synth import mirror, ptest1_features, snapgene_bytes
+from synth import mirror, promoter_only_cassette, ptest1_features, snapgene_bytes
 
 SAMPLES = Path(os.environ["P2D_VECTOR_SAMPLES"]) if os.environ.get("P2D_VECTOR_SAMPLES") else None
 PAYLOAD = "SKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTL"
@@ -219,9 +219,16 @@ def test_the_mcs_is_only_reported_when_annotated_never_guessed(ptest1_genbank):
     assert bare.region is None
 
 
-def test_bare_sequence_still_gets_a_start_but_not_a_confident_one():
+def test_bare_expression_vector_is_recognised_from_the_sequence_alone():
     a = analyze_vector(vectorio.read_vector_text(p2d.load_bundled().seq, "bare"))
-    assert a.best_start.position == 87 and a.best_start.confidence == "medium"
+    best = a.best_start
+    assert best.position == 87 and best.confidence == "high" and a.ready
+    assert "NcoI" in best.evidence[0] and best.n_terminal.startswith("MGSSHHHHHH")
+
+
+def test_a_start_found_only_behind_a_promoter_is_a_guess():
+    a = analyze_vector(vectorio.read_vector_text(promoter_only_cassette(), "bare"))
+    assert a.best_start.confidence == "medium" and "lac operator" in a.best_start.evidence[0]
     assert not a.ready and any("not certain" in w for w in a.warnings)
 
 
@@ -237,10 +244,11 @@ def test_nothing_to_go_on_gives_warnings_not_a_crash():
 def test_confirm_uses_the_best_start_only_when_it_is_certain(forward_dna):
     a = analyze_vector(vectorio.read_vector_bytes(forward_dna, "f.dna"))
     assert confirm(a).expression_start == 87
-    guess = analyze_vector(vectorio.read_vector_text(p2d.load_bundled().seq, "bare"))
+    guess = analyze_vector(vectorio.read_vector_text(promoter_only_cassette(), "bare"))
     with pytest.raises(ValueError, match="not certain"):
         confirm(guess)
-    assert confirm(guess, start=87).expression_start == 87
+    at = guess.best_start.position
+    assert confirm(guess, start=at).expression_start == at
 
 
 @pytest.mark.parametrize("start", [5, -1, 10**6])

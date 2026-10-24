@@ -72,3 +72,20 @@ def mirror(features: list[dict], length: int) -> list[dict]:
         }
         for f in features
     ]
+
+
+def promoter_only_cassette(seed: int = 3) -> str:
+    """A plasmid whose only sign of an expression start is a lac operator, an RBS and an ATG.
+
+    No NcoI or NdeI site holds the ATG, so the start is a medium-confidence guess.
+    """
+    import random
+
+    rng = random.Random(seed)
+    codons = ["GCT", "AAA", "GAA", "CTG", "GGC", "GTT", "ACC", "CAG"]  # no stop among them
+
+    def flank(n):
+        return "".join(rng.choice("ACGT") for _ in range(n)).replace("ATG", "ACG")
+
+    orf = "ATG" + "".join(rng.choice(codons) for _ in range(60)) + "TAA"
+    return flank(300) + "TTGTGAGCGGATAACAA" + flank(30) + "AGGAGG" + "TATATAC" + orf + flank(300)
