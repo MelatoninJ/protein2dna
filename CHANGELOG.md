@@ -7,6 +7,9 @@ All notable changes are listed here. The format follows
 ## [Unreleased]
 
 ### Added (start codons without annotation)
+- A FASTA header can carry `start=<position>` (an ATG, 1-based) and `mcs=<from>-<to>`; they are
+  read as an annotated start codon and cloning region. A position that does not fit the sequence
+  is refused with a message.
 - An expression vector with no annotation is read from its sequence: an ATG with a
   ribosome-binding-site-like motif 4-10 bases before it, inside an NcoI or NdeI site (medium
   confidence, high when a T7 promoter or lac operator also lies behind it) or behind one of

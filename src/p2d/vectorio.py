@@ -23,6 +23,7 @@ from pathlib import Path
 
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqFeature import FeatureLocation, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
 from .vector import Vector
@@ -76,13 +77,16 @@ def read_vector_bytes(data: bytes, filename: str = "vector") -> Vector:
     seq = str(record.seq).upper().replace("U", "T")
     _check_sequence(seq)
     record.seq = Seq(seq)
+    header_notes = _header_features(record) if fmt == "fasta" else []
     topology = record.annotations.get("topology")
     notes: list[str] = []
     if topology is None:
         notes.append(
             f"No topology in the {_FORMAT_NAMES[fmt]} input; treated as a circular plasmid."
         )
-    if fmt in {"fasta", "raw"}:
+    if header_notes:
+        notes.extend(header_notes)
+    elif fmt in {"fasta", "raw"}:
         notes.append(
             "Sequence only: no features, so the start codon and cloning site need confirming."
         )
@@ -90,6 +94,46 @@ def read_vector_bytes(data: bytes, filename: str = "vector") -> Vector:
     v = Vector(record=record, name=name, circular=topology != "linear")
     v.notes = notes
     return v
+
+
+_HEADER_START = re.compile(r"\bstart\s*=\s*(\d+)\b", re.I)
+_HEADER_MCS = re.compile(r"\bmcs\s*=\s*(\d+)\s*(?:-|\.\.|to)\s*(\d+)\b", re.I)
+
+
+def _header_features(record) -> list[str]:
+    """Features the user wrote in a FASTA header: ``>pET-28a start=5307 mcs=5305-5380``.
+
+    Positions are 1-based, on the strand as written.  ``start`` is the A of the expression ATG
+    and becomes an annotated start codon; ``mcs`` is the cloning region, a landmark only.
+    """
+    text, seq, notes = record.description, str(record.seq), []
+    if m := _HEADER_START.search(text):
+        pos = int(m.group(1)) - 1
+        if not 0 <= pos <= len(seq) - 3 or seq[pos : pos + 3] != "ATG":
+            raise VectorFileError(
+                f"start={m.group(1)} in the FASTA header is not an ATG in this sequence."
+            )
+        record.features.append(
+            SeqFeature(
+                FeatureLocation(pos, pos + 3, strand=1),
+                type="misc_feature",
+                qualifiers={"label": ["start codon"]},
+            )
+        )
+        notes.append(f"Start codon at {pos + 1} taken from the FASTA header.")
+    if m := _HEADER_MCS.search(text):
+        a, b = sorted((int(m.group(1)), int(m.group(2))))
+        if a < 1 or b > len(seq):
+            raise VectorFileError(f"mcs={a}-{b} in the FASTA header lies outside the sequence.")
+        record.features.append(
+            SeqFeature(
+                FeatureLocation(a - 1, b, strand=1),
+                type="misc_feature",
+                qualifiers={"label": ["MCS"]},
+            )
+        )
+        notes.append(f"Cloning region {a}-{b} taken from the FASTA header.")
+    return notes
 
 
 _FORMAT_NAMES = {"genbank": "GenBank", "snapgene": "SnapGene", "fasta": "FASTA", "raw": "sequence"}

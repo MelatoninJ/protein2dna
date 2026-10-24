@@ -153,3 +153,35 @@ def test_real_vectors_without_a_start_give_none_and_ask_for_one(name):
     a = record(name)
     assert not a.starts and not a.ready
     assert any("point to one" in w for w in a.warnings)
+
+
+# ----------------------------------------------------------------- FASTA header notes
+
+
+def fasta(header, seq):
+    return vectorio.read_vector_bytes(f">{header}\n{seq}\n".encode(), "plasmid.fa")
+
+
+def test_a_fasta_header_can_name_the_start_codon_and_the_cloning_region():
+    seq = flank(300, 4) + "ATG" + "GCT" * 60 + "TAA" + flank(300, 5)
+    v = fasta("lab plasmid start=301 mcs=301-330", seq)
+    a = analyze_vector(v)
+    assert a.ready and a.best_start.position == 300 and a.best_start.confidence == "high"
+    assert (a.region.start, a.region.end) == (300, 330)
+    assert any("FASTA header" in n for n in v.notes)
+    assert not any("Sequence only" in n for n in v.notes)
+
+
+def test_a_header_without_notes_is_still_just_a_sequence():
+    v = fasta("lab plasmid", flank(600, 6))
+    assert any("Sequence only" in n for n in v.notes)
+    assert not analyze_vector(v).starts
+
+
+@pytest.mark.parametrize(
+    "header, message",
+    [("p start=5", "not an ATG"), ("p start=99999", "not an ATG"), ("p mcs=5-99999", "outside")],
+)
+def test_a_header_that_does_not_fit_the_sequence_is_refused(header, message):
+    with pytest.raises(vectorio.VectorFileError, match=message):
+        fasta(header, flank(600, 7))

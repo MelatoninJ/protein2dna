@@ -54,6 +54,8 @@ p2d ui
    promoter or lac operator, is offered (pTrc99A, pBAD24, pET-3a/11a/30a and pColdI as published
    at NCBI). A vector whose own sequence holds no start codon (pKK223-3, pT7-5, pBAD18/33, where
    the insert brings the ATG) is reported as having none, and you give the position yourself.
+   In a FASTA file you can write it in the header: `>my_plasmid start=5307 mcs=5305-5380`
+   (1-based, on the strand as written; `start` must be an ATG, `mcs` is the cloning region).
 3. **Choose two restriction sites by position.** Every restriction site is listed, and
    an enzyme the plasmid cuts several times is shown as "2 of 3" and so on. Two sites work
    when no other site of either enzyme lies in the part you keep; each unavailable site
