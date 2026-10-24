@@ -222,15 +222,19 @@ for a mistake in the options.
   avoid stop codons and new restriction sites, and reported to you
 - **Cloning sites kept out of the coding DNA**, on both strands and across the junctions
   with the vector, by a search; a site your protein forces is reported, not hidden
-- **Host preferences**: a host's own motifs (internal Shine-Dalgarno and Chi sites in *E. coli*;
-  polyadenylation signals and AU-rich elements in human and mouse) and long homopolymer runs
-  are avoided when a path exists, and any that the protein forces are named in a warning
+- **Host preferences**: a host's own motifs (internal Shine-Dalgarno sequences in *E. coli* and
+  *B. subtilis*, Chi sites in *E. coli*; polyadenylation signals and AU-rich elements in human
+  and mouse) and runs of one base longer than the host's own genes contain are avoided when a
+  path exists, and any that the protein forces are named in a warning
 - **The order itself**: extra bases outside each site that create no new cloning site or host
   motif, and an in-silico digest and ligation of the whole order that must reproduce the plasmid
 - **Which sites you can use**: order, spacing, compatible ends, and whether a second site of
   the same enzyme would cut the backbone you keep
-- **The C-terminus**: a stop codon, or a read into the vector's His tag with the bases that
-  put it in frame
+- **The C-terminus**: one stop codon (the host's most used; two in a row on request), or a read
+  into the vector's His tag with the bases that put it in frame. In *E. coli* the base after
+  the stop codon changes how well translation ends, so p2d reports it
+- **Sites that touch**: two sites with no base between them are offered with a warning; sites
+  that share bases are refused
 - **Duplicate tags** between insert and vector
 - **GC content and repeats**: after the codons are chosen, p2d swaps synonymous codons to bring
   overall GC, GC in sliding windows, and direct and inverted repeats inside limits you can
@@ -242,10 +246,10 @@ for a mistake in the options.
 ## Checked against published constructs
 
 p2d was checked against plasmids other people built. Given the empty pET-28a(+), the two sites and
-the inserted protein, it rebuilt the same fusion protein for all 8 comparable constructs on NCBI (7
-genes, 5 pairs of sites). It declines the one pair of sites it refuses (BamHI and EcoRI, side by
-side), and 15 records cannot test it. The test covers the junctions and the reading frame, not
-expression, and only one vector family. See [VALIDATION.md](VALIDATION.md).
+the inserted protein, it rebuilt the same fusion protein for all 9 comparable constructs on NCBI (8
+genes, 6 pairs of sites), three of them down to the exact plasmid size. 15 records cannot test it
+(their reason is given). The test covers the junctions and the reading frame, not expression,
+and only one vector family. See [VALIDATION.md](VALIDATION.md).
 
 ## What it does not do yet
 
@@ -267,10 +271,11 @@ you will make.
   methylation and double-digest buffers. p2d also does not model any synthesis vendor's rules
   (length, GC or complexity limits): those differ between vendors and change, so they are out of
   scope. Check a design against the rules of whoever makes it.
-- **Host limits are defaults, not citations.** The homopolymer lengths, motifs, GC range, GC
-  window and repeat length in the host profile come from the project template, not from a
-  reference. They never block a design (what cannot be met is reported), but do not read them
-  as vetted thresholds. Swapping codons to meet them lowers CAI; the page shows both.
+- **Eukaryotic host limits are defaults, not citations.** The bacterial profiles are sourced (see
+  *Hosts*). The human, mouse, yeast, fly and worm profiles, which are in development, still use
+  homopolymer lengths, motifs, GC range, GC window and repeat length from the project template.
+  They never block a design (what cannot be met is reported), but do not read them as vetted.
+  Swapping codons to meet limits lowers CAI; the page shows both.
 - **Scope.** One protein chain at a time, and restriction-site cloning only (no Gibson or
   Golden Gate). Tested on bacterial vectors: pET-28a(+), pGEX-4T-1/3X/2T, pUC19 and a
   synthetic one, plus a mammalian vector (mOrange2-C1) for the reading frame, the pad bases and
@@ -314,11 +319,27 @@ carries a warning (`host_in_development`). The reason is that nothing beyond a r
 check against one mammalian vector has been done for eukaryotes: their vectors, their start
 and polyadenylation signals and their expression behaviour are not validated here.
 
-Only the codon table is cited. A profile's rare codons (outside `ecoli_bl21`) are the codons
-used for under 10% of their amino acid's codons, read off the table. Its motifs, homopolymer
-limits and GC and repeat limits are project defaults, and are listed as soft preferences. The
-motifs for human and mouse (`AATAAA`, `ATTAAA`, `ATTTA`) are textbook sequences that have not
-been checked against a reference here. The other hosts list none.
+**What is cited in the bacterial profiles.** The codon table is *E. coli* K-12 usage (for BL21)
+or *B. subtilis* usage from `python_codon_tables`. Everything else is sourced or measured:
+
+* *E. coli* rare codons AGA, AGG, AUA, CUA, GGA, CCC, CGG: the codons the Rosetta 2 strains carry
+  extra tRNA genes for (Novagen/Merck, cat. 71397).
+* Internal Shine-Dalgarno-like sequence `AGGAGG` (both bacteria): Li, Oh and Weissman 2012, *Nature*
+  484:538. Chi site `GCTGGTGG` (*E. coli*): the RecBCD recombination hotspot (Smith laboratory).
+* GC and homopolymer limits are measured on the host's own genome (RefSeq NC_012971.2 for BL21(DE3),
+  NC_000964.3 for *B. subtilis* 168) by `tools/build_limits.py`: gene GC and GC in 50 bp windows
+  take the central 99% of the host's coding sequences, and a base's run limit is the longest run
+  found in at least three coding sequences. *E. coli*: GC 32 to 60%, windows 28 to 70%, runs A and
+  T 9, G and C 7. The earlier hand-chosen defaults were stricter than natural genes.
+* Direct repeats of 23 bp or more are avoided, the minimal length for efficient RecBC-dependent
+  recombination in *E. coli* (Shen and Huang 1986, *Genetics* 112:441). No threshold is cited for
+  inverted repeats, so that check is off by default.
+* The stop-codon note in *E. coli* is Poole et al. 1995 (*EMBO Journal*): the base after the stop
+  changes termination from about 7% to about 80%.
+
+The eukaryotic profiles are in development and keep their old defaults: rare codons are the codons
+used for under 10% of their amino acid's codons, and the motifs (`AATAAA`, `ATTAAA`, `ATTTA` for
+human and mouse) are textbook sequences not checked against a reference here.
 
 ## Roadmap
 

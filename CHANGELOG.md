@@ -37,11 +37,30 @@ All notable changes are listed here. The format follows
 - Site-pair suggestions count the residues of the vector's own protein a pair would change and
   rank those pairs last; the website says so.
 
+### Bacterial profiles are now sourced
+- *E. coli* and *B. subtilis* limits are measured on the host genome (`tools/build_limits.py`):
+  GC and homopolymer limits replace hand-chosen defaults that were stricter than natural genes.
+  Direct repeats follow the 23 to 27 bp recombination minimum (Shen and Huang 1986); the inverted
+  repeat check is off because no threshold is cited. *E. coli* rare codons are the Rosetta 2 list
+  (the old list had CGA where Rosetta 2 has CGG); the internal Shine-Dalgarno and Chi motifs cite
+  their sources; *B. subtilis* gains the internal Shine-Dalgarno motif.
+- An insert ends with one stop codon, the host's most used, instead of a fixed `TAATGA`; two in a
+  row are an option (`stop_codons=2`, `--stop-codons 2`, a menu in the website). p2d plasmids now
+  match the size of hand-designed ones.
+- In *E. coli* the base after the stop codon is reported (`stop_context`), after Poole et al. 1995.
+- Sites that touch are offered with a `sites_adjacent` warning; sites that share bases stay refused.
+- Start codons are found from more annotations: a fusion-partner CDS (GST, MBP, thioredoxin, SUMO,
+  NusA) is offered even without an annotated cloning region and votes on the plasmid's direction ahead
+  of a stray T7 sequence; `MalE`/`lacZ-alpha` fusions are no longer mistaken for markers, and
+  beta-lactamase and other marker products are never offered. Of 37 NCBI vectors, 27 now give a
+  start (15 high, 12 medium); the rest are not expression vectors or carry no annotation.
+- The website ships Geist and Geist Mono (SIL OFL) and a new look (neutral greys, one cobalt accent).
+
 ### Validation
 - `tools/compare_genbank.py` rebuilds published constructs from their empty vector and compares the
-  fusion protein p2d makes with the real one. Of 24 pET-28a(+) constructs on NCBI, 8 are
-  comparable and all 8 match (7 genes, 5 pairs of sites); 1 uses a pair p2d declines; 15 cannot test
-  p2d, with the reason given. See `VALIDATION.md`.
+  fusion protein p2d makes with the real one. Of 24 pET-28a(+) constructs on NCBI, 9 are
+  comparable and all 9 match (8 genes, 6 pairs of sites); 15 cannot test p2d, with the reason
+  given. See `VALIDATION.md`.
 - The message for two touching sites no longer says a double digest "cannot cut both", which a real
   construct shows is not true. The pair is still refused.
 

@@ -26,27 +26,28 @@ authors used.
 
 | result | records | meaning |
 |---|---|---|
-| match | 8 | p2d rebuilt exactly the same fusion protein |
-| declined | 1 | p2d refuses the pair of sites the authors used (see below) |
+| match | 9 | p2d rebuilt exactly the same fusion protein |
 | not comparable | 15 | the record cannot test p2d; the reason is printed for each |
 
-The 8 that match:
+The 9 that match:
 
 | record | construct | sites | residues | plasmid, real / p2d |
 |---|---|---|---|---|
-| MK847897.1 | pET28A-blaNMC-A | NcoI, BamHI | 338 | 6,419 / 6,293 bp |
-| MK847898.1 | pET28A-blaBIC-1 | BmtI, NotI | 317 | 6,196 / 6,199 bp |
-| MK847902.1 | pET28A-blaVIM-1 | NcoI, BamHI | 278 | 6,193 / 6,113 bp |
-| MK847903.1 | pET28A-blaVIM-2 | BamHI, SacI | 300 | 6,264 / 6,167 bp |
-| MK847904.1 | pET28A-blaIMP-1 | BamHI, SacI | 280 | 6,163 / 6,107 bp |
-| OK264409.1 | pET28a_ZZ_proinsulin | NcoI, NdeI | 210 | 5,948 / 5,948 bp |
-| OL989372.1 | pET-28a-ZaTdT12 | NdeI, XhoI | 533 | 6,835 / 6,838 bp |
-| OL989373.1 | pET-28a-ZaTdT12-R335L-K337G | NdeI, XhoI | 533 | 6,835 / 6,838 bp |
+| MK847897.1 | pET28A-blaNMC-A | NcoI, BamHI | 338 | 6,419 / 6,290 bp |
+| MK847898.1 | pET28A-blaBIC-1 | BmtI, NotI | 317 | 6,196 / 6,196 bp |
+| MK847901.1 | pET28A-blaNDM-1 | BamHI, EcoRI | 304 | 6,320 / 6,182 bp |
+| MK847902.1 | pET28A-blaVIM-1 | NcoI, BamHI | 278 | 6,193 / 6,110 bp |
+| MK847903.1 | pET28A-blaVIM-2 | BamHI, SacI | 300 | 6,264 / 6,164 bp |
+| MK847904.1 | pET28A-blaIMP-1 | BamHI, SacI | 280 | 6,163 / 6,104 bp |
+| OK264409.1 | pET28a_ZZ_proinsulin | NcoI, NdeI | 210 | 5,948 / 5,945 bp |
+| OL989372.1 | pET-28a-ZaTdT12 | NdeI, XhoI | 533 | 6,835 / 6,835 bp |
+| OL989373.1 | pET-28a-ZaTdT12-R335L-K337G | NdeI, XhoI | 533 | 6,835 / 6,835 bp |
 
-That is seven different genes (the last two differ by two residues), five different pairs of sites,
-and constructs in which the vector's own tag is kept (NdeI, BamHI) or removed (NcoI). The plasmid
-sizes differ where the authors' insert carried bases outside the coding sequence, and by 3 bp where
-p2d ends the insert with a double stop codon. In one record (ZZ_proinsulin) the size is identical.
+That is eight different genes (the last two differ by two residues), six different pairs of sites,
+and constructs in which the vector's own tag is kept (NdeI, BamHI) or removed (NcoI). Three plasmids
+come out at exactly the same size as the real one. In the ZZ_proinsulin record the authors ended the
+gene with two stop codons and p2d with one (3 bp). In the other five the authors' insert carried
+bases outside the coding sequence (up to 138 bp), which p2d does not add.
 
 The 15 that are not comparable:
 
@@ -60,13 +61,13 @@ The 15 that are not comparable:
 Five records built on **pUC19** were also tried. None can be compared: they are expression
 cassettes with their own promoters, not fusions to the lacZ-alpha start.
 
-## The pair p2d declines
+## A pair p2d used to refuse
 
 One real construct (MK847901.1, pET28A-blaNDM-1) was cloned with BamHI and EcoRI, which sit side
-by side in pET-28a(+) with no base between them. p2d refuses that pair because the second enzyme
-would cut right at a fragment end. These authors used it, so the refusal is stricter than practice.
-I have kept the refusal, and corrected its wording: it used to say a double digest "cannot cut both",
-which the record shows is not true.
+by side in pET-28a(+) with no base between them. p2d used to refuse any two sites that touch. These
+authors used that pair, so p2d now offers it, with a `sites_adjacent` warning that the second
+enzyme cuts right at a fragment end and the digest should be checked. Sites that share bases are
+still refused. The record now matches.
 
 ## What this does and does not show
 
@@ -77,7 +78,7 @@ people actually built. The inserted protein is read from the real record, so the
 
 It does **not** show that the protein is made, folds, or is made well. It says nothing about codon
 choice. The evidence is also narrow: one vector family (pET-28a(+)), constructs mostly from two
-laboratories (five of the eight matches come from one series), and bacterial vectors only. It does not
+laboratories (six of the nine matches come from one series), and bacterial vectors only. It does not
 cover mammalian vectors, other tags, or other kinds of cloning.
 
 ## Reproducing it
