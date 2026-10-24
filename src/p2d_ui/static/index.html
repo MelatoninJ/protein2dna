@@ -46,10 +46,11 @@
           <button type="button" class="secondary" id="paste-btn" aria-expanded="false" aria-controls="paste-box">Paste a sequence</button>
           <input type="file" id="vector-file" hidden accept=".gb,.gbk,.genbank,.gbff,.dna,.fa,.fasta,.fna,.txt">
         </div>
-        <p class="help">GenBank (.gb), SnapGene (.dna) or FASTA. Files stay on this computer.</p>
+        <p class="help">GenBank (.gb), SnapGene (.dna) or FASTA. Files stay on this computer. A plasmid with no annotation can name its start codon in the FASTA header (see Paste a sequence).</p>
         <div id="paste-box" class="paste" hidden>
           <label for="paste-text">Plasmid DNA (FASTA, GenBank text or plain sequence)</label>
-          <textarea id="paste-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
+          <textarea id="paste-text" rows="5" spellcheck="false" autocomplete="off" placeholder="&gt;my_plasmid start=5307 mcs=5305-5380&#10;TTGACAATTAATCATC..."></textarea>
+          <p class="help">For a FASTA plasmid without annotation, write the start codon in the header: <code>start=5307</code> is the position of the A of the ATG, and <code>mcs=5305-5380</code> (optional) is the cloning region. Positions count from 1 on the strand as written.</p>
           <button type="button" class="secondary" id="paste-use">Use this plasmid</button>
         </div>
         <p id="vector-status" class="help" role="status" aria-live="polite"></p>
