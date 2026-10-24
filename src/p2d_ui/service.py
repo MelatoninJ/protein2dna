@@ -195,7 +195,8 @@ LIMIT_FIELDS = {  # request key -> (Limits fields set, multiplier from the unit 
     "window_min": (("window_min",), 0.01),
     "window_max": (("window_max",), 0.01),
     "window_size": (("window_size",), 1),
-    "repeat_max": (("direct_max", "inverted_max"), 1),
+    "repeat_max": (("direct_max",), 1),
+    "inverted_max": (("inverted_max",), 1),
 }
 
 

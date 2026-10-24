@@ -37,20 +37,29 @@ codon_usage:
 # This is a statement about the table, not a claim about tRNA supply.
 rare_codons: [CCC, CTA]
 
-# Only the codon table above is taken from a cited source. Everything below is a project
-# default that has not been checked against a reference. The motifs and homopolymer
-# limits are soft preferences: the optimiser avoids them when it can and names any that
-# stay. The GC and repeat limits steer a local search and can be changed per design.
-forbidden_motifs: []  # none listed for this host
-
-homopolymer_max: {A: 8, T: 8, G: 5, C: 5}
-
-gc:
-  global: [0.35, 0.65]
-  window: {size: 50, range: [0.25, 0.75]}
-
-repeats:
-  direct_max: 20
-  inverted_max: 20
+# Only the codon table above and the cited items below come from sources. The motif is a soft
+# preference: the optimiser avoids it when it can and names any that stay. B. subtilis has a
+# Chi site (5'-AGCGG, Chedin et al. 2000, J Mol Biol 298:7), but five bases occur so often that
+# avoiding it would constrain the codons without a stated benefit, so it is not listed.
+forbidden_motifs:
+  - pattern: AGGAGG
+    reason: internal Shine-Dalgarno-like sequence (ribosome pausing)
+    source: "Li, Oh & Weissman 2012, Nature 484:538, doi:10.1038/nature10965 (includes B. subtilis 168)"
 
 required_elements: []
+
+# ---- limits measured on the host's genome (tools/build_limits.py): do not edit ----
+limits_source:
+  genome: "NC_000964.3, Bacillus subtilis subsp. subtilis str. 168 complete genome; 4117 coding sequences of 150 bp or more"
+  gc: "central 99% of gene GC and of GC in 50 bp windows (0.5th to 99.5th percentile)"
+  homopolymer: "longest run found in at least 3 coding sequences"
+  repeats: "direct: Shen & Huang 1986, Genetics 112:441 (minimal length for efficient RecBC-dependent recombination, 23 to 27 bp); inverted: no cited threshold, left off"
+homopolymer_max: {A: 9, T: 8, G: 7, C: 7}
+
+gc:
+  global: [0.28, 0.53]
+  window: {size: 50, range: [0.24, 0.66]}
+
+repeats:
+  direct_max: 22
+  inverted_max: 200

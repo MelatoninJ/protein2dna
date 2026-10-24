@@ -33,29 +33,41 @@ codon_usage:
     Y: {TAT: 0.57, TAC: 0.43}
   stop: {TAA: 0.64, TGA: 0.29, TAG: 0.07}
 
-# codons whose tRNA is limiting in standard BL21 (supplemented in Rosetta /
-# CodonPlus strains -- see `strain_supplements`)
-rare_codons: [AGG, AGA, CGA, ATA, CTA, CCC, GGA]
-strain_supplements:
-  rosetta2: [AGG, AGA, CGG, ATA, CTA, CCC, GGA]
-  codonplus_ril: [AGG, AGA, ATA, CTA]
+# Codons rare enough in E. coli that the Rosetta 2 strains carry extra tRNA genes for them: AGA, AGG,
+# AUA, CUA, GGA, CCC and CGG (Novagen/Merck Rosetta 2(DE3) product information, cat. 71397).
+rare_codons: [AGA, AGG, ATA, CGG, CTA, CCC, GGA]
 
-# Only the codon table above is taken from a cited source. The rare-codon and strain lists above
-# and everything below are project defaults that have not been checked against a reference.
-# The motifs and homopolymer limits are soft preferences: the optimiser avoids them when it can
-# and names any that stay. Treat the numbers as placeholders until they have a reference.
+# Only the codon table above and the cited items below come from sources. The motifs are soft
+# preferences: the optimiser avoids them when it can and names any that stay.
 forbidden_motifs:
-  - {pattern: AGGAGG, reason: internal Shine-Dalgarno (ribosome pausing / internal initiation)}
-  - {pattern: GCTGGTGG, reason: Chi site (RecBCD recombination hotspot)}
+  - pattern: AGGAGG
+    reason: internal Shine-Dalgarno-like sequence (ribosome pausing)
+    source: "Li, Oh & Weissman 2012, Nature 484:538, doi:10.1038/nature10965"
+  - pattern: GCTGGTGG
+    reason: Chi site (RecBCD recombination hotspot)
+    source: "Chi = 5'-GCTGGTGG-3', the RecBCD recombination hotspot (Smith laboratory; Taylor, Amundsen & Smith 2016, Nucleic Acids Research)"
 
-homopolymer_max: {A: 8, T: 8, G: 5, C: 5}
-
-gc:
-  global: [0.35, 0.65]
-  window: {size: 50, range: [0.25, 0.75]}
-
-repeats:
-  direct_max: 20
-  inverted_max: 20
+# Termination efficiency depends on the base after the stop codon. In E. coli the strongest of the
+# twelve signals tested was TAAT (about 80%) and the weakest TGAC (about 7%); the base after the
+# stop comes from the 3' restriction site (Poole et al. 1995, EMBO Journal, in vivo assay).
+termination:
+  strong: [TAAT]
+  note: "In E. coli TAAT terminates most efficiently (about 80%) and TGAC least (about 7%): Poole et al. 1995, EMBO Journal. A 3' site that starts with T gives TAAT."
 
 required_elements: []
+
+# ---- limits measured on the host's genome (tools/build_limits.py): do not edit ----
+limits_source:
+  genome: "NC_012971.2, Escherichia coli BL21(DE3), complete sequence; 3996 coding sequences of 150 bp or more"
+  gc: "central 99% of gene GC and of GC in 50 bp windows (0.5th to 99.5th percentile)"
+  homopolymer: "longest run found in at least 3 coding sequences"
+  repeats: "direct: Shen & Huang 1986, Genetics 112:441 (minimal length for efficient RecBC-dependent recombination, 23 to 27 bp); inverted: no cited threshold, left off"
+homopolymer_max: {A: 9, T: 9, G: 7, C: 7}
+
+gc:
+  global: [0.32, 0.6]
+  window: {size: 50, range: [0.28, 0.7]}
+
+repeats:
+  direct_max: 22
+  inverted_max: 200

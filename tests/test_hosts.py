@@ -155,8 +155,11 @@ def test_mammalian_hosts_avoid_polyadenylation_and_au_rich_motifs():
     assert not region_hits("", design(biased), "", motifs), "the host profile avoids them"
 
 
-def test_generated_profiles_say_what_is_and_is_not_cited():
-    for slug in HOSTS:
+BACTERIA = ("ecoli_bl21", "bsubtilis")
+
+
+def test_profiles_say_what_is_and_is_not_cited():
+    for slug in set(HOSTS) - set(BACTERIA):
         text = (Path(p2d.__file__).parent / "hosts" / f"{slug}.yaml").read_text()
         assert re.search(r"Only the codon table .*cited source", text.replace("\n# ", " "), re.S)
 

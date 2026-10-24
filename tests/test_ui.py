@@ -715,12 +715,12 @@ def test_meta_gives_each_host_its_limits_in_percent():
     assert {"hsapiens", "scerevisiae", "bsubtilis"} <= {h["slug"] for h in meta["hosts"]}
     host = next(h for h in meta["hosts"] if h["slug"] == "ecoli_bl21")
     assert host["limits"] == {
-        "gc_min": 35,
-        "gc_max": 65,
+        "gc_min": 32,
+        "gc_max": 60,
         "window_size": 50,
-        "window_min": 25,
-        "window_max": 75,
-        "repeat_max": 20,
+        "window_min": 28,
+        "window_max": 70,
+        "repeat_max": 22,
     }
 
 

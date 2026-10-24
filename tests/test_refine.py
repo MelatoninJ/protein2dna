@@ -75,14 +75,14 @@ def protein(seed, letters, n):
 
 def test_the_host_profile_supplies_the_defaults(host):
     lim = host.limits()
-    assert (lim.gc_min, lim.gc_max) == (0.35, 0.65)
-    assert (lim.window_size, lim.window_min, lim.window_max) == (50, 0.25, 0.75)
-    assert (lim.direct_max, lim.inverted_max) == (20, 20)
+    assert (lim.gc_min, lim.gc_max) == (0.32, 0.6)
+    assert (lim.window_size, lim.window_min, lim.window_max) == (50, 0.28, 0.7)
+    assert (lim.direct_max, lim.inverted_max) == (22, 200)
 
 
 def test_single_limits_can_be_replaced(host):
     lim = host.limits(gc_max=0.55, direct_max=30)
-    assert lim.gc_max == 0.55 and lim.direct_max == 30 and lim.gc_min == 0.35
+    assert lim.gc_max == 0.55 and lim.direct_max == 30 and lim.gc_min == 0.32
 
 
 @pytest.mark.parametrize(
@@ -201,10 +201,11 @@ def test_what_the_protein_forces_is_reported_not_hidden(host):
     all_w = optimize_coding(request(host, "W" * 60, host.limits()))  # one codon, 67% GC
     codes = {i.code for i in all_w.issues}
     assert {"gc_out_of_range"} <= codes and translate(all_w.dna) == "W" * 60
-    all_k = optimize_coding(request(host, "K" * 60, host.limits()))
+    strict = host.limits(gc_min=0.4, window_min=0.4)
+    all_k = optimize_coding(request(host, "K" * 60, strict))
     codes = {i.code for i in all_k.issues}
-    assert "gc_out_of_range" in codes and "gc_window_out_of_range" not in codes
-    assert measure(all_k.dna, host.limits()).gc == pytest.approx(1 / 3), "the most GC it can reach"
+    assert {"gc_out_of_range", "gc_window_out_of_range"} <= codes
+    assert measure(all_k.dna, strict).gc == pytest.approx(1 / 3), "the most GC it can reach"
 
 
 def test_repeats_the_protein_forces_are_reported(host):

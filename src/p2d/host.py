@@ -29,6 +29,7 @@ class HostProfile:
     forbidden_motifs: list[dict] = field(default_factory=list)
     homopolymer_max: dict[str, int] = field(default_factory=dict)
     status: str = "released"  # "development" profiles are usable but warned about
+    termination: dict = field(default_factory=dict)  # strong stop contexts and where they come from
 
     def soft_motifs(self) -> dict[str, str]:
         """Sequences the optimiser should avoid when it can: ``{pattern: why}``.
@@ -104,6 +105,7 @@ def _parse(data: dict) -> HostProfile:
         forbidden_motifs=list(data.get("forbidden_motifs", [])),
         homopolymer_max=dict(data.get("homopolymer_max", {})),
         status=str(data.get("status", "released")),
+        termination=dict(data.get("termination", {})),
     )
     if not profile.codon_table_verified:
         warnings.warn(

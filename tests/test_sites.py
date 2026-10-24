@@ -496,3 +496,31 @@ def test_a_touching_pair_ranks_below_an_equal_one_with_a_spacer(vector, host):
     worse = dataclasses.replace(base, adjacent=True)
     assert sorted([worse, base], key=lambda o: o.sort_key) == [base, worse]
     assert base.sort_key < worse.sort_key
+
+
+# ------------------------------------------------------------- the base after the stop codon
+
+
+def _stop_issue(vector, host):
+    a = design(vector, host, "NdeI:144", "XhoI:174", cterm=p2d.CTerm.STOP)
+    return next((i for i in a.issues if i.code == "stop_context"), None)
+
+
+def test_the_base_after_the_stop_is_reported_with_its_source(vector, host):
+    issue = _stop_issue(vector, host)
+    assert issue and issue.severity.value == "info"
+    assert "TAAC" in issue.message and "Poole" in issue.message and "TAAT" in issue.message
+
+
+def test_a_strong_context_is_not_flagged(vector, tmp_path):
+    text = (Path(p2d.__file__).parent / "hosts" / "ecoli_bl21.yaml").read_text()
+    assert "strong: [TAAT]" in text
+    other = tmp_path / "other.yaml"
+    other.write_text(text.replace("strong: [TAAT]", "strong: [TAAC]"))
+    assert _stop_issue(vector, p2d.load_host(other)) is None
+
+
+def test_hosts_without_termination_data_say_nothing(vector):
+    assert _stop_issue(vector, p2d.load_host("hsapiens")) is None
+    plain = design(vector, p2d.load_host("ecoli_bl21"), "NdeI:144", "XhoI:174")
+    assert "stop_context" not in {i.code for i in plain.issues}, "no stop codon in the insert"

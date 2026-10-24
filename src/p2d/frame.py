@@ -369,6 +369,19 @@ def design_insert(
     insert_dna = up_site + pad_up + coding + stop_dna + pad_down + down_site
     coding_start = up.start + len(up_site) + len(pad_up)
 
+    strong = host.termination.get("strong", [])
+    if want_stop and strong:
+        context = stop_dna[-3:] + (pad_down + down_site)[:1]
+        if context not in strong:
+            issues.append(
+                Issue(
+                    Severity.INFO,
+                    "stop_context",
+                    f"The stop codon is followed by {context[3]}, so the termination signal is "
+                    f"{context}. {host.termination.get('note', '')}",
+                )
+            )
+
     if down.start == up.start + len(up_site):
         issues.append(
             Issue(

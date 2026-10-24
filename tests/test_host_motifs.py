@@ -51,7 +51,7 @@ def test_soft_motifs_come_from_the_profile(host):
     soft = host.soft_motifs()
     assert soft["AGGAGG"].startswith("internal Shine-Dalgarno")
     assert soft["GCTGGTGG"].startswith("Chi site")
-    assert {"A" * 9, "T" * 9, "G" * 6, "C" * 6} <= set(soft), "one longer than the allowed run"
+    assert {"A" * 10, "T" * 10, "G" * 8, "C" * 8} <= set(soft), "one longer than the allowed run"
     assert all(reason for reason in soft.values())
 
 
@@ -99,10 +99,10 @@ def test_motif_lookup_is_case_insensitive(tmp_path):
 def test_homopolymer_runs_are_broken_up(host, strategy):
     aa = "K" * 10 + "F" * 10 + "R" * 6  # best codons AAA / TTT / CGC would make 30-base runs
     naive = optimize_coding(req(host, aa, strategy=strategy, forbidden=[]))
-    free = re.findall("A{9,}|T{9,}", naive.dna)
+    free = re.findall("A{10,}|T{10,}", naive.dna)
     r = optimize_coding(req(host, aa, strategy=strategy, soft_forbidden=host.soft_motifs()))
     assert r.ok and translate(r.dna) == aa and not kept(r)
-    assert not re.search("A{9,}|T{9,}|G{6,}|C{6,}", r.dna)
+    assert not re.search("A{10,}|T{10,}|G{8,}|C{8,}", r.dna)
     if strategy is CodonStrategy.MAX_CAI:
         assert free, "premise: without the preference the runs are there"
 
@@ -247,7 +247,7 @@ def test_design_insert_applies_the_host_preferences():
     v = p2d.load_bundled()
     a = p2d.assemble(p2d.design_insert(plan, v, v.sites["NdeI-XhoI"], p2d.load_host("ecoli_bl21")))
     assert a.ok
-    assert not re.search("A{9,}|T{9,}|G{6,}|C{6,}", a.design.coding)
+    assert not re.search("A{10,}|T{10,}|G{8,}|C{8,}", a.design.coding)
     assert not [i for i in a.issues if i.code == "soft_site_kept"]
     assert a.design.metrics["soft_kept"] == 0
 
