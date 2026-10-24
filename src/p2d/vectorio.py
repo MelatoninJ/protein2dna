@@ -156,6 +156,11 @@ _HTML = re.compile(r"<[^>]+>")
 T7_PROMOTER = "TAATACGACTCACTATAG"
 # the first residues of lacZ-alpha (MTMITPS), shared by the pUC and pBluescript families
 LACZ_ALPHA_START = "ATGACCATGATTACGCCAAGC"
+# an annotated CDS that is the N-terminal partner of an expression vector (a tag or carrier protein)
+EXPRESSED_PARTNER = re.compile(
+    r"glutathione|\bgst\b|maltose|\bmal[ek]\b|thioredoxin|\btrx[a-z]?\b|\bsumo\b|\bnus[a-z]?\b",
+    re.I,
+)
 _EXPRESSION_PROMOTER = re.compile(r"\b(t7|t5|tac|trc|lacuv5|arabad|pbad)\b", re.I)
 
 
@@ -210,6 +215,13 @@ def orientation_votes(vector: Vector) -> tuple[int, int, list[str]]:
             and _EXPRESSION_PROMOTER.search(text)
         ):
             vote(f.location.strand, 3, "expression promoter")
+        elif (
+            f.type == "CDS"
+            and f.location.strand in (1, -1)
+            and len(f) >= 300
+            and EXPRESSED_PARTNER.search(text)
+        ):
+            vote(f.location.strand, 4, "annotated fusion-partner CDS")
 
     fwd, rev = seq.count(T7_PROMOTER), seq.count(str(Seq(T7_PROMOTER).reverse_complement()))
     if fwd:

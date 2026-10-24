@@ -78,7 +78,8 @@ def test_no_records_gives_an_empty_list():
 def test_names_are_always_safe_file_names(header):
     name = b.safe_name(header, "fallback")
     assert re.fullmatch(r"[A-Za-z0-9_.\-]+", name) and len(name) <= b.MAX_NAME
-    assert "/" not in name and not name.startswith(".") and ".." not in name.strip(".")
+    assert "/" not in name and "\\" not in name and not name.startswith(".")
+    assert name not in (".", ".."), "never a directory reference"
 
 
 def test_unsafe_headers_cannot_escape_the_output_folder():

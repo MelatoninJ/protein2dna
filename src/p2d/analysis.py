@@ -21,6 +21,7 @@ from Bio.Seq import Seq
 
 from .vector import STOP_CODONS, Vector
 from .vectorio import (
+    EXPRESSED_PARTNER,
     LACZ_ALPHA_START,
     T7_PROMOTER,
     feature_text,
@@ -121,12 +122,21 @@ def find_starts(vector: Vector, region: Region | None) -> list[StartCandidate]:
             add(s, f"annotated as the start codon ({feature_label(f)})", 3)
         elif f.type == "CDS" and e - s >= 90 and seq[s : s + 3] == "ATG":
             text = feature_text(f)
-            if _NOT_EXPRESSED.search(text):
-                continue
-            if region and s < region.start and (stop := _orf_end(seq, s)) and stop > region.start:
+            partner = bool(EXPRESSED_PARTNER.search(text))
+            if _NOT_EXPRESSED.search(text) and not partner:
+                continue  # resistance, repressor, replication; a lacZ-alpha or MalE fusion is kept
+            stop = _orf_end(seq, s)
+            if region and s <= region.start and stop and stop > region.start:
                 add(
                     s,
                     f"annotated CDS '{feature_label(f)}' reads in frame into the cloning region",
+                    2,
+                )
+            elif not region and partner:
+                add(
+                    s,
+                    f"annotated fusion-partner CDS '{feature_label(f)}' "
+                    "(no cloning region is annotated)",
                     2,
                 )
 
