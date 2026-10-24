@@ -37,6 +37,14 @@ All notable changes are listed here. The format follows
 - Site-pair suggestions count the residues of the vector's own protein a pair would change and
   rank those pairs last; the website says so.
 
+### Validation
+- `tools/compare_genbank.py` rebuilds published constructs from their empty vector and compares the
+  fusion protein p2d makes with the real one. Of 24 pET-28a(+) constructs on NCBI, 8 are
+  comparable and all 8 match (7 genes, 5 pairs of sites); 1 uses a pair p2d declines; 15 cannot test
+  p2d, with the reason given. See `VALIDATION.md`.
+- The message for two touching sites no longer says a double digest "cannot cut both", which a real
+  construct shows is not true. The pair is still refused.
+
 ### Release process
 - A manual `TestPyPI` workflow rehearses publishing on test.pypi.org (trusted publishing, no token).
   The development version is `0.3.0.dev1`; the plain number is kept for the real release.

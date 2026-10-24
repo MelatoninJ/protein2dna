@@ -39,7 +39,7 @@ p2d = "p2d.cli:app"
 packages = ["src/p2d", "src/p2d_ui"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/tools", "/README.md", "/CONTRIBUTING.md", "/CHANGELOG.md", "/CITATION.cff", "/LICENSE"]
+include = ["/src", "/tests", "/tools", "/README.md", "/CONTRIBUTING.md", "/CHANGELOG.md", "/VALIDATION.md", "/CITATION.cff", "/LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

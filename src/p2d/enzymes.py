@@ -172,7 +172,8 @@ def plan_site(vector: Vector, upstream: str, downstream: str) -> InsertionSite:
     if down.start <= up.end:
         raise ValueError(
             f"{up.name} and {down.name} sites touch or overlap: there is no spacer "
-            "between them, so a double digest cannot cut both"
+            "between them, so the second enzyme would cut right at a fragment end, which is "
+            "unreliable; p2d does not offer this pair"
         )
     if ends_compatible(up, down):
         raise ValueError(
@@ -365,7 +366,8 @@ def plan_cut(vector: Vector, up: CutSite, down: CutSite) -> InsertionSite:
     if down.start <= up.end:
         raise ValueError(
             f"{up.enzyme} and {down.enzyme} sites touch or overlap: there is no spacer "
-            "between them, so a double digest cannot cut both"
+            "between them, so the second enzyme would cut right at a fragment end, which is "
+            "unreliable; p2d does not offer this pair"
         )
     if ends_compatible(up, down):
         raise ValueError(

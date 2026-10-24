@@ -239,6 +239,14 @@ for a mistake in the options.
 - **Round-trip**: the payload must survive intact and in frame, with no internal stop and a
   terminating stop
 
+## Checked against published constructs
+
+p2d was checked against plasmids other people built. Given the empty pET-28a(+), the two sites and
+the inserted protein, it rebuilt the same fusion protein for all 8 comparable constructs on NCBI (7
+genes, 5 pairs of sites). It declines the one pair of sites it refuses (BamHI and EcoRI, side by
+side), and 15 records cannot test it. The test covers the junctions and the reading frame, not
+expression, and only one vector family. See [VALIDATION.md](VALIDATION.md).
+
 ## What it does not do yet
 
 p2d makes promises about the *sequence*: the reading frame, which sites are in the DNA, the

@@ -60,7 +60,7 @@ P2D_VECTOR_SAMPLES=~/vectors pytest -q
 The suite looks for `pET-28a_plus.dna` (SnapGene), `U13853.gb`, `U13852.gb`, `U13850.gb`
 (pGEX-4T-1, 3X, 2T from NCBI), `pUC19_L09137.gb` and `MEK1_BC089772.gb` (NCBI),
 `mOrange2-C1.fa` (Addgene 54650, as FASTA) and `GFP_pGLO.txt` (a FASTA of the GFP coding
-sequence). Please do not commit plasmid files.
+sequence). The published constructs of `VALIDATION.md` go in `constructs/` as `<accession>.gb`. Please do not commit plasmid files.
 
 ## Architecture and rules
 
