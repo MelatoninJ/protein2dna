@@ -208,7 +208,7 @@ EXPRESSED_PARTNER = re.compile(
 )
 # the 17 bp lac operator core, as found in the pTrc99A, pET and pCold records
 LAC_OPERATOR = "TTGTGAGCGGATAACAA"
-_RBS = ("AGGAGG", "AGGAG", "GGAGG", "AGGA", "GGAG", "GAGG")
+RBS_MOTIFS = ("AGGAGG", "AGGAG", "GGAGG", "AGGA", "GGAG", "GAGG")
 _RBS_SPACING = range(4, 11)  # bases between the end of the motif and the ATG
 _PROMOTER_REACH = 250  # an expression promoter or operator lies this close behind the start
 # the vector's own ATG is often part of an NcoI (CCATGG) or NdeI (CATATG) site
@@ -253,7 +253,7 @@ def _rbs_length(seq: str, atg: int) -> int:
     best = 0
     for gap in _RBS_SPACING:
         window = seq[max(0, atg - gap - 6) : max(0, atg - gap)]
-        best = max([best] + [len(m) for m in _RBS if window.endswith(m)])
+        best = max([best] + [len(m) for m in RBS_MOTIFS if window.endswith(m)])
     return best
 
 

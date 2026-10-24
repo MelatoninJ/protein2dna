@@ -22,8 +22,7 @@ from .frame import (
     format_fusion,
     fusion_segments,
 )
-
-STOP_CODONS = {"TAA", "TAG", "TGA"}
+from .vector import translate_to_stop
 
 
 @dataclass
@@ -197,12 +196,4 @@ def assemble(design: InsertDesign) -> Assembly:
 
 
 def _translate_orf(seq: str, start: int) -> tuple[str, bool]:
-    aa = []
-    i = start
-    while i + 3 <= len(seq):
-        codon = seq[i : i + 3]
-        if codon in STOP_CODONS:
-            return "".join(aa), True
-        aa.append(str(Seq(codon).translate()))
-        i += 3
-    return "".join(aa), False
+    return translate_to_stop(seq, start)

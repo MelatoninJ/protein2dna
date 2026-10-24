@@ -128,10 +128,6 @@ class Automaton:
         self._hit_len = hit_len
         self._hit_src = hit_src
 
-    @property
-    def n_states(self) -> int:
-        return len(self._next)
-
     def step(self, state: int, base: str) -> int:
         i = _INDEX.get(base)
         return 0 if i is None else self._next[state][i]

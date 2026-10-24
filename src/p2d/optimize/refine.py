@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from .automaton import Automaton, reverse_complement
 
@@ -77,10 +77,6 @@ class Profile:
     def penalty(self) -> float:
         return 10 * self.gc_excess + self.window_excess + 5 * self.repeats
 
-    @property
-    def clean(self) -> bool:
-        return self.penalty == 0
-
 
 def measure(dna: str, limits: Limits) -> Profile:
     n = len(dna)
@@ -118,11 +114,13 @@ def _repeat_spans(dna: str, limits: Limits) -> list[tuple[int, int]]:
         k = limit + 1
         if len(dna) < 2 * k:
             continue
+        kmers = [dna[i : i + k] for i in range(len(dna) - k + 1)]
         seen: dict[str, list[int]] = {}
-        for i in range(len(dna) - k + 1):
-            seen.setdefault(dna[i : i + k], []).append(i)
-        for i in range(len(dna) - k + 1):
-            kmer = dna[i : i + k]
+        for i, kmer in enumerate(kmers):
+            seen.setdefault(kmer, []).append(i)
+        for i, kmer in enumerate(kmers):
+            if not inverted and len(seen[kmer]) == 1:
+                continue  # only itself
             other = seen.get(reverse_complement(kmer) if inverted else kmer, ())
             if any(abs(j - i) >= k for j in other):
                 spans.append((i, k))
@@ -300,7 +298,3 @@ def refine(
         codons[i] = alt
         swaps += 1
     return Refinement(codons, before, measure("".join(codons), limits), swaps)
-
-
-def with_limits(limits: Limits, **changes) -> Limits:
-    return replace(limits, **changes)

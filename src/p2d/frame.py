@@ -27,10 +27,18 @@ from .host import HostProfile
 from .issues import Issue, Severity
 from .model import TAGS, Chain, ConstructPlan, PartKind, PartSource, StopPolicy
 from .optimize import Automaton, CodonStrategy, Limits, OptimizationRequest, optimize_coding
-from .vector import EnzymeHit, InsertionSite, StartSource, Vector, enzyme_site, site_regex
+from .vector import (
+    STOP_CODONS,
+    EnzymeHit,
+    InsertionSite,
+    StartSource,
+    Vector,
+    enzyme_site,
+    site_regex,
+    translate_to_stop,
+)
 
 PAD_BASES = ["GC", "GG", "CG", "GA", "AC", "CA", "TC", "CT", "AG", "GT"]
-STOP_CODONS = {"TAA", "TAG", "TGA"}
 DOWNSTREAM_SCAN_NT = 600
 
 
@@ -140,15 +148,8 @@ def _vector_supplies_stop(vector: Vector, down_end: int, frame_offset: int) -> t
     """Walk the vector downstream of the insert, in frame, looking for a stop."""
     seq = vector.seq
     i = down_end + frame_offset
-    aa = []
-    limit = min(len(seq), i + DOWNSTREAM_SCAN_NT)
-    while i + 3 <= limit:
-        codon = seq[i : i + 3]
-        if codon in STOP_CODONS:
-            return True, "".join(aa)
-        aa.append(str(Seq(codon).translate()))
-        i += 3
-    return False, "".join(aa)
+    protein, stop_found = translate_to_stop(seq, i, min(len(seq), i + DOWNSTREAM_SCAN_NT))
+    return stop_found, protein
 
 
 class CTerm(str, Enum):

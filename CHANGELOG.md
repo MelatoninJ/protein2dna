@@ -6,6 +6,11 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed (internal)
+- Less code and faster, with identical designs: unused helpers removed, the stop-codon set and
+  the ribosome-binding motifs defined once, protein translation in one pass and a cheaper
+  repeat scan in the refinement (about 30% less time to rank the sites of a 400-residue protein).
+
 ### Added (start codons without annotation)
 - A FASTA header can carry `start=<position>` (an ATG, 1-based) and `mcs=<from>-<to>`; they are
   read as an annotated start codon and cloning region. A position that does not fit the sequence

@@ -23,6 +23,7 @@ from .vector import STOP_CODONS, Vector
 from .vectorio import (
     EXPRESSED_PARTNER,
     LACZ_ALPHA_START,
+    RBS_MOTIFS,
     cassette_starts,
     feature_text,
     is_start_codon_feature,
@@ -36,7 +37,6 @@ _NOT_EXPRESSED = re.compile(
     r"spectinomycin|gentamicin|\b(kan|amp|cam|tet|bla|cat|lac[iz]|rop|rep[a-z]?|ori)\w*\b",
     re.I,
 )
-_SD = ("AGGAGG", "AGGAG", "GGAGG", "AGGA", "GGAG", "GAGG")
 
 N_TERMINAL_PREVIEW = 30
 CONFIDENCE_RANK = {"high": 0, "medium": 1, "low": 2}
@@ -55,8 +55,7 @@ class StartCandidate:
 class Region:
     start: int
     end: int
-    source: str  # "annotation: MCS" or "guessed from enzyme sites"
-    confident: bool
+    source: str  # always "annotation: MCS"; the region is never guessed
 
 
 @dataclass
@@ -86,7 +85,7 @@ def find_region(vector: Vector) -> Region | None:
     """The annotated MCS, if the file has one.  Never guessed."""
     for f in vector.record.features:
         if f.type != "source" and _MCS.search(feature_text(f)):
-            return Region(int(f.location.start), int(f.location.end), "annotation: MCS", True)
+            return Region(int(f.location.start), int(f.location.end), "annotation: MCS")
     return None
 
 
@@ -102,7 +101,7 @@ def _orf_end(seq: str, start: int) -> int | None:
 
 def _sd_score(seq: str, atg: int) -> int:
     window = seq[max(0, atg - 16) : max(0, atg - 3)]
-    return max((len(m) for m in _SD if m in window), default=0)
+    return max((len(m) for m in RBS_MOTIFS if m in window), default=0)
 
 
 KOZAK = re.compile(r"(?=(GCC[AG]CCATGG))")

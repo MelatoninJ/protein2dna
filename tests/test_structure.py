@@ -147,3 +147,13 @@ def test_genbank_record_roundtrips(tmp_path):
     back = SeqIO.read(str(path), "genbank")
     assert str(back.seq) == a.seq
     assert any("insert" in f.qualifiers.get("label", [""])[0] for f in back.features)
+
+
+def test_translate_to_stop_reads_in_frame_and_says_whether_a_stop_ended_it():
+    from p2d.vector import translate_to_stop
+
+    assert translate_to_stop("ATGGCTTAAGGG", 0) == ("MA", True)
+    assert translate_to_stop("ATGGCTGGG", 0) == ("MAG", False)
+    assert translate_to_stop("CCATGGCT", 2) == ("MA", False)
+    assert translate_to_stop("ATGGCTTAAGGG", 0, 5) == ("M", False)  # the window ends mid-codon
+    assert translate_to_stop("TAA", 0) == ("", True)

@@ -40,6 +40,13 @@ IUPAC = {
 STOP_CODONS = {"TAA", "TAG", "TGA"}
 
 
+def translate_to_stop(seq: str, start: int, end: int | None = None) -> tuple[str, bool]:
+    """Translate ``seq[start:end]`` in frame up to the first stop; also say whether one was met."""
+    codons = (len(seq[start:end]) // 3) * 3
+    protein = str(Seq(seq[start : start + codons]).translate(to_stop=True))
+    return protein, len(protein) < codons // 3
+
+
 class StartSource(str, Enum):
     """Where the final construct's start codon comes from."""
 
@@ -167,22 +174,6 @@ class Vector:
                     break
         found.sort(key=lambda p: p[1] - p[0], reverse=True)
         return found
-
-    def annotated_cds(self) -> list[tuple[int, int, str]]:
-        out = []
-        for f in self.record.features:
-            if f.type == "CDS":
-                label = (f.qualifiers.get("label") or f.qualifiers.get("gene") or ["CDS"])[0]
-                out.append((int(f.location.start), int(f.location.end), label))
-        return out
-
-    def feature_label_at(self, pos: int) -> str | None:
-        for f in self.record.features:
-            if int(f.location.start) <= pos < int(f.location.end):
-                lab = f.qualifiers.get("label") or f.qualifiers.get("note")
-                if lab:
-                    return lab[0]
-        return None
 
 
 def _enzyme(name: str):
