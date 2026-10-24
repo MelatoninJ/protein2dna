@@ -1,10 +1,4 @@
-"""Construct data model.
-
-The central idea: a construct is a *list of chains*, even when there is only
-one.  Single-chain is just ``len(chains) == 1``.  This keeps the multi-chain
-extension (Duet vectors, 2A peptides, co-transfection) from requiring a
-rewrite of every call site later.
-"""
+"""Construct data model: a construct is a list of chains, even when there is only one."""
 
 from __future__ import annotations
 
@@ -28,10 +22,8 @@ class PartKind(str, Enum):
 class PartSource(str, Enum):
     """Who encodes this part.
 
-    VECTOR parts already exist in the plasmid; the insert must *not* encode
-    them again.  This single field is what catches the most common construct
-    bug there is: adding a His-tag to a protein going into pET-28a, which
-    already supplies one.
+    VECTOR parts are already in the plasmid, so the insert must not encode them again (a His-tag
+    added to a protein going into pET-28a, which supplies one, is the usual mistake).
     """
 
     VECTOR = "vector"
@@ -98,9 +90,7 @@ class Chain:
 class LinkageStrategy(str, Enum):
     """How multiple chains are connected.
 
-    Only SINGLE is implemented in v0.1.  The others are registered so the API
-    shape is settled now; selecting one raises NotImplementedError with a
-    pointer to the roadmap rather than silently doing the wrong thing.
+    Only SINGLE is implemented. The others are placeholders and raise NotImplementedError.
     """
 
     SINGLE = "single"
@@ -134,8 +124,6 @@ class ConstructPlan:
     def single_chain(cls, payload: str, *, name: str = "payload", **kw) -> ConstructPlan:
         return cls(chains=[Chain(name=name, payload=payload)], **kw)
 
-
-# ---------------------------------------------------------------- tag library
 
 TAGS: dict[str, Part] = {
     "his6": Part("His6", "HHHHHH", PartKind.TAG),

@@ -62,9 +62,6 @@ def real_ends(vector, a, protein):
     return translated[:at], translated[at + len(protein) :]
 
 
-# ----------------------------------------------------------------- completeness
-
-
 @pytest.mark.parametrize("cterm", [p2d.CTerm.STOP, p2d.CTerm.TAG, p2d.CTerm.VECTOR_FRAME])
 def test_every_workable_pair_is_found_and_no_other(vector, host, cterm):
     options, tried = rank_pairs(vector, PROTEIN, host, cterm=cterm)
@@ -100,9 +97,6 @@ def test_tag_mode_reads_the_his_tag_for_every_pair(vector, host):
         assert o.after == ""
 
 
-# ----------------------------------------------------------------------- ranking
-
-
 def test_options_are_ordered_by_what_they_add(vector, host):
     options, _ = rank_pairs(vector, PROTEIN, host)
     keys = [o.sort_key for o in options]
@@ -135,9 +129,6 @@ def test_n_tag_filter_partitions_the_options(vector, host):
     }
 
 
-# ---------------------------------------------------------------------- grouping
-
-
 def test_groups_partition_the_options_and_each_is_one_outcome(vector, host):
     options, _ = rank_pairs(vector, PROTEIN, host)
     groups = group_by_outcome(options)
@@ -164,9 +155,6 @@ def test_empty_input_gives_no_groups():
     assert group_by_outcome([]) == []
 
 
-# ------------------------------------------------------------------------ limits
-
-
 def test_a_start_codon_is_required(vector, host):
     bare = Vector.from_sequence(vector.seq, name="bare")
     with pytest.raises(ValueError, match="start codon"):
@@ -186,9 +174,6 @@ def test_a_window_with_too_many_pairs_must_be_narrowed(host):
 
 def test_a_window_with_one_site_has_nothing_to_pair(vector, host):
     assert rank_pairs(vector, PROTEIN, host, window=(144, 150)) == ([], 0)
-
-
-# ------------------------------------------------------------ the real pET-28a(+)
 
 
 def test_real_pet28a_results_are_correct_and_distinct(host):
@@ -218,9 +203,6 @@ def test_real_pet28a_results_are_correct_and_distinct(host):
     tagged, _ = rank_pairs(v, PROTEIN, host, window=window, cterm=p2d.CTerm.TAG)
     best = min(tagged, key=lambda o: (o.extra_residues, o.sort_key))
     assert best.up.enzyme == "NcoI" and best.down.enzyme == "XhoI" and best.after == "LEHHHHHH"
-
-
-# ----------------------------------------------------------- tags and linkers you add
 
 
 def test_added_parts_are_built_in_and_do_not_change_what_the_vector_adds(vector, host):

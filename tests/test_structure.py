@@ -35,9 +35,6 @@ def test_library_imports_no_ui_framework():
     assert not offenders, f"UI framework imported in the library: {offenders}"
 
 
-# ------------------------------------------------------------------ vectors
-
-
 def test_bundled_vector_loads():
     v = p2d.load_bundled()
     assert len(v) == 1149
@@ -73,9 +70,6 @@ def test_empty_vector_orf_translates_as_expected():
 
     v = p2d.load_bundled()
     assert str(Seq(v.seq[87:]).translate(to_stop=True)) == "MGSSHHHHHHSSGLVPRGSHMGSGTGSEFLEHHHHHH"
-
-
-# -------------------------------------------------------------------- hosts
 
 
 def test_bundled_host_is_verified_and_cited():
@@ -133,9 +127,6 @@ def test_codon_table_is_complete():
 def test_unknown_host_raises():
     with pytest.raises(ValueError, match="unknown host"):
         p2d.load_host("nonexistent_organism")
-
-
-# -------------------------------------------------------------------- output
 
 
 def test_genbank_record_roundtrips(tmp_path):

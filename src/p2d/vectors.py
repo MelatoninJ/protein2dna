@@ -1,13 +1,7 @@
-"""Bundled vectors.
+"""Bundled vectors: only ``pTEST1``, a small synthetic pET-like vector for the tests.
 
-v0.1 ships exactly one: ``pTEST1``, a small synthetic pET-like vector used by
-the test suite.  It is **not** a real plasmid and must not be ordered or used
-at the bench.  Real vectors come from :func:`p2d.vector.Vector.from_genbank`
-(user upload) or, from v0.5, the Addgene developers API.
-
-Adding a vector here means supplying its ``InsertionSite`` definitions -- the
-enzyme pair plus where the reading frame starts.  That is the only part a
-GenBank file cannot tell you reliably.
+It is not a real plasmid; do not order it. A bundled vector needs its ``InsertionSite``
+definitions (the enzyme pair and where the reading frame starts), which a GenBank file cannot say.
 """
 
 from __future__ import annotations

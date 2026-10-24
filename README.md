@@ -1,11 +1,11 @@
-# p2d — protein-to-DNA reverse translation that knows about your vector
+# p2d: protein-to-DNA reverse translation that knows about your vector
 
 Reverse-translate a designed protein into DNA that is **actually cloneable into the vector you
-entered** — correct reading frame through both junctions, restriction sites at
+entered**: correct reading frame through both junctions, restriction sites at
 the ends, no unexpected stop codons, and a preview of the fusion protein you will
 really get, scar residues included.
 
-> **Status: v0.2 — frame engine + constrained codon optimiser.**
+> **Status: v0.2, frame engine and constrained codon optimiser.**
 > Codons are chosen by a DFA-constrained dynamic programme, so the insert is
 > provably free of both enzymes' recognition sites on either strand, including
 > sites that would straddle the vector junctions.
@@ -299,7 +299,7 @@ Three, and they are load-bearing:
    registered in `LinkageStrategy` and raise `NotImplementedError` rather than
    requiring a model rewrite later.
 2. **Hosts are data, not branches.** A new expression host is one YAML file in
-   `src/p2d/hosts/` — see `CONTRIBUTING.md`.
+   `src/p2d/hosts/`; see `CONTRIBUTING.md`.
 3. **Never trust annotation labels.** ORFs and sites are re-derived from the
    sequence; the record's own features are used only for reporting.
    

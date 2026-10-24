@@ -44,9 +44,6 @@ def translate(dna):
     return str(Seq(dna).translate())
 
 
-# ---------------------------------------------------------------------- the host
-
-
 def test_soft_motifs_come_from_the_profile(host):
     soft = host.soft_motifs()
     assert soft["AGGAGG"].startswith("internal Shine-Dalgarno")
@@ -90,9 +87,6 @@ def test_motif_lookup_is_case_insensitive(tmp_path):
         }
     )
     assert set(prof.soft_motifs()) == {"AGGAGG", "AAAA"}
-
-
-# ------------------------------------------------------------------ the optimiser
 
 
 @pytest.mark.parametrize("strategy", [CodonStrategy.MAX_CAI, CodonStrategy.WEIGHTED_SAMPLE])
@@ -203,9 +197,6 @@ def test_a_thousand_residues_stay_fast(host):
     assert r.ok and time.time() - t < 2.0
 
 
-# --------------------------------------------- nothing is violated without saying so
-
-
 @settings(max_examples=120, deadline=None)
 @given(
     aa=st.text(alphabet="KFRGAMWLSEC", min_size=1, max_size=60),
@@ -237,9 +228,6 @@ def test_property_no_silent_violation(host, aa, strategy, seed, prefix, suffix):
     for pattern in soft:
         if region_hits(prefix, r.dna, suffix, [pattern]):
             assert pattern in named, f"{pattern} is in the DNA but was not reported"
-
-
-# ------------------------------------------------------------------ the whole pipeline
 
 
 def test_design_insert_applies_the_host_preferences():

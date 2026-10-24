@@ -1,13 +1,8 @@
-"""JSON-friendly wrapper around the p2d library, used by the local web UI.
+"""JSON-friendly wrapper around the library for the web UI.
 
-No logic lives in the UI: this module validates input, calls the library, and flattens
-the results into plain dicts.  It has no web-framework dependency so the same functions
-can sit behind any server.
-
-The flow mirrors what a person does: load a plasmid (bundled, from their own folder,
-uploaded or pasted), confirm where translation starts, choose one 5' and one 3' site by
-position, then design.  A loaded plasmid is kept in memory under a random id so the
-browser never has to send it twice; nothing is written to disk.
+Validates input, calls the library and flattens the results to dicts, with no logic of its own
+and no web framework. A loaded plasmid is kept in memory under a random id so the browser sends
+it once; nothing is written to disk.
 """
 
 from __future__ import annotations
@@ -64,9 +59,6 @@ class InputError(ValueError):
     """The request is unusable; the message is safe to show to the user."""
 
 
-# --------------------------------------------------------------------- protein
-
-
 def parse_protein(text: str) -> str:
     """Accept a bare sequence or FASTA text; return clean one-letter residues.
 
@@ -103,9 +95,6 @@ def _try_protein(text) -> str | None:
         return parse_protein(str(text or ""))
     except InputError:
         return None
-
-
-# ----------------------------------------------------------------------- store
 
 
 @dataclass
@@ -153,9 +142,6 @@ def _with_start(entry: _Entry, start) -> Vector:
     v = Vector(record=base.record, name=base.name, circular=base.circular)
     v.expression_start = start
     return v
-
-
-# ------------------------------------------------------------------------ meta
 
 
 MAX_PARTS = 4
@@ -287,9 +273,6 @@ def meta() -> dict:
     }
 
 
-# ---------------------------------------------------------------------- vector
-
-
 def load_vector(request: dict) -> dict:
     """Load a plasmid from the bundled set, the user's folder, an upload or pasted text."""
     try:
@@ -358,9 +341,6 @@ def load_vector(request: dict) -> dict:
         "site_count": len(sites),
         "single_cutters": sum(1 for s in sites if s.count == 1),
     }
-
-
-# ----------------------------------------------------------------------- sites
 
 
 def _protein_conflict(protein: str, site: str, host_slug: str) -> str | None:
@@ -588,9 +568,6 @@ def pairs(request: dict) -> dict:
     }
 
 
-# ---------------------------------------------------------------------- design
-
-
 @dataclass
 class _Settings:
     vector: Vector
@@ -768,9 +745,6 @@ def design(request: dict) -> dict:
         "insert_fasta": f">{name}_insert\n{a.insert_dna}\n",
         "filename": name,
     }
-
-
-# ----------------------------------------------------------------------- batch
 
 
 def _zip_b64(result) -> str:

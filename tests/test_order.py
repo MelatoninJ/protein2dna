@@ -43,9 +43,6 @@ PAIRS = [
 ]
 
 
-# ------------------------------------------------------------------- the clamps
-
-
 def test_the_order_is_clamp_insert_clamp(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a, 6, 4)
@@ -106,9 +103,6 @@ def test_clamps_never_create_a_cloning_site_or_host_motif(vector, host, up, down
         ), f"a site at {start}..{end} touches a clamp"
 
 
-# --------------------------------------------- the in-silico digest and ligation
-
-
 @pytest.mark.parametrize("n", [0, 1, 3, 6, 12, 30])
 @pytest.mark.parametrize("up, down", PAIRS)
 def test_the_order_digests_and_ligates_into_the_planned_plasmid(vector, host, up, down, n):
@@ -159,9 +153,6 @@ def test_a_failed_design_cannot_produce_an_orderable_sequence(vector, host, monk
     assert not o.ok and any(i.code == "design_has_errors" for i in o.issues)
 
 
-# ------------------------------------------------------------------- the numbers
-
-
 def test_order_metrics(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a, 6, 6)
@@ -177,9 +168,6 @@ def test_bad_clamp_lengths_are_refused(vector, host, bad):
         make_order(a, bad, 6)
     with pytest.raises(ValueError, match="whole number"):
         make_order(a, 6, bad)
-
-
-# ----------------------------------------------------- frame shifts and pads
 
 
 def test_pads_and_clamps_together_still_clone(vector, host):
@@ -211,9 +199,6 @@ def test_property_every_design_orders_and_clones(aa, n5, n3, pair, cterm):
     assert o.dna[o.insert_start : o.insert_end] == a.insert_dna
     up = RestrictionBatch([a.design.site.upstream_enzyme]).get(a.design.site.upstream_enzyme)
     assert len(up.search(Seq(o.dna), linear=True)) == 1, "the 5' enzyme cuts the fragment once"
-
-
-# ------------------------------------------------------------ real vectors
 
 
 def test_real_pet28a_every_valid_pair_with_clamps(host):

@@ -45,9 +45,6 @@ def translate(dna):
 STRATEGIES = [CodonStrategy.MAX_CAI, CodonStrategy.WEIGHTED_SAMPLE]
 
 
-# ---------------------------------------------------------- back-translation
-
-
 @pytest.mark.parametrize("strategy", STRATEGIES)
 @pytest.mark.parametrize(
     "aa", [PAYLOAD, "M", "W", "MW" * 30, "L" * 40, "SRLGP" * 12, "A" * 7 + "K" * 7]
@@ -80,9 +77,6 @@ def test_empty_payload(host):
 def test_unknown_residue_is_a_clear_error(host):
     with pytest.raises(ValueError, match="no codons for residue 'Z'"):
         optimize_coding(request(host, "AZA"))
-
-
-# ------------------------------------------------------------ forbidden sites
 
 
 @pytest.mark.parametrize("strategy", STRATEGIES)
@@ -151,9 +145,6 @@ def test_prefix_length_beyond_the_longest_pattern_changes_nothing(host):
     assert region_hits("AAGA", short.dna, "", ["GAATTC"]) == set()
 
 
-# ----------------------------------------------------------------- no path
-
-
 def test_unavoidable_site_is_reported_not_raised(host):
     # methionine has exactly one codon, so ATG cannot be avoided
     r = optimize_coding(request(host, "AMA", forbidden=["ATG"]))
@@ -189,9 +180,6 @@ def test_failure_still_returns_translatable_fallback(host):
 def test_oversized_ambiguous_pattern_is_a_clear_error(host):
     with pytest.raises(ValueError, match="expands to more than"):
         optimize_coding(request(host, "AA", forbidden=["N" * 8]))
-
-
-# --------------------------------------------------------------- strategies
 
 
 def test_same_seed_is_byte_identical(host):
@@ -276,9 +264,6 @@ def test_metrics_are_sane(host):
     )
 
 
-# ----------------------------------------------------------- property-based
-
-
 @settings(max_examples=150, deadline=None)
 @given(
     aa=st.text(alphabet=ALL_20, min_size=1, max_size=80),
@@ -305,9 +290,6 @@ def test_property_back_translation_and_pattern_freedom(host, aa, strategy, seed,
     else:
         # a refusal must be a genuine one: it names a site and a position
         assert any(i.code == "unavoidable_site" for i in r.issues)
-
-
-# ---------------------------------------------------- through design_insert
 
 
 def test_design_insert_uses_the_optimiser_and_exposes_metrics():

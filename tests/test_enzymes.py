@@ -29,9 +29,6 @@ def translate_from(seq: str, start: int) -> str:
     return str(Seq(tail[: len(tail) - len(tail) % 3]).translate(to_stop=True))
 
 
-# ----------------------------------------------------------------- analysis
-
-
 def test_expression_window_is_the_in_frame_orf(vector):
     w = enzymes.expression_window(vector)
     assert (w.start, w.stop_end) == (87, 201)
@@ -75,9 +72,6 @@ def test_vector_without_a_curated_start_is_refused_clearly(vector):
         candidate_enzymes(bare)
 
 
-# ------------------------------------------------------------ end compatibility
-
-
 def cand(name, kind, ovhg):
     return EnzymeCandidate(name, "X", 0, 1, kind, ovhg)
 
@@ -87,9 +81,6 @@ def test_ends_compatible_matches_known_cases():
     assert ends_compatible(cand("NcoI", "5'", "CATG"), cand("BspHI", "5'", "CATG"))
     assert not ends_compatible(cand("EcoRI", "5'", "AATT"), cand("XhoI", "5'", "TCGA"))
     assert not ends_compatible(cand("KpnI", "3'", "GTAC"), cand("NcoI", "5'", "GTAC"))
-
-
-# ------------------------------------------------------------------- plan_site
 
 
 def test_start_source_follows_where_the_start_codon_is(vector):
@@ -127,9 +118,6 @@ def test_compatible_ends_are_refused_even_when_in_order(vector, monkeypatch):
     monkeypatch.setattr(enzymes, "candidate_enzymes", lambda v: twin)
     with pytest.raises(ValueError, match="compatible"):
         plan_site(vector, "BamHI", "XhoI")
-
-
-# ------------------------------------------- every valid pair, checked end to end
 
 
 def valid_pairs(vector):
@@ -186,9 +174,6 @@ def test_downstream_enzyme_decides_whether_the_c_terminal_tag_survives(vector, h
     # EcoRI lies upstream of XhoI: the XhoI scar and the tag are both kept
     eco = p2d.assemble(p2d.design_insert(plan, vector, plan_site(vector, "NdeI", "EcoRI"), host))
     assert eco.protein.endswith("EFLEHHHHHH")
-
-
-# -------------------------------------- vectors whose downstream frame is shifted
 
 
 def shifted_vector(vector, extra: int) -> Vector:

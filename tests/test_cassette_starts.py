@@ -55,9 +55,6 @@ def analyse(seq):
     return analyze_vector(Vector.from_sequence(seq, name="synthetic"))
 
 
-# ------------------------------------------------------------------------ synthetic
-
-
 def test_an_atg_inside_an_ncoi_site_after_an_rbs_is_the_start():
     seq = cassette("", rbs="AGGAGG", gap="AATTCAC", start="CATGG", orf=5).replace(
         "CATGG", "CCATGG", 1
@@ -111,9 +108,6 @@ def test_the_cassette_does_not_outvote_a_t7_promoter_or_lacz_alpha():
     assert votes[0] == 2 and votes[1] == 0  # the T7 promoter alone; the cassette adds nothing
 
 
-# --------------------------------------------------------------------- real records
-
-
 def record(name):
     if SAMPLES is None or not (SAMPLES / "unannotated" / name).is_file():
         pytest.skip(f"unannotated/{name} not available (set P2D_VECTOR_SAMPLES)")
@@ -153,9 +147,6 @@ def test_real_vectors_without_a_start_give_none_and_ask_for_one(name):
     a = record(name)
     assert not a.starts and not a.ready
     assert any("point to one" in w for w in a.warnings)
-
-
-# ----------------------------------------------------------------- FASTA header notes
 
 
 def fasta(header, seq):

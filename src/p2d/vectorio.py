@@ -1,16 +1,10 @@
-"""Read a plasmid from whatever the user has, and put it in a standard orientation.
+"""Read a plasmid from GenBank, SnapGene .dna, FASTA or bare sequence, and orient it.
 
-Accepted inputs, best first: a GenBank file or a SnapGene ``.dna`` file (both carry
-the annotated features that make the analysis reliable), a FASTA file or pasted bare
-sequence (features absent, so the user has to confirm more).  Everything is parsed
-with Biopython and never executed; size, record count and alphabet are checked
-before a sequence is accepted.
-
-Orientation matters because files store a plasmid in whichever direction its source
-used.  SnapGene's own pET-28a(+) keeps the T7 cassette on the reverse strand while
-the antibiotic marker runs forward.  Everything downstream reads the plus strand, so
-a plasmid whose expression cassette lies on the minus strand is reverse-complemented
-as a whole (features included) before analysis.
+GenBank and SnapGene files carry annotations; FASTA and bare sequence do not, so more has to be
+confirmed. Input is parsed with Biopython, never executed, and its size, record count and
+alphabet are checked first. Everything downstream reads the plus strand, so a plasmid whose
+expression cassette is on the minus strand (SnapGene's pET-28a(+), for one) is
+reverse-complemented whole, features included.
 """
 
 from __future__ import annotations
@@ -38,9 +32,6 @@ FASTA_SUFFIXES = {".fa", ".fasta", ".fna", ".fas", ".seq", ".txt"}
 
 class VectorFileError(ValueError):
     """The input cannot be used as a plasmid; the message is safe to show the user."""
-
-
-# ------------------------------------------------------------------- reading
 
 
 def read_vector_file(path: str | Path) -> Vector:
@@ -194,8 +185,6 @@ def _check_sequence(seq: str) -> None:
 def _clean_name(name: str) -> str:
     return re.sub(r"[^\w.+()\-]+", "_", name.strip())[:60]
 
-
-# ---------------------------------------------------------------- orientation
 
 _HTML = re.compile(r"<[^>]+>")
 T7_PROMOTER = "TAATACGACTCACTATAG"
@@ -375,9 +364,6 @@ def normalize_orientation(vector: Vector) -> tuple[Vector, bool, list[str]]:
         "Reverse-complemented so the expression cassette reads forward."
     ]
     return flipped, True, reasons
-
-
-# -------------------------------------------------------------------- library
 
 
 def library_dir() -> Path:

@@ -1,9 +1,4 @@
-"""Host profiles.
-
-Host-specific behaviour lives in YAML, never in ``if host == "ecoli"``
-branches.  Adding a new expression host should be a pull request that adds one
-file to ``p2d/hosts/`` and nothing else.
-"""
+"""Host profiles. Host behaviour lives in YAML (``p2d/hosts/``); a new host is a new file."""
 
 from __future__ import annotations
 
@@ -63,9 +58,8 @@ class HostProfile:
     def best_codon(self, aa: str) -> str:
         """Most-used codon for ``aa``.
 
-        v0.1 placeholder strategy.  Always-best-codon is known to be a poor
-        choice in practice (tRNA depletion, ribosome jamming); the real
-        optimiser lands in v0.2 and this becomes one strategy among several.
+        Always taking the best codon is a poor strategy in practice (tRNA depletion); the
+        optimiser in ``p2d.optimize`` does the real work.
         """
         if aa == "*":
             return max(self.stop_usage, key=self.stop_usage.get)

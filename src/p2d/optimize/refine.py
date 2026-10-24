@@ -1,13 +1,9 @@
-"""Local search after the DP: pull GC and repeats inside limits without breaking the sites.
+"""Local search after the DP: bring GC and repeats inside the limits.
 
-The DP picks codons one position at a time, so it cannot see properties of the whole
-sequence.  This stage swaps single codons for synonymous ones, one at a time, whenever the
-swap lowers a penalty for GC outside the allowed range or for repeated stretches.  It is
-deterministic.  A swap is refused if it adds any occurrence of a forbidden pattern, so the
-guarantee of the DP (no forbidden site on either strand, junctions included) is kept.
-
-The penalty weights are internal and only decide which of several useful swaps goes first.
-The limits themselves come from the host profile and can be set per design.
+The DP cannot see whole-sequence properties. This swaps single codons for synonymous ones while
+a swap lowers the penalty for GC outside the range or for repeated stretches, and refuses any
+swap that adds a forbidden pattern. It is deterministic. Limits come from the host profile or
+the call.
 """
 
 from __future__ import annotations

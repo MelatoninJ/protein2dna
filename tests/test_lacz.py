@@ -79,9 +79,6 @@ def test_a_one_base_change_is_not_recognised():
     assert not analyze_vector(Vector.from_sequence(seq, name="x")).starts
 
 
-# ------------------------------------------------------------------- the real pUC19
-
-
 def sample(name):
     if SAMPLES is None or not (SAMPLES / name).is_file():
         pytest.skip(f"{name} not available (set P2D_VECTOR_SAMPLES)")
@@ -155,9 +152,6 @@ def test_a_pcr_made_with_the_hand_designed_primers_agrees_with_p2d(puc19, gfp):
     assert len(ours.seq) == len(made)
 
 
-# ------------------------------------------------------- Kozak start in a mammalian vector
-
-
 def kozak_plasmid(context="GCCACCATGG", orf_codons=120):
     rng = random.Random(7)
     rand = lambda n: "".join(rng.choice("ACGT") for _ in range(n))  # noqa: E731
@@ -179,9 +173,6 @@ def test_the_kozak_start_needs_the_full_consensus_and_a_real_orf():
     assert not analyze_vector(kozak_plasmid(orf_codons=10)).starts, "too short to be a gene"
 
 
-# ---------------------------------- the pad completes a split codon as the vector had it
-
-
 def test_the_vectors_own_bases_are_tried_first_as_pad():
     from p2d.frame import _pad_candidates
 
@@ -199,9 +190,6 @@ def test_altered_counts_residues_that_differ_from_the_vectors_own_reading():
     assert _altered(v, native[:12]) == 0
     edited = native[:5] + ("A" if native[5] != "A" else "G") + native[6:12]
     assert _altered(v, edited) == 1
-
-
-# ------------------------------------------------------ the real mOrange2-C1 and MEK1
 
 
 @pytest.fixture(scope="module")

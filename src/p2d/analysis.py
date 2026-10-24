@@ -1,15 +1,8 @@
-"""Work out, from a plasmid alone, where translation starts.
+"""Find where translation starts in a plasmid, with the evidence for it.
 
-The start codon is the one thing p2d cannot do without, and the one thing a file does
-not always say, so it is answered with its evidence for a person to confirm.  An
-annotated start-codon feature is the best evidence; an annotated CDS that runs through
-an annotated cloning site is next; a ribosome binding site followed by an ATG whose ORF
-reaches the cloning site, or sits behind a T7 promoter, is the fallback.
-
-Where to cut is deliberately *not* guessed.  Restriction sites are listed in full by
-``p2d.enzymes.list_cut_sites`` and the user chooses; an annotated MCS is reported here
-only as a landmark.  Annotations are evidence, not truth (a core rule of this package),
-so every annotated answer is checked against the sequence itself.
+Best evidence first: an annotated start codon, an annotated CDS running into the cloning region,
+then a ribosome-binding-site-like motif before an ATG (see ``vectorio.cassette_starts``).
+The cloning sites are not guessed here; an annotated MCS is only a landmark.
 """
 
 from __future__ import annotations
@@ -78,18 +71,12 @@ class VectorAnalysis:
         return bool(start and start.confidence == "high")
 
 
-# --------------------------------------------------------------------- region
-
-
 def find_region(vector: Vector) -> Region | None:
     """The annotated MCS, if the file has one.  Never guessed."""
     for f in vector.record.features:
         if f.type != "source" and _MCS.search(feature_text(f)):
             return Region(int(f.location.start), int(f.location.end), "annotation: MCS")
     return None
-
-
-# ---------------------------------------------------------------------- starts
 
 
 def _orf_end(seq: str, start: int) -> int | None:
@@ -210,9 +197,6 @@ def feature_label(feature) -> str:
             if text:
                 return text[:40]
     return feature.type
-
-
-# ---------------------------------------------------------------------- driver
 
 
 def analyze_vector(vector: Vector) -> VectorAnalysis:

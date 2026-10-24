@@ -1,8 +1,4 @@
-"""Command line interface.
-
-Deliberately thin: every command is a few lines that call the library.  If
-logic starts accumulating here, it belongs in the library instead.
-"""
+"""Command line. Each command only calls the library; keep logic out of here."""
 
 from __future__ import annotations
 

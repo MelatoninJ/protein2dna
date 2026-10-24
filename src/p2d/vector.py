@@ -1,10 +1,8 @@
 """Vectors and insertion sites.
 
-Design rule: **never trust the annotation labels.**  GenBank records in the
-wild (Addgene included) routinely carry mislabelled or missing features.  The
-ORF and the restriction sites are re-derived from the sequence itself, and a
-mismatch against the record's own annotation is reported as a warning rather
-than silently accepted.
+Annotation labels are not trusted: records in the wild (Addgene's included) often mislabel or
+omit features. The ORF and the restriction sites come from the sequence, and a mismatch with the
+record's own annotation is a warning.
 """
 
 from __future__ import annotations
@@ -71,7 +69,7 @@ class InsertionSite:
     reading frame begins.
 
     ``start_offset_in_site`` is the index of the A of ATG inside the upstream
-    recognition sequence -- 2 for NdeI (CAT|ATG), 1 for NcoI (C|CATGG).
+    recognition sequence: 2 for NdeI (CAT|ATG), 1 for NcoI (C|CATGG).
     """
 
     name: str
@@ -110,7 +108,6 @@ class Vector:
             self.name = self.record.name or self.record.id or "unnamed_vector"
         self.seq = str(self.record.seq).upper()
 
-    # ------------------------------------------------------------------ io
     @classmethod
     def from_genbank(cls, path: str | Path, **kw) -> Vector:
         record = SeqIO.read(str(path), "genbank")
@@ -124,7 +121,6 @@ class Vector:
     def __len__(self) -> int:
         return len(self.seq)
 
-    # --------------------------------------------------------- enzyme search
     def find_enzyme(self, enzyme: str, *, require_unique: bool = True) -> EnzymeHit:
         hits = self.find_all(enzyme)
         if not hits:
@@ -157,7 +153,6 @@ class Vector:
     def cuts_once(self, enzyme: str) -> bool:
         return len(self.find_all(enzyme)) == 1
 
-    # ------------------------------------------------------------ orf lookup
     def detect_orfs(self, *, min_aa: int = 20) -> list[tuple[int, int]]:
         """Re-derive ATG..stop ORFs on the plus strand from the sequence.
 

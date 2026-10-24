@@ -1,14 +1,9 @@
-"""The DNA to order: the designed insert plus the extra bases a synthetic fragment needs.
+"""The DNA to order: the insert plus the extra bases a synthetic fragment needs.
 
-A restriction enzyme cuts poorly when its site sits at the very end of a DNA fragment, so a
-fragment ordered with the site as its first base often fails to digest.  The usual remedy is a
-few extra bases outside each site (NEB's general guideline is 6 on either side for enzymes it
-has no end-cleavage data for).  Those bases are cut away: they are in the order and in the
-digest, but not in the plasmid and not in the reading frame.
-
-``make_order`` adds them, choosing bases that create no new cloning site or host motif, and
-then proves the result by digesting the ordered fragment with Biopython's own cut positions and
-ligating it into the vector: the product must equal the planned plasmid exactly.
+An enzyme cuts poorly at the very end of a fragment, so a few bases (6 by default, NEB's general
+guideline) go outside each site. They are in the order and the digest but not in the plasmid or
+the reading frame. ``make_order`` picks bases that add no new site or host motif, then digests
+the fragment and ligates it into the vector; the product must equal the planned plasmid.
 """
 
 from __future__ import annotations
@@ -65,9 +60,6 @@ class Order:
         return self.ligation.ok and not any(i.severity is Severity.ERROR for i in self.issues)
 
 
-# --------------------------------------------------------------------- clamps
-
-
 def _clamp_ok(clamp: str) -> bool:
     """Not a palindrome (it would pair with itself), no run of three, and not lopsided in GC."""
     if not clamp:
@@ -111,9 +103,6 @@ def _choose_clamp(n: int, insert: str, side: str, forbidden: list[str]) -> str:
     )
 
 
-# ------------------------------------------------------------------- the check
-
-
 def _boundaries(seq: str, names: list[str], circular: bool) -> dict[str, list[int]]:
     """Cut positions as Biopython reports them, as 0-based top-strand boundaries."""
     found = RestrictionBatch(names).search(Seq(seq), linear=not circular)
@@ -155,9 +144,6 @@ def simulate_cloning(assembly: Assembly, order_dna: str) -> LigationCheck:
         f"{up_name} and {down_name} digest of the order, ligated into the vector, gives the "
         f"planned {len(product):,} bp plasmid exactly",
     )
-
-
-# --------------------------------------------------------------------- public
 
 
 def make_order(

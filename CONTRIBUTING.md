@@ -13,7 +13,7 @@ Host-specific behaviour is data, not code. Adding an expression host means
 adding **one YAML file** to `src/p2d/hosts/` and nothing else.
 
 1. Copy `src/p2d/hosts/ecoli_bl21.yaml`.
-2. Replace the codon usage table with a cited one — Kazusa CUTG or HIVE-CUT —
+2. Replace the codon usage table with a cited one: Kazusa CUTG or HIVE-CUT,
    and fill in `codon_usage.source` with the exact table and download date.
    Set `verified: true` only when you have done this.
 3. Set the host-specific `forbidden_motifs`. For eukaryotic hosts this
@@ -32,7 +32,7 @@ not in `python_codon_tables` (these need a cited table you supply).
 ## Adding a vector
 
 Bundled vectors live in `src/p2d/vectors.py`. A GenBank file alone is not
-enough — you also need `InsertionSite` definitions, because no GenBank record
+enough; you also need `InsertionSite` definitions, because no GenBank record
 reliably tells you where the reading frame starts for a given enzyme pair.
 Each site needs the enzyme pair, the start-codon source, and (for
 `StartSource.VECTOR`) the coordinate of the vector's ATG.
@@ -71,7 +71,7 @@ Read this before changing anything.
 
 `p2d` reverse-translates a designed protein (RFdiffusion / ProteinMPNN output,
 nanobodies, binders) into DNA that is actually cloneable into a chosen vector.
-The differentiator is not codon optimisation — it is that the vector is a
+The differentiator is not codon optimisation; it is that the vector is a
 first-class input, so the tool can tell the user **what protein actually comes
 out** after ligation, scar residues and all.
 
@@ -148,7 +148,7 @@ pad_down = (-len(down_site)) % 3
 upstream recognition site (`UPSTREAM_SITE`, e.g. NdeI `CAT|ATG`,
 `start_offset_in_site=3`).
 
-### Invariants — do not break these
+### Invariants (do not break these)
 
 1. **Nothing under `src/p2d/` imports a UI framework.** Enforced by
    `tests/test_structure.py::test_library_imports_no_ui_framework`. The web UI
@@ -165,7 +165,7 @@ upstream recognition site (`UPSTREAM_SITE`, e.g. NdeI `CAT|ATG`,
 5. **Host behaviour is data, not branches.** No `if host == "ecoli"`. New host
    = one YAML file in `src/p2d/hosts/`.
 
-### Public API — breaking changes need a reason
+### Public API (breaking changes need a reason)
 
 ```python
 p2d.run(payload, *, vector=None, site="NdeI-XhoI", host="ecoli_bl21")
@@ -176,7 +176,7 @@ p2d.load_host(slug_or_path) -> HostProfile
 Assembly.ok / .protein / .seq / .insert_dna / .fusion_report() / .to_record()
 ```
 
-### Known placeholders — do not treat as real data
+### Known placeholders (do not treat as real data)
 
 - **Pairs are chosen as two individual sites** (`CutSite`, id like `XhoI:5206`). A second
   site of either enzyme inside the replaced piece is harmless; one in the kept backbone
@@ -204,7 +204,7 @@ Assembly.ok / .protein / .seq / .insert_dna / .fusion_report() / .to_record()
   frequencies**. The K-12-for-BL21 substitution is recorded in
   `codon_usage.note`; keep it recorded.
 - **Host `forbidden_motifs` (internal Shine-Dalgarno, Chi) are not yet passed to
-  the optimiser** — only the two enzymes' sites are. Do not describe them as
+  the optimiser**: only the two enzymes' sites are. Do not describe them as
   enforced.
 - **`pTEST1` is a synthetic 1149 bp test vector**, not a real plasmid. It mimics
   pET-28a topology so the frame tests are meaningful. Do not describe it as
@@ -224,7 +224,7 @@ Assembly.ok / .protein / .seq / .insert_dna / .fusion_report() / .to_record()
 
 Ruff, line length 100, `select = ["E","F","I","UP","B","SIM"]`. Type hints on
 public functions. Docstrings explain *why*, not *what*. Comments are for
-non-obvious biology or non-obvious algorithmic choices — not narration.
+non-obvious biology or non-obvious algorithmic choices, not narration.
 
 ### Roadmap
 

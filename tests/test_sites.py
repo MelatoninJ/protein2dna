@@ -79,9 +79,6 @@ def with_second_site(vector: Vector, enzyme_site: str, at: int) -> Vector:
     return v
 
 
-# --------------------------------------------------------------------- listing
-
-
 def test_every_site_is_listed_with_its_position_and_count(vector):
     sites = list_cut_sites(vector, (80, 200))
     assert [(c.enzyme, c.start) for c in sites] == [
@@ -121,9 +118,6 @@ def test_site_ids_resolve_by_alias_and_reject_nonsense(vector):
     for bad in ["XhoI", "XhoI:abc", ":174", "XhoI:175", "Nope:174"]:
         with pytest.raises(ValueError):
             find_cut_site(vector, bad)
-
-
-# ----------------------------------------------------------------------- rules
 
 
 @pytest.mark.parametrize(
@@ -166,9 +160,6 @@ def test_a_stop_codon_between_start_and_site_is_refused(vector):
         plan_cut(v, find_cut_site(v, "BamHI:150"), find_cut_site(v, "XhoI:174"))
 
 
-# ------------------------------------------------- the same enzyme in two places
-
-
 def test_a_second_site_inside_the_replaced_piece_is_harmless(vector, host):
     """XhoI also cuts at 162, between BamHI and the chosen XhoI at 174: it is replaced."""
     v = with_second_site(vector, "CTCGAG", 162)
@@ -204,9 +195,6 @@ def test_conflicts_name_every_offender(vector):
     v = with_second_site(with_second_site(vector, "CTCGAG", 700), "GGATCC", 800)
     up, down = find_cut_site(v, "BamHI:150"), find_cut_site(v, "XhoI:174")
     assert backbone_conflicts(v, up, down) == [("XhoI", 700), ("BamHI", 800)]
-
-
-# ---------------------------------------------------------------------- report
 
 
 PAIRS = [
@@ -284,9 +272,6 @@ def test_replaced_features_warn_when_something_important_goes(vector, host):
     assert not [f for f in near if f["essential"]], "a normal MCS swap removes nothing essential"
 
 
-# ------------------------------------------------------ real vectors (samples)
-
-
 def real(name):
     return confirm(analyze_vector(vectorio.read_vector_file(sample(name))))
 
@@ -342,9 +327,6 @@ def test_real_pet28a_c_terminus_is_a_choice(host):
         real_protein = str(Seq(a.seq[v.expression_start :][: 3 * len(a.protein)]).translate())
         assert real_protein == a.protein
         assert construct_report(a)["sizes"]["plasmid_bp"] == len(a.seq)
-
-
-# ------------------------------------------------------------- C-terminus modes
 
 
 def test_tag_mode_reads_the_tag_in_frame_even_when_the_frame_is_shifted(vector, host):
@@ -406,8 +388,6 @@ def test_find_cterm_tag_reports_where_the_tag_starts(vector):
     assert find_cterm_tag(vector, 300) is None
 
 
-# --------------------------------------------------------------- C-terminal tag detection
-
 CODON = {"A": "GCT", "D": "GAT", "E": "GAA", "G": "GGT", "H": "CAT", "I": "ATT", "K": "AAA",
          "L": "CTG", "N": "AAT", "P": "CCG", "Q": "CAG", "S": "TCT", "T": "ACC", "V": "GTT",
          "W": "TGG", "Y": "TAT", "F": "TTT"}  # fmt: skip
@@ -447,9 +427,6 @@ def test_a_his_run_is_reported_whole():
 
     seq = "A" * 10 + dna("GSHHHHHHHH") + "TAA" + "C" * 12
     assert find_cterm_tag(Vector.from_sequence(seq, name="t"), 10).residues == "HHHHHHHH"
-
-
-# ------------------------------------------------------ sites that touch, and sites that overlap
 
 
 @pytest.mark.parametrize("up, down", [("NdeI:144", "BamHI:150"), ("EcoRI:168", "XhoI:174")])
@@ -496,9 +473,6 @@ def test_a_touching_pair_ranks_below_an_equal_one_with_a_spacer(vector, host):
     worse = dataclasses.replace(base, adjacent=True)
     assert sorted([worse, base], key=lambda o: o.sort_key) == [base, worse]
     assert base.sort_key < worse.sort_key
-
-
-# ------------------------------------------------------------- the base after the stop codon
 
 
 def _stop_issue(vector, host):

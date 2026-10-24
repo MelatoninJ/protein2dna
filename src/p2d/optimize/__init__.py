@@ -1,7 +1,4 @@
-"""Constrained codon optimisation (v0.2).
-
-``optimize_coding`` is a DFA-constrained DP; see ``core.py``.
-"""
+"""Constrained codon optimisation: ``optimize_coding`` (see core.py)."""
 
 from .automaton import Automaton, Match, expand_pattern, reverse_complement
 from .core import CodonStrategy, OptimizationRequest, OptimizationResult, optimize_coding

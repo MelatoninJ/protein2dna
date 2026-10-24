@@ -1,8 +1,6 @@
-"""p2d -- protein-to-DNA reverse translation that knows about your vector.
+"""p2d: reverse-translate a protein into DNA that fits your vector.
 
-Status: v0.2. The frame engine, round-trip validation, the DFA-constrained codon
-optimiser and the GC and repeat refinement are implemented.  p2d does not fold mRNA or
-predict expression (see the README) -- review a design before ordering it.
+It does not fold mRNA or predict expression. Check a design before you order it.
 """
 
 from .assemble import Assembly, assemble

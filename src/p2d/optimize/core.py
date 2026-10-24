@@ -1,10 +1,8 @@
-"""Codon choice as a shortest path through (residue, automaton state).
+"""Codon choice as a shortest path over (residue, automaton state).
 
-Forbidden sites are an Aho-Corasick DFA; the DP carries the DFA state across
-codon choices, so the result is provably free of every forbidden pattern
-(either strand) and optimal for the per-codon objective.  When no path exists
-that is a definitive answer -- the site is unavoidable by synonymous changes --
-and is reported as such instead of being papered over.
+The DP carries the automaton state across codon choices, so the result has no forbidden pattern
+on either strand and is optimal for the per-codon score. If no path exists the site cannot be
+avoided by synonymous changes, and that is reported as such.
 """
 
 from __future__ import annotations
@@ -68,9 +66,6 @@ class _Failure:
     patterns: list[str]
 
 
-# ------------------------------------------------------------------ weights
-
-
 def _default_seed(req: OptimizationRequest) -> int:
     """Reproducible by default: the same design request always gives the same DNA."""
     key = "|".join([req.aa, req.prefix, req.suffix, req.host.slug, *sorted(req.forbidden)])
@@ -115,9 +110,6 @@ def _options(
         else:
             out.append([(c, -(math.log(f) + noise[i][c])) for c, f in sorted(allowed.items())])
     return out
-
-
-# ---------------------------------------------------------------------- DP
 
 
 def _solve(
@@ -196,9 +188,6 @@ def _solve(
     return codons[::-1], None
 
 
-# ------------------------------------------------------------------ metrics
-
-
 def _metrics(req: OptimizationRequest, codons: list[str]) -> dict:
     host = req.host
     logs = []
@@ -213,9 +202,6 @@ def _metrics(req: OptimizationRequest, codons: list[str]) -> dict:
         "strategy": req.strategy.value,
         "n_codons": len(codons),
     }
-
-
-# ------------------------------------------------------------------- public
 
 
 def _attempt(req: OptimizationRequest, forbidden: list[str], noise):

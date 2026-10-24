@@ -1,12 +1,8 @@
 """Aho-Corasick automaton over forbidden DNA patterns.
 
-Patterns are IUPAC strings.  They are expanded to concrete ACGT strings and
-their reverse complements are added, because a Type IIS site such as BsaI
-(``GGTCTC``) is just as real on the opposite strand (``GAGACC``).
-
-The automaton is built as a complete DFA: ``step(state, base)`` is one table
-lookup with no failure-link chasing, which is what the DP in ``core.py`` needs
-to run in ``O(n * |Q| * 6)``.
+Patterns are IUPAC strings, expanded to ACGT and added with their reverse complements, since a
+site such as BsaI (GGTCTC) is as real as GAGACC on the other strand. It is built as a complete
+DFA (``step`` is one table lookup), so the DP in core.py runs in O(n * |Q| * 6).
 """
 
 from __future__ import annotations

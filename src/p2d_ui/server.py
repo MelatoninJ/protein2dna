@@ -1,9 +1,7 @@
-"""Local web server for the p2d UI.
+"""Local web server for the UI. Standard library only, bound to loopback.
 
-Standard library only, so ``pip install p2d`` is enough to run ``p2d ui``.  It
-is a single-user tool bound to loopback: it serves three fixed static files and
-a two-endpoint JSON API, and refuses requests whose Host header is not the
-loopback address it was bound to (which also blocks DNS-rebinding attacks).
+Serves a few fixed static files and a small JSON API, and rejects requests whose Host header is
+not the loopback address (this also blocks DNS rebinding).
 """
 
 from __future__ import annotations
@@ -54,7 +52,6 @@ ROUTE_LIMITS = {"/api/vector": 7_000_000, "/api/batch": 3_000_000}
 class Handler(BaseHTTPRequestHandler):
     server_version = "p2d-ui"
 
-    # ------------------------------------------------------------ plumbing
     def log_message(self, format: str, *args) -> None:  # noqa: A002 - stdlib signature
         pass
 
@@ -74,7 +71,6 @@ class Handler(BaseHTTPRequestHandler):
         allowed = {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
         return self.headers.get("Host", "") in allowed
 
-    # -------------------------------------------------------------- routes
     def do_GET(self) -> None:
         if not self._host_ok():
             return self._json(HTTPStatus.FORBIDDEN, {"error": "Unexpected Host header."})

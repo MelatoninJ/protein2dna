@@ -38,7 +38,6 @@ add("His6 tag (C-term)", "CACCACCACCACCACCAC")
 add("stop", "TGA")
 add("T7 terminator", "CTAGCATAACCCCTTGGGGCCTCTAAACGGGTCTTGAGGGGTTTTTTG")
 
-# ---- filler backbone, screened against every enzyme we care about ----------
 rng = random.Random(20261007)
 sites = [RestrictionBatch([e]) for e in ENZYMES]
 site_seqs = [list(b)[0].site for b in sites]
@@ -79,7 +78,6 @@ for label, s, ftype, note in parts:
     rec.features.append(SeqFeature(FeatureLocation(pos, pos + len(s)), type=ftype, qualifiers=q))
     pos += len(s)
 
-# ---- verification ----------------------------------------------------------
 print(f"length: {len(seq)} bp")
 for e in ENZYMES:
     n = len(list(RestrictionBatch([e]))[0].search(Seq(seq), linear=False))

@@ -38,9 +38,6 @@ def sites(vector):
     return resolve_site(vector, "NdeI"), resolve_site(vector, "XhoI")
 
 
-# ---------------------------------------------------------------------- reading
-
-
 def test_records_are_read_with_wrapped_lines_and_headers():
     got = b.read_proteins(FASTA)
     assert [p.name for p in got] == ["binder_A", "binder_B", "binder_C"]
@@ -85,9 +82,6 @@ def test_names_are_always_safe_file_names(header):
 def test_unsafe_headers_cannot_escape_the_output_folder():
     assert b.safe_name("../../etc/passwd x", "f") == "etc_passwd"
     assert b.safe_name("   ", "f") == "f" and b.safe_name("###", "f") == "f"
-
-
-# --------------------------------------------------------------------- designing
 
 
 def test_each_protein_matches_a_design_made_on_its_own(vector, host, sites):
@@ -147,9 +141,6 @@ def test_a_bad_pair_of_sites_is_the_callers_error_not_a_protein_failure(vector, 
         b.design_batch(b.read_proteins(FASTA), vector, down, up, host)
 
 
-# ------------------------------------------------------------------------ output
-
-
 @pytest.fixture(scope="module")
 def made(vector, host, sites):
     got = b.read_proteins(FASTA + ">oops\nMK#\n")
@@ -202,9 +193,6 @@ def test_every_ok_order_proves_it_clones(made):
         assert e.order.ligation.ok and "exactly" in e.order.ligation.message
 
 
-# --------------------------------------------------------------------- site names
-
-
 def test_a_plain_enzyme_name_resolves_when_it_cuts_once(vector):
     assert resolve_site(vector, "xhoi").enzyme == "XhoI"
     assert resolve_site(vector, " NdeI ").enzyme == "NdeI"
@@ -221,8 +209,6 @@ def test_an_unknown_or_repeated_enzyme_is_explained(vector):
     with pytest.raises(ValueError, match="2 times; choose one of"):
         resolve_site(twice, "BamHI")
 
-
-# --------------------------------------------------------------------------- CLI
 
 runner = CliRunner()
 
@@ -301,9 +287,6 @@ def test_an_entry_that_fails_its_checks_is_never_written_as_something_to_order(m
     assert b.orders_fasta(result) == "" and b.inserts_fasta(result) == ""
     assert not any(k.startswith("constructs/") for k in b.files(result))
     assert b.summary_rows(result)[0]["status"] == "failed"
-
-
-# ------------------------------------------------------------- a real plasmid, from a file
 
 
 def test_a_batch_into_the_real_pet28a_from_the_command_line(tmp_path):

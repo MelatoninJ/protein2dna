@@ -1,9 +1,5 @@
-"""Assembly and validation.
-
-The hard gate of this whole package lives here: translate the assembled
-plasmid *from the vector's own start codon* and check that what comes out is
-what was intended.  Everything else in the package is advisory; this one is
-pass/fail.
+"""Translate the assembled plasmid from the vector's own start codon and check that it is the
+protein that was asked for. This is the pass/fail gate; the rest of the package only advises.
 """
 
 from __future__ import annotations
@@ -110,7 +106,6 @@ def assemble(design: InsertDesign) -> Assembly:
     protein, stop_found = _translate_orf(final, d.orf_start)
     segments = fusion_segments(d, final)
 
-    # ---- hard gate 1: the payload survives, contiguously and unmutated ------
     payload = d.chain.payload
     if payload not in protein:
         issues.append(
@@ -118,7 +113,7 @@ def assemble(design: InsertDesign) -> Assembly:
                 Severity.ERROR,
                 "payload_lost",
                 "the payload sequence does not appear in the translated fusion "
-                "protein -- frameshift or premature stop at a junction",
+                "protein: frameshift or premature stop at a junction",
             )
         )
     else:
@@ -135,7 +130,6 @@ def assemble(design: InsertDesign) -> Assembly:
             )
         )
 
-    # ---- hard gate 2: insert block translates exactly as designed -----------
     designed = d.chain.insert_aa
     observed = str(Seq(d.coding).translate())
     if observed != designed:
@@ -148,19 +142,16 @@ def assemble(design: InsertDesign) -> Assembly:
             )
         )
 
-    # ---- hard gate 3: the ORF terminates -----------------------------------
     if not stop_found:
         issues.append(
             Issue(Severity.ERROR, "runaway_orf", "no in-frame stop codon found after the insert")
         )
 
-    # ---- hard gate 4: no stop inside the designed region --------------------
     if "*" in observed:
         issues.append(
             Issue(Severity.ERROR, "internal_stop", "the coding region contains a stop codon")
         )
 
-    # ---- hard gate 5: the protein is what the vector's own ribosome makes ----
     # A site definition can name a start codon of its own (e.g. an NdeI ATG), but if the
     # vector's real start codon lies upstream and in frame it still initiates first and
     # the tag it encodes stays on the product.  Translate from the real start and compare.
@@ -179,13 +170,12 @@ def assemble(design: InsertDesign) -> Assembly:
                 )
             )
 
-    # ---- frame bookkeeping, reported explicitly -----------------------------
     issues.append(
         Issue(
             Severity.INFO,
             "frame",
             f"ORF starts at {d.orf_start}; payload block at {d.coding_start} "
-            f"(offset {(d.coding_start - d.orf_start) % 3} -- must be 0); "
+            f"(offset {(d.coding_start - d.orf_start) % 3}, must be 0); "
             f"pads: 5'={len(d.pad_up)} nt, 3'={len(d.pad_down)} nt",
         )
     )

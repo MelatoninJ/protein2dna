@@ -1,9 +1,7 @@
-"""Design many proteins into one vector and one pair of sites, and write what was made.
+"""Design many proteins into one vector and one pair of sites.
 
-Every protein gets the same vector, sites, host and options, and is designed on its own: a
-protein that cannot be cloned (a site it forces, an unusable residue) is reported against its
-name and the others carry on.  The outputs are a summary table, the DNA to order, the inserts,
-and one annotated GenBank file per construct.
+Each protein is designed on its own: one that cannot be cloned is reported by name and the rest
+carry on. Writes a summary table, the DNA to order, the inserts and a GenBank file per construct.
 """
 
 from __future__ import annotations
@@ -102,9 +100,6 @@ class BatchResult:
         return sum(e.ok for e in self.entries)
 
 
-# --------------------------------------------------------------------------- reading
-
-
 def safe_name(raw: str, fallback: str) -> str:
     """A name usable as a file name: first word of a FASTA header, plain characters only."""
     first = raw.strip().split()[0] if raw.strip() else ""
@@ -141,9 +136,6 @@ def read_proteins(text: str, *, max_residues: int | None = None) -> list[Protein
             error = f"{len(seq)} residues; the limit is {max_residues}"
         out.append(Protein(name, seq, error))
     return out
-
-
-# --------------------------------------------------------------------------- designing
 
 
 def design_batch(
@@ -192,9 +184,6 @@ def design_batch(
                 entry.error = str(exc)
         result.entries.append(entry)
     return result
-
-
-# --------------------------------------------------------------------------- writing
 
 
 def _row(e: BatchEntry) -> dict:

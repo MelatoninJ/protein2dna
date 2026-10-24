@@ -1,11 +1,8 @@
-"""Which two sites to use: every workable pair, designed for real, ranked by what it adds.
+"""Which two sites to use: every workable pair is designed for real and ranked by what it adds.
 
-"Best" depends on what you want (keep the vector's N-terminal tag or lose it, end in a stop or read
-into a C-terminal tag), so nothing is picked for you.  Every pair that can be cloned is designed
-and checked, described by what it leaves on either end of your protein, and ordered by how little
-it adds: first the residues put in front of and behind your protein, then the bases added only for
-the reading frame, then whether the enzymes cut the vector once.  The order is a convenience, not a
-verdict.
+Nothing is picked for you, since "best" depends on whether you keep the vector's N-terminal tag
+and how the protein ends. Pairs are described by what they leave on each end of the protein and
+ordered by residues added, then bases added only for the frame, then whether the enzymes cut once.
 """
 
 from __future__ import annotations

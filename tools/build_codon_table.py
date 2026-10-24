@@ -26,7 +26,7 @@ import python_codon_tables as pct
 HOSTS_DIR = Path(__file__).resolve().parents[1] / "src" / "p2d" / "hosts"
 
 ECOLI_NOTE = (
-    "K-12 table used for a BL21 (B strain) profile -- standard practice; "
+    "K-12 table used for a BL21 (B strain) profile (standard practice); "
     "revisit if B-strain-specific data becomes available"
 )
 GENERIC_NOTE = "Whole-genome usage for the species, not for a cell line, strain or expression level"
@@ -126,7 +126,7 @@ def render_new(slug: str) -> str:
         f"slug: {slug}\n"
         f"taxid: {taxid}\n"
         f"status: {STATUS[slug]}  # released, or development (shown as such and warned about)\n\n"
-        "# The codon_usage block is generated -- do not edit by hand.\n"
+        "# The codon_usage block is generated; do not edit by hand.\n"
         f"# Regenerate with: python tools/build_codon_table.py --host {slug} --write\n"
         f"{build_block(slug)}\n"
         f"# Derived from the table above: codons used for under {RARE_BELOW:.0%} of their amino "

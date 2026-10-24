@@ -56,9 +56,6 @@ def reverse_dna():
     return snapgene_bytes(rc, mirror(ptest1_features(v), len(v.seq)))
 
 
-# --------------------------------------------------------------------- reading
-
-
 def test_genbank_text_bytes_and_path_agree(ptest1_genbank, tmp_path):
     path = tmp_path / "x.gb"
     path.write_text(ptest1_genbank)
@@ -124,9 +121,6 @@ def test_feature_text_strips_html_from_snapgene_notes(forward_dna):
     assert vectorio.is_start_codon_feature(atg, v.seq)
 
 
-# ----------------------------------------------------------------- orientation
-
-
 def test_forward_file_is_left_alone(forward_dna):
     v = vectorio.read_vector_bytes(forward_dna, "p.dna")
     same, flipped, notes = vectorio.normalize_orientation(v)
@@ -174,9 +168,6 @@ def test_no_signals_means_no_flip_and_a_note():
     v = vectorio.read_vector_text(seq, "plain")
     same, flipped, notes = vectorio.normalize_orientation(v)
     assert not flipped and "kept as given" in notes[0]
-
-
-# -------------------------------------------------------------------- analysis
 
 
 def test_reverse_stored_plasmid_analyses_like_the_forward_one(forward_dna, reverse_dna):
@@ -238,9 +229,6 @@ def test_nothing_to_go_on_gives_warnings_not_a_crash():
     assert any("start codon" in w for w in a.warnings)
 
 
-# --------------------------------------------------------------------- confirm
-
-
 def test_confirm_uses_the_best_start_only_when_it_is_certain(forward_dna):
     a = analyze_vector(vectorio.read_vector_bytes(forward_dna, "f.dna"))
     assert confirm(a).expression_start == 87
@@ -267,9 +255,6 @@ def test_a_confirmed_custom_vector_designs_end_to_end(reverse_dna, host):
     assert a.ok, a.errors
     real = str(Seq(a.seq[v.expression_start :][: 3 * len(a.protein)]).translate())
     assert real == a.protein and a.protein.startswith("MGSSHHHHHHSSGLVPRGSHM" + PAYLOAD)
-
-
-# --------------------------------------------- real vectors (when samples exist)
 
 
 def test_real_pet28a_snapgene_file(host):

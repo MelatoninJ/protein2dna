@@ -1,19 +1,12 @@
-"""The frame engine.
+"""Frame engine: what protein comes out of this vector, these two sites and this insert?
 
-Everything here exists to answer one question precisely: *given this vector,
-these two enzymes and this payload, what protein actually comes out?*
-
-The arithmetic that matters:
-
-    final = vector[:up.start] + insert + vector[down.end:]
+    final  = vector[:up.start] + insert + vector[down.end:]
     insert = up_site + pad_up + coding + pad_down + down_site
 
-``pad_up`` makes the payload's first codon land in frame with the start codon.
-``pad_down`` makes whatever the vector encodes downstream land in frame.  Both
-pads are chosen by a small search that refuses bases creating a stop codon or a
-new copy of either enzyme's site.  The coding region itself is chosen by
-``p2d.optimize`` *given* those pads and the surrounding vector sequence, so a
-site straddling a junction is avoided rather than discovered afterwards.
+pad_up puts the first codon in frame with the start codon; pad_down restores the frame of what
+the vector encodes downstream. Both avoid stop codons and new copies of either site. The coding
+region is optimised with the pads in place, so a site across a junction is avoided rather than
+found afterwards.
 """
 
 from __future__ import annotations
@@ -83,15 +76,11 @@ class InsertDesign:
         return not self.errors
 
 
-# --------------------------------------------------------------------- helpers
-
-
 def reverse_translate(aa: str, host: HostProfile) -> str:
     """Naive best-codon baseline.
 
-    No longer used by ``design_insert`` (``p2d.optimize`` replaced it in v0.2).
-    Kept as the reference the optimiser is tested against, and for isolating
-    whether a failure is in the optimiser or in the frame engine.
+    Not used by ``design_insert`` any more; kept as the reference the optimiser is tested
+    against.
     """
     return "".join(host.best_codon(r) for r in aa)
 
@@ -109,11 +98,10 @@ def _pad_candidates(
     ``native`` is what the vector itself has in that place; it is tried first, so a codon cut
     in two by the site is completed the way the vector had it and its residue is unchanged.
 
-    ``frame_offset`` is the position of ``prefix``'s first base within its
-    codon, so stop codons can be read in the correct frame.  Sites running into
-    the coding region are not judged here -- the optimiser sees the pad as fixed
-    context and avoids them -- so more than one candidate is returned and the
-    caller tries them in order.
+    ``frame_offset`` is where ``prefix``'s first base falls in its codon, so stops are read in
+    the right frame. A site running into the coding region is not judged here (the optimiser
+    treats the pad as fixed and avoids it), so several candidates come back and the caller
+    tries them in order.
     """
     if n == 0:
         return [""]
@@ -197,9 +185,6 @@ def find_cterm_tag(vector: Vector, after: int, window: int = 240) -> CTermTag | 
     return best[1] if best else None
 
 
-# ----------------------------------------------------------------- main entry
-
-
 def design_insert(
     plan: ConstructPlan,
     vector: Vector,
@@ -231,14 +216,13 @@ def design_insert(
     if down.start < up.end:  # sites that merely touch are allowed (and warned about below)
         raise ValueError(
             f"{site.downstream_enzyme} (pos {down.start}) is not downstream of "
-            f"{site.upstream_enzyme} (pos {up.start}) -- v0.1 requires a non-wrapping MCS"
+            f"{site.upstream_enzyme} (pos {up.start}): v0.1 requires a non-wrapping MCS"
         )
 
     up_site = enzyme_site(site.upstream_enzyme)
     down_site = enzyme_site(site.downstream_enzyme)
     forbidden = [up_site, down_site]
 
-    # --- where does translation start, in final-plasmid coordinates? ---------
     if site.start_source is StartSource.VECTOR:
         if site.vector_orf_start is None:
             raise ValueError("start_source=VECTOR requires vector_orf_start")
@@ -258,7 +242,6 @@ def design_insert(
                 f"gives {codon!r}, not ATG"
             )
 
-    # --- frame arithmetic ---------------------------------------------------
     offset = (up.start + len(up_site) - orf_start) % 3
     n_pad_up = (3 - offset) % 3
     # The vector's own downstream frame must survive the splice, or its C-terminal tag
@@ -280,7 +263,6 @@ def design_insert(
 
     insert_aa = chain.insert_aa
 
-    # --- stop codon policy --------------------------------------------------
     down_frame_offset = (n_pad_down + len(down_site)) % 3
     has_downstream_stop, downstream_aa = _vector_supplies_stop(
         vector, down.end, (frame_grid - down.end) % 3
@@ -301,7 +283,7 @@ def design_insert(
                 Severity.INFO if cterm is CTerm.STOP else Severity.WARNING,
                 "cterm_lost",
                 f"insert carries a stop but the vector encodes {len(downstream_aa)} "
-                f"residue(s) downstream ({downstream_aa[:20]}...) -- they will not be translated",
+                f"residue(s) downstream ({downstream_aa[:20]}...); they will not be translated",
             )
         )
     if not want_stop and not has_downstream_stop:
@@ -310,14 +292,13 @@ def design_insert(
                 Severity.ERROR,
                 "no_stop",
                 "no stop codon in the insert and none found in frame within "
-                f"{DOWNSTREAM_SCAN_NT} nt of the vector -- the ORF would run on",
+                f"{DOWNSTREAM_SCAN_NT} nt of the vector; the ORF would run on",
             )
         )
 
     # the host's most used stop codon; two in a row only when asked for
     stop_dna = host.stop_codons(stop_codons) if want_stop else ""
 
-    # --- coding region: optimised against the real junction context ---------
     # The pads are fixed DNA from the optimiser's point of view, and a site can
     # run across pad and coding region, so try pad combinations until the DP
     # finds a path.  If none does, the first combination's error is reported.
@@ -406,19 +387,17 @@ def design_insert(
             )
         )
 
-    # --- duplicate initiator Met --------------------------------------------
     if site.start_source is StartSource.UPSTREAM_SITE and insert_aa.startswith("M"):
         issues.append(
             Issue(
                 Severity.WARNING,
                 "duplicate_met",
                 f"{site.upstream_enzyme} donates the initiator Met and the insert also "
-                "starts with M -- the product begins MM; drop the leading M from the "
+                "starts with M, so the product begins MM; drop the leading M from the "
                 "payload unless that is intended",
             )
         )
 
-    # --- duplicate-tag check -------------------------------------------------
     for part in chain.insert_parts():
         if part.kind is PartKind.TAG and part.aa and part.aa in downstream_aa:
             issues.append(
@@ -452,15 +431,11 @@ def design_insert(
     return design
 
 
-# ------------------------------------------------------------ fusion preview
-
-
 def fusion_segments(design: InsertDesign, final_seq: str) -> list[Segment]:
     """Walk the final ORF codon by codon and label each by provenance.
 
-    Codon-level provenance is used rather than slicing by part boundaries,
-    because a junction codon can straddle vector and insert sequence -- which
-    is exactly the case users get wrong by hand.
+    Labels go codon by codon, not by part boundary, because a junction codon can straddle
+    vector and insert.
     """
     d = design
     insert_start = d.up.start

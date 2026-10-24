@@ -1,14 +1,9 @@
 """Which restriction enzymes can clone into a vector, and which pairs work together.
 
-Everything here is derived from the vector sequence, never from its annotation
-labels (see ``vector.py``).  The one curated input is ``Vector.expression_start``:
-the ATG the ribosome actually uses.  A GenBank file cannot tell you that
-reliably, and every frame decision below hangs on it.
-
-Scope for now: palindromic Type II enzymes that cut inside their site and leave
-a sticky end.  That covers the enzymes people clone with; Type IIS (Golden Gate)
-arrives with v1.0 and blunt cutters are left out because they cannot give a
-directional insert.
+Sites come from the vector sequence, never from annotation labels, and the frame decisions hang
+on ``Vector.expression_start``. Only palindromic Type II enzymes that leave a sticky end are
+handled: blunt cutters cannot give a directional insert, and Type IIS (Golden Gate) is not
+supported yet.
 """
 
 from __future__ import annotations
@@ -196,7 +191,6 @@ def plan_site(vector: Vector, upstream: str, downstream: str) -> InsertionSite:
     )
 
 
-# ============================================================ site-level picking
 #
 # The name-based API above answers "which enzymes cut this vector once".  Real
 # plasmids often have an enzyme with several sites, and the right one to use is a

@@ -39,9 +39,6 @@ def req(pt1, **kw):
     return {"vector_id": vid, "start": start, "protein": PEPTIDE, **kw}
 
 
-# ------------------------------------------------------------ parse_protein
-
-
 def test_parse_plain_and_fasta_and_numbered():
     assert service.parse_protein("mkta yiak") == "MKTAYIAK"
     assert service.parse_protein(">sp|X|NAME desc\nMKTA\nYIAK\n") == "MKTAYIAK"
@@ -70,9 +67,6 @@ def test_parse_enforces_length_limit():
     assert len(service.parse_protein("A" * service.MAX_RESIDUES)) == service.MAX_RESIDUES
 
 
-# --------------------------------------------------------------------- meta
-
-
 def test_meta_lists_bundled_library_hosts_and_strategies(tmp_path, monkeypatch):
     monkeypatch.setenv("P2D_VECTOR_DIR", str(tmp_path))
     (tmp_path / "mine.gb").write_text("x")
@@ -82,9 +76,6 @@ def test_meta_lists_bundled_library_hosts_and_strategies(tmp_path, monkeypatch):
     assert m["library"] == ["mine.gb"]
     assert any(h["slug"] == "ecoli_bl21" and h["verified"] for h in m["hosts"])
     assert [s["value"] for s in m["strategies"]] == ["weighted_sample", "max_cai"]
-
-
-# -------------------------------------------------------------- loading plasmids
 
 
 def test_bundled_vector_loads_with_its_analysis():
@@ -162,9 +153,6 @@ def test_old_plasmids_are_forgotten_but_recent_ones_survive():
         service.load_vector({"bundled": "pTEST1"})
     with pytest.raises(service.InputError, match="no longer loaded"):
         service.sites({"vector_id": first})
-
-
-# ------------------------------------------------------------------------ sites
 
 
 def test_sites_are_listed_by_position_with_a_default_window(pt1):
@@ -260,9 +248,6 @@ def test_the_window_can_be_chosen_and_is_validated(pt1):
 def test_a_start_that_is_not_an_atg_is_refused(pt1, start, message):
     with pytest.raises(service.InputError, match=message):
         service.sites({"vector_id": pt1[0], "start": start})
-
-
-# ----------------------------------------------------------------------- design
 
 
 def test_design_returns_everything_the_ui_renders(pt1):
@@ -402,9 +387,6 @@ def test_real_pet28a_through_the_service():
     assert wanted <= {f.qualifiers.get("label", [""])[0] for f in rec.features}
 
 
-# ------------------------------------------------------------------- server
-
-
 @pytest.fixture(scope="module")
 def server():
     srv = make_server(port=0)
@@ -505,9 +487,6 @@ def test_foreign_host_header_is_refused(server):
         assert resp.status == 403
 
 
-# -------------------------------------------------------------- static files
-
-
 def static_text(name):
     return resources.files("p2d_ui").joinpath("static", name).read_text(encoding="utf-8")
 
@@ -532,9 +511,6 @@ def test_example_sequence_is_valid_and_designs_cleanly(pt1):
     assert len(seq) == 237
     r = service.design(req(pt1, protein=seq, upstream="NdeI:144", downstream="XhoI:174"))
     assert r["ok"] and not [i for i in r["issues"] if i["severity"] != "info"]
-
-
-# ----------------------------------------------------------------- the order
 
 
 def test_the_result_carries_the_dna_to_order(pt1):
@@ -591,9 +567,6 @@ def test_the_page_asks_for_the_extra_bases():
         assert needle in html
     js = static_text("app.js")
     assert "clamp_5" in js and "DNA to order" in js
-
-
-# ------------------------------------------------------------------ pair suggestions
 
 
 def test_pairs_group_workable_pairs_by_the_protein_they_give(pt1):
@@ -665,9 +638,6 @@ def test_pairs_over_http_and_the_page_has_the_button(server):
     assert 'id="suggest-btn"' in static_text("index.html") and "/api/pairs" in static_text("app.js")
 
 
-# ----------------------------------------------------------------- tags and linkers
-
-
 def test_meta_lists_the_tags_and_linkers():
     parts = service.meta()["parts"]
     assert {"his6", "flag", "v5"} <= {p["key"] for p in parts["tags"]}
@@ -704,9 +674,6 @@ def test_unknown_or_malformed_parts_are_refused(pt1):
 def test_the_page_has_the_tag_and_linker_selects():
     html = static_text("index.html")
     assert all(f'id="{i}"' in html for i in ("n-tag", "n-linker", "c-linker", "c-tag"))
-
-
-# ---------------------------------------------------------------- GC and repeat limits
 
 
 def test_meta_gives_each_host_its_limits_in_percent():
@@ -768,8 +735,6 @@ def test_each_host_note_reaches_the_page_data():
     assert "K-12" in hosts["ecoli_bl21"]["note"]
     assert "not for a cell line" in hosts["hsapiens"]["note"]
 
-
-# ------------------------------------------------------------------------ batch
 
 BATCH_FASTA = (
     ">first one\nKVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE\n"
@@ -874,9 +839,6 @@ def test_batch_over_http_and_the_page_has_the_panel(server):
         f'id="{i}"' in html for i in ("batch-box", "batch-input", "batch-btn", "batch-result")
     )
     assert "/api/batch" in static_text("app.js")
-
-
-# ------------------------------------------------------------------ host status
 
 
 def test_released_hosts_come_first_and_the_others_are_marked():

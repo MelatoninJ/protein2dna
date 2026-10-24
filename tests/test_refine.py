@@ -70,9 +70,6 @@ def protein(seed, letters, n):
     return "".join(rng.choice(letters) for _ in range(n))
 
 
-# ---------------------------------------------------------------------- the limits
-
-
 def test_the_host_profile_supplies_the_defaults(host):
     lim = host.limits()
     assert (lim.gc_min, lim.gc_max) == (0.32, 0.6)
@@ -92,9 +89,6 @@ def test_single_limits_can_be_replaced(host):
 def test_impossible_limits_are_refused(host, bad):
     with pytest.raises(ValueError):
         host.limits(**bad)
-
-
-# --------------------------------------------------------------------- measuring
 
 
 @given(st.text("ACGT", min_size=0, max_size=300), st.integers(10, 60))
@@ -136,9 +130,6 @@ def test_an_inverted_repeat_is_found_and_counted_separately():
     assert brute_has_repeat(dna, 20, True) and not brute_has_repeat(dna, 20, False)
     assert measure(dna, Limits(direct_max=20, inverted_max=20)).repeats > 0
     assert measure(dna, Limits(direct_max=20, inverted_max=40)).repeats == 0
-
-
-# --------------------------------------------------------------------- refinement
 
 
 @pytest.mark.parametrize("letters", ["KNIFYMKNIL", "AGPRAGPRWH"], ids=["AT-rich", "GC-rich"])
@@ -239,9 +230,6 @@ def test_any_protein_keeps_its_translation_and_stays_site_free(aa, tightness):
     assert translate(r.dna) == aa
     if r.ok:
         assert not region_hits("CCATGG", r.dna, "CTCGAG", SITES)
-
-
-# ------------------------------------------------------------ through the design
 
 
 def test_a_full_design_uses_the_host_limits_by_default(host):

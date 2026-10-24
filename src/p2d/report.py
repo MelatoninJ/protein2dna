@@ -1,8 +1,7 @@
-"""Numbers a bench scientist wants about a finished design: sizes, a digest to check it by,
-what was added for the reading frame, and what the fusion protein is.
+"""Numbers for the bench: sizes, a check digest, what was added for the frame, the fusion protein.
 
-Lengths are top-strand lengths, the way a gel and Biopython's ``catalyse`` count them: a
-cut falls ``fst5`` bases after the start of its recognition site (EcoRI cuts G^AATTC, so 1).
+Lengths are top-strand lengths, as a gel and Biopython's ``catalyse`` count them: a cut falls
+``fst5`` bases after the start of its site (EcoRI cuts G^AATTC, so 1).
 """
 
 from __future__ import annotations

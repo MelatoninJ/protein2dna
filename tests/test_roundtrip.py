@@ -32,8 +32,6 @@ def build(vector, host, site_key, payload, **kw):
     return p2d.assemble(p2d.design_insert(plan, vector, vector.sites[site_key], host))
 
 
-# ------------------------------------------------------------------ golden set
-
 # The vector's own tag, translated from its ATG: M GSSHHHHHHSSGLVPRGS + H M (the NdeI site).
 TAG_THROUGH_NDEI = "MGSSHHHHHHSSGLVPRGSHM"
 
@@ -75,9 +73,6 @@ def test_orf_terminates(vector, host, site_key, payload, expected):
     assert tail in {"TAA", "TAG", "TGA"}
 
 
-# -------------------------------------------------------------- frame rescue
-
-
 @pytest.mark.parametrize("shift", [0, 1, 2])
 def test_pad_rescues_out_of_frame_site(vector, host, shift):
     """A site that is out of frame with the ORF must be rescued by padding."""
@@ -98,9 +93,6 @@ def test_insert_is_multiple_of_three_from_start(vector, host):
     a = build(vector, host, "NdeI-XhoI", PAYLOAD)
     d = a.design
     assert (d.coding_start - d.orf_start) % 3 == 0
-
-
-# ------------------------------------------------------------- coding fidelity
 
 
 def test_coding_backtranslates(vector, host):
@@ -129,9 +121,6 @@ def test_enzyme_sites_unique_in_final_plasmid(vector, host):
     for enzyme in ("NdeI", "XhoI"):
         n = len(list(RestrictionBatch([enzyme]))[0].search(Seq(a.seq), linear=False))
         assert n == 1, f"{enzyme} appears {n} times in the assembled plasmid"
-
-
-# ----------------------------------------------------------------- behaviour
 
 
 def test_duplicate_met_warned(vector, host):
@@ -180,9 +169,6 @@ def test_unimplemented_linkage_is_explicit():
 
     with pytest.raises(NotImplementedError):
         p2d.ConstructPlan(chains=[Chain("a", PAYLOAD)], linkage=LinkageStrategy.SELF_CLEAVING_2A)
-
-
-# ------------------------------------------------------ the start-codon gate
 
 
 def test_a_site_that_ignores_the_vectors_real_start_is_refused(vector, host):

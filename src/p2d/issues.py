@@ -1,8 +1,4 @@
-"""Diagnostics shared by the frame engine and the optimiser.
-
-Kept out of ``frame.py`` so ``p2d.optimize`` can report issues without importing
-the module that calls it.
-"""
+"""Diagnostics shared by the frame engine and the optimiser, kept apart to avoid an import cycle."""
 
 from __future__ import annotations
 

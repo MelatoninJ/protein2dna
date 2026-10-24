@@ -28,9 +28,6 @@ def profile(slug):
     return yaml.safe_load((HOSTS / f"{slug}.yaml").read_text())
 
 
-# ------------------------------------------------------------------ the tool on a made-up genome
-
-
 def genome(n=600, seed=1, extra=()):
     """A record of ``n`` random genes plus ``extra`` genes; every gene is a clean CDS."""
     rng = random.Random(seed)
@@ -96,9 +93,6 @@ def test_the_marker_splice_is_idempotent_and_keeps_what_comes_before():
         bl.splice("no marker here", block)
 
 
-# ------------------------------------------------------------- the shipped bacterial profiles
-
-
 @pytest.mark.parametrize("slug", BACTERIA)
 def test_every_limit_names_where_it_comes_from(slug):
     data = profile(slug)
@@ -136,9 +130,6 @@ def test_the_limits_are_not_stricter_than_nature():
     assert min(h.homopolymer_max.values()) >= 7 and h.homopolymer_max["A"] >= 9
     lim = h.limits()
     assert lim.gc_min <= 0.33 and lim.gc_max >= 0.59 and lim.direct_max == 22
-
-
-# --------------------------------------------------- the real genomes reproduce the shipped numbers
 
 
 @pytest.mark.parametrize("slug", BACTERIA)

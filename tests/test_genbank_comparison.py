@@ -56,9 +56,6 @@ def pair(vector, a="NdeI", b="XhoI"):
     return resolve_site(vector, a), resolve_site(vector, b)
 
 
-# ------------------------------------------------------------------ the tool itself
-
-
 def test_a_hand_built_construct_is_reproduced_whatever_its_codons(vector, host):
     up, down = pair(vector)
     for seed in (1, 2, 3):
@@ -170,8 +167,6 @@ def test_the_command_line_reports_and_sets_its_exit_status(vector, tmp_path, cap
     out = capsys.readouterr().out
     assert code == 0 and "HAND1" in out and "1 match" in out
 
-
-# ------------------------------------------------------------- real published records
 
 # accession -> (5' site, 3' site, residues of the real fusion protein); all made by their authors
 # in pET-28a(+) and taken from NCBI.  See VALIDATION.md.
