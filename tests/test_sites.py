@@ -489,3 +489,10 @@ def test_a_touching_pair_ranks_below_an_equal_one_with_a_spacer(vector, host):
     assert touching and all(o.up.end == o.down.start for o in touching)
     keys = [o.sort_key for o in options]
     assert keys == sorted(keys)
+
+    import dataclasses
+
+    base = next(o for o in options if not o.adjacent)
+    worse = dataclasses.replace(base, adjacent=True)
+    assert sorted([worse, base], key=lambda o: o.sort_key) == [base, worse]
+    assert base.sort_key < worse.sort_key
