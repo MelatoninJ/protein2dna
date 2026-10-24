@@ -221,6 +221,15 @@ def _limits(request: dict, host):
         raise InputError(str(exc)[:1].upper() + str(exc)[1:] + ".") from exc
 
 
+def _stop_codons(request: dict) -> int:
+    raw = request.get("stop_codons")
+    if raw in (None, ""):
+        return 1
+    if isinstance(raw, bool) or str(raw) not in ("1", "2"):
+        raise InputError("Stop codons must be 1 or 2.")
+    return int(raw)
+
+
 def _catalog() -> dict:
     def rows(table):
         return [{"key": k, "name": p.name, "aa": p.aa} for k, p in table.items()]
@@ -504,6 +513,7 @@ def _downstream_verdict(v, up, c, protein, host, host_slug, cterm, conflict, req
                     strategy=CodonStrategy.MAX_CAI,
                     cterm=cterm,
                     limits=_limits(request, host),
+                    stop_codons=_stop_codons(request),
                 )
             )
         except ValueError as exc:
@@ -538,6 +548,7 @@ def pairs(request: dict) -> dict:
             cterm=cterm,
             n_tag=keep,
             limits=_limits(request, load_host(host_slug)),
+            stop_codons=_stop_codons(request),
             n_parts=tuple(resolve_parts(_part_keys(request, "n_parts"))),
             c_parts=tuple(resolve_parts(_part_keys(request, "c_parts"))),
         )
@@ -592,6 +603,7 @@ class _Settings:
     down: CutSite
     site: object
     limits: object
+    stop_codons: int
 
 
 def _settings(request: dict) -> _Settings:
@@ -655,6 +667,7 @@ def _settings(request: dict) -> _Settings:
         down,
         site,
         _limits(request, host),
+        _stop_codons(request),
     )
 
 
@@ -677,6 +690,7 @@ def design(request: dict) -> dict:
                 seed=seed,
                 cterm=CTERMS[cterm_key],
                 limits=limits,
+                stop_codons=s.stop_codons,
             )
         )
     except ValueError as exc:
@@ -796,6 +810,7 @@ def batch(request: dict) -> dict:
         strategy=STRATEGIES[s.strategy_key],
         seed=s.seed,
         limits=s.limits,
+        stop_codons=s.stop_codons,
         clamp_5=s.clamps[0],
         clamp_3=s.clamps[1],
         n_parts=parts[0],

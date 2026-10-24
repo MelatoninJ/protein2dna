@@ -1,3 +1,14 @@
+/* Geist and Geist Mono, SIL Open Font License 1.1 (fonts/OFL.txt), served from this package so
+   nothing is fetched from the internet. */
+@font-face {
+  font-family: "Geist"; font-weight: 100 900; font-style: normal; font-display: swap;
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono"; font-weight: 100 900; font-style: normal; font-display: swap;
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+}
+
 /* p2d UI
    Direction: a plain measuring instrument. Neutral greys, one cobalt accent, one 4px radius,
    hairline borders, no shadows, tabular numerals. Tokens first; the dark theme redefines the

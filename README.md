@@ -351,4 +351,6 @@ MIT, see `LICENSE`. p2d has no compiled or non-permissive dependencies.
   maps carry their own terms (SnapGene's, for example, require attribution and a licence for
   commercial use), so keep them on your own computer: put them in `~/.p2d/vectors` or upload
   them in the UI, and they never leave it.
+* **Fonts**: the website ships Geist and Geist Mono (Vercel, SIL Open Font License 1.1, licence text
+  in `src/p2d_ui/static/fonts/OFL.txt`), so it fetches nothing from the internet.
 * Depends on Biopython (Biopython License), PyYAML and Typer (MIT).

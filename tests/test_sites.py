@@ -130,8 +130,6 @@ def test_site_ids_resolve_by_alias_and_reject_nonsense(vector):
     "up, down, message",
     [
         ("XhoI:174", "NdeI:144", "must lie upstream"),
-        ("NdeI:144", "BamHI:150", "touch or overlap"),
-        ("EcoRI:168", "XhoI:174", "touch or overlap"),
         ("BamHI:150", "BamHI:150", "must lie upstream"),
     ],
 )
@@ -363,8 +361,33 @@ def test_tag_mode_reads_the_tag_in_frame_even_when_the_frame_is_shifted(vector, 
 def test_stop_mode_ends_the_protein_and_needs_no_downstream_pad(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174", cterm=p2d.CTerm.STOP)
     assert a.ok and a.protein.endswith(PAYLOAD) and a.design.pad_down == ""
-    assert a.design.stop_in_insert and "TAATGA" in a.insert_dna
+    assert a.design.stop_in_insert and a.design.stop_dna == "TAA"
+    assert a.insert_dna.endswith("TAACTCGAG"), "one stop codon, then the 3' site"
     assert not design(vector, host, "NdeI:144", "XhoI:174").design.stop_in_insert
+
+
+def test_two_stop_codons_are_available_on_request(vector, host):
+    up, down = (find_cut_site(vector, "NdeI:144"), find_cut_site(vector, "XhoI:174"))
+    site = plan_cut(vector, up, down)
+    plan = p2d.ConstructPlan.single_chain(PAYLOAD)
+
+    def build(n):
+        return p2d.assemble(
+            p2d.design_insert(plan, vector, site, host, cterm=p2d.CTerm.STOP, stop_codons=n)
+        )
+
+    one, two = build(1), build(2)
+    assert one.ok and two.ok and two.protein == one.protein
+    assert (one.design.stop_dna, two.design.stop_dna) == ("TAA", "TAATGA")
+    assert len(two.insert_dna) == len(one.insert_dna) + 3
+    with pytest.raises(ValueError, match="one or two"):
+        build(3)
+
+
+def test_the_stop_codons_are_the_hosts_most_used_in_order(host):
+    assert host.stop_codons(1) == "TAA" and host.stop_codons(2) == "TAATGA"
+    other = p2d.load_host("hsapiens")
+    assert other.stop_codons(1) == max(other.stop_usage, key=other.stop_usage.get)
 
 
 def test_tag_mode_without_a_tag_says_so(vector, host):
@@ -424,3 +447,45 @@ def test_a_his_run_is_reported_whole():
 
     seq = "A" * 10 + dna("GSHHHHHHHH") + "TAA" + "C" * 12
     assert find_cterm_tag(Vector.from_sequence(seq, name="t"), 10).residues == "HHHHHHHH"
+
+
+# ------------------------------------------------------ sites that touch, and sites that overlap
+
+
+@pytest.mark.parametrize("up, down", [("NdeI:144", "BamHI:150"), ("EcoRI:168", "XhoI:174")])
+def test_touching_sites_are_allowed_and_warned_about(vector, host, up, down):
+    a = design(vector, host, up, down)
+    codes = {i.code: i for i in a.issues}
+    assert a.ok and "sites_adjacent" in codes
+    assert codes["sites_adjacent"].severity.value == "warning"
+    assert "gel" in codes["sites_adjacent"].message
+    real = str(Seq(a.seq[vector.expression_start :][: 3 * len(a.protein)]).translate())
+    assert real == a.protein, "the protein from the finished plasmid is the one reported"
+
+
+def test_sites_with_a_spacer_carry_no_adjacency_warning(vector, host):
+    codes = {i.code for i in design(vector, host, "NdeI:144", "XhoI:174").issues}
+    assert "sites_adjacent" not in codes
+
+
+def test_sites_that_share_bases_are_still_refused():
+    import random
+
+    rng = random.Random(4)
+    rand = lambda n: "".join(rng.choice("ACGT") for _ in range(n))  # noqa: E731
+    seq = rand(200).replace("GCATGC", "GACTGC") + "GCATGCAT" + rand(200)
+    v = Vector.from_sequence(seq, name="overlap")
+    v.expression_start = 10
+    sites = {c.enzyme: c for c in list_cut_sites(v)}
+    with pytest.raises(ValueError, match="overlap.*share bases"):
+        plan_cut(v, sites["SphI"], sites["NsiI"])
+
+
+def test_a_touching_pair_ranks_below_an_equal_one_with_a_spacer(vector, host):
+    from p2d.recommend import rank_pairs
+
+    options, _ = rank_pairs(vector, PAYLOAD, host)
+    touching = [o for o in options if o.adjacent]
+    assert touching and all(o.up.end == o.down.start for o in touching)
+    keys = [o.sort_key for o in options]
+    assert keys == sorted(keys)

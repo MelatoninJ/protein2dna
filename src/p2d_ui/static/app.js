@@ -251,7 +251,7 @@ function limitsBody() {
 }
 
 function partsBody() {
-  return { n_parts: partKeys(["n-tag", "n-linker"]), c_parts: partKeys(["c-linker", "c-tag"]), limits: limitsBody() };
+  return { n_parts: partKeys(["n-tag", "n-linker"]), c_parts: partKeys(["c-linker", "c-tag"]), limits: limitsBody(), stop_codons: $("stop-codons").value };
 }
 
 function siteBody(extra) {

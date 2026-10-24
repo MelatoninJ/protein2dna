@@ -161,6 +161,7 @@ def design_batch(
     clamp_3: int = DEFAULT_CLAMP,
     n_parts: tuple[Part, ...] = (),
     c_parts: tuple[Part, ...] = (),
+    stop_codons: int = 1,
 ) -> BatchResult:
     """Design each protein; a failure is recorded on its entry and never stops the others."""
     site = plan_cut(vector, up, down)  # a bad pair is the caller's error, not a protein's
@@ -183,6 +184,7 @@ def design_batch(
                         seed=seed,
                         cterm=cterm,
                         limits=limits,
+                        stop_codons=stop_codons,
                     )
                 )
                 entry.order = make_order(entry.assembly, clamp_5, clamp_3)

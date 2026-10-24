@@ -130,10 +130,21 @@ def test_an_unrelated_or_identical_record_is_not_comparable(vector, host):
     assert cg.compare("same", vector, vector.seq, host).status == "not comparable"
 
 
-def test_a_pair_p2d_refuses_is_declined_not_called_a_failure(vector, host):
+def test_a_pair_p2d_refuses_is_declined_not_called_a_failure(vector, host, monkeypatch):
+    up, down = pair(vector)
+
+    def refuse(*args):
+        raise ValueError("the sites overlap")
+
+    monkeypatch.setattr(cg, "plan_cut", refuse)
+    r = cg.compare("refused", vector, build(vector, up, down, PROTEIN), host)
+    assert r.status == "declined" and "overlap" in r.reason
+
+
+def test_touching_sites_are_rebuilt_like_any_other_pair(vector, host):
     up, down = pair(vector, "NdeI", "BamHI")  # the two sites touch in the test vector
     r = cg.compare("touching", vector, build(vector, up, down, PROTEIN), host)
-    assert r.status == "declined" and "touch or overlap" in r.reason
+    assert r.status == "match" and r.real_protein == r.p2d_protein
 
 
 def test_the_command_line_reports_and_sets_its_exit_status(vector, tmp_path, capsys):
@@ -204,11 +215,12 @@ def test_p2d_rebuilds_the_protein_of_each_published_construct(pet28a, host, acce
     assert r.real_protein == r.p2d_protein and r.coverage >= cg.MIN_COVERAGE
 
 
-def test_p2d_declines_the_pair_one_real_lab_used(pet28a, host):
-    """BamHI and EcoRI sit side by side in pET-28a(+); p2d does not offer that pair."""
+def test_the_touching_pair_a_real_lab_used_is_rebuilt_too(pet28a, host):
+    """BamHI and EcoRI sit side by side in pET-28a(+); p2d used to refuse that pair."""
     name, seq = real("MK847901.1")
     r = cg.compare(name, pet28a, seq, host)
-    assert r.status == "declined" and (r.up, r.down) == ("BamHI:5166", "EcoRI:5172")
+    assert r.status == "match" and (r.up, r.down) == ("BamHI:5166", "EcoRI:5172")
+    assert len(r.real_protein) == 304 and r.real_protein == r.p2d_protein
 
 
 def test_records_that_cannot_test_p2d_say_why(pet28a, host):

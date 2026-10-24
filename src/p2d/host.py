@@ -74,6 +74,19 @@ class HostProfile:
             raise ValueError(f"no codons for residue {aa!r} in host {self.slug!r}") from exc
         return max(codons, key=codons.get)
 
+    def stop_codons(self, n: int = 1) -> str:
+        """The ``n`` stop codons to end an insert with, most used in this host first.
+
+        One is the norm.  Two in a row are sometimes used to guard against read-through; the second
+        is then the host's next most used stop codon.
+        """
+        if n not in (1, 2):
+            raise ValueError("an insert ends with one or two stop codons")
+        ranked = sorted(self.stop_usage, key=lambda c: (-self.stop_usage[c], c))
+        if len(ranked) < n:
+            raise ValueError(f"host {self.slug!r} lists fewer than {n} stop codons")
+        return "".join(ranked[:n])
+
     def codons_for(self, aa: str) -> dict[str, float]:
         return dict(self.codon_usage[aa])
 

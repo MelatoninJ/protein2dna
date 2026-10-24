@@ -39,6 +39,7 @@ class PairOption:
     extra_residues: int
     altered: int  # residues of the vector's own protein this pair changes
     single_cutters: bool  # both enzymes cut the whole vector once
+    adjacent: bool  # the two sites touch, with no base between them
     replaced_bp: int
     plasmid_bp: int
     ligation_ok: bool
@@ -57,6 +58,7 @@ class PairOption:
             self.extra_residues,
             self.pad_bases,
             not self.single_cutters,
+            self.adjacent,
             self.replaced_bp,
             self.up.start,
             self.down.start,
@@ -95,14 +97,25 @@ def _altered(vector: Vector, before: str) -> int:
     return sum(1 for a, b in zip(before, native, strict=False) if a != b)
 
 
-def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits):
+def _describe(
+    vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits, stop_codons
+):
     """Design one pair; returns ``(PairOption, None)`` or ``(None, reason)``."""
     try:
         site = plan_cut(vector, up, down)
         chain = Chain("payload", protein, n_terminal=list(n_parts), c_terminal=list(c_parts))
         plan = ConstructPlan([chain], host=host.slug)
         a = assemble(
-            design_insert(plan, vector, site, host, strategy=strategy, cterm=cterm, limits=limits)
+            design_insert(
+                plan,
+                vector,
+                site,
+                host,
+                strategy=strategy,
+                cterm=cterm,
+                limits=limits,
+                stop_codons=stop_codons,
+            )
         )
     except ValueError as exc:
         return None, str(exc)
@@ -131,6 +144,7 @@ def _describe(vector, up, down, protein, host, cterm, strategy, n_parts, c_parts
             extra_residues=len(before) + len(after),
             altered=altered,
             single_cutters=up.count == 1 and down.count == 1,
+            adjacent=up.end == down.start,
             replaced_bp=rep["replaced_bp"],
             plasmid_bp=rep["plasmid_bp"],
             ligation_ok=order.ligation.ok,
@@ -152,6 +166,7 @@ def rank_pairs(
     n_parts: tuple[Part, ...] = (),
     c_parts: tuple[Part, ...] = (),
     limits: Limits | None = None,
+    stop_codons: int = 1,
 ) -> tuple[list[PairOption], int]:
     """Every pair that clones ``protein`` into ``vector``, best first, and how many were tried.
 
@@ -167,7 +182,7 @@ def rank_pairs(
         (up, down)
         for i, up in enumerate(sites)
         for down in sites[i + 1 :]
-        if down.start > up.end and down.start != up.start
+        if down.start >= up.end and down.start != up.start
     ]
     if len(candidates) > MAX_PAIRS:
         raise ValueError(
@@ -177,7 +192,7 @@ def rank_pairs(
     options: list[PairOption] = []
     for up, down in candidates:
         option, _ = _describe(
-            vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits
+            vector, up, down, protein, host, cterm, strategy, n_parts, c_parts, limits, stop_codons
         )
         if option is not None and (n_tag is None or option.n_tag == n_tag):
             options.append(option)

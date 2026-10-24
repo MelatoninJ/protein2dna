@@ -169,11 +169,10 @@ def plan_site(vector: Vector, upstream: str, downstream: str) -> InsertionSite:
             f"{up.name} (position {up.start}) must lie upstream of {down.name} "
             f"(position {down.start}) for the insert to go in the right way round"
         )
-    if down.start <= up.end:
+    if down.start < up.end:
         raise ValueError(
-            f"{up.name} and {down.name} sites touch or overlap: there is no spacer "
-            "between them, so the second enzyme would cut right at a fragment end, which is "
-            "unreliable; p2d does not offer this pair"
+            f"{up.name} and {down.name} sites overlap: they share bases, so one enzyme "
+            "would destroy the other's site"
         )
     if ends_compatible(up, down):
         raise ValueError(
@@ -363,11 +362,10 @@ def plan_cut(vector: Vector, up: CutSite, down: CutSite) -> InsertionSite:
             f"{up.label} must lie upstream of {down.label} for the insert to go in the "
             "right way round"
         )
-    if down.start <= up.end:
+    if down.start < up.end:
         raise ValueError(
-            f"{up.enzyme} and {down.enzyme} sites touch or overlap: there is no spacer "
-            "between them, so the second enzyme would cut right at a fragment end, which is "
-            "unreliable; p2d does not offer this pair"
+            f"{up.enzyme} and {down.enzyme} sites overlap: they share bases, so one enzyme "
+            "would destroy the other's site"
         )
     if ends_compatible(up, down):
         raise ValueError(

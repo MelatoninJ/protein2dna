@@ -62,6 +62,7 @@ class InsertDesign:
     coding_start: int  # index of payload-block first base in final coords
     issues: list[Issue] = field(default_factory=list)
     stop_in_insert: bool = False
+    stop_dna: str = ""  # the stop codon(s) the insert ends with, if it carries any
     metrics: dict = field(default_factory=dict)  # codon metrics from the optimiser
     host_motifs: list[str] = field(default_factory=list)  # host preferences it was designed against
 
@@ -208,6 +209,7 @@ def design_insert(
     seed: int | None = None,
     cterm: CTerm = CTerm.VECTOR_FRAME,
     limits: Limits | None = None,
+    stop_codons: int = 1,
 ) -> InsertDesign:
     if len(plan.chains) != 1:
         raise NotImplementedError("v0.1 handles single-chain constructs only")
@@ -225,7 +227,7 @@ def design_insert(
     )
     issues: list[Issue] = []
 
-    if down.start <= up.end:
+    if down.start < up.end:  # sites that merely touch are allowed (and warned about below)
         raise ValueError(
             f"{site.downstream_enzyme} (pos {down.start}) is not downstream of "
             f"{site.upstream_enzyme} (pos {up.start}) -- v0.1 requires a non-wrapping MCS"
@@ -311,10 +313,8 @@ def design_insert(
             )
         )
 
-    stop_dna = host.best_codon("*") if want_stop else ""
-    if want_stop:
-        # double stop is standard practice; the second one is belt-and-braces
-        stop_dna = "TAA" + "TGA"
+    # the host's most used stop codon; two in a row only when asked for
+    stop_dna = host.stop_codons(stop_codons) if want_stop else ""
 
     # --- coding region: optimised against the real junction context ---------
     # The pads are fixed DNA from the optimiser's point of view, and a site can
@@ -369,6 +369,18 @@ def design_insert(
     insert_dna = up_site + pad_up + coding + stop_dna + pad_down + down_site
     coding_start = up.start + len(up_site) + len(pad_up)
 
+    if down.start == up.start + len(up_site):
+        issues.append(
+            Issue(
+                Severity.WARNING,
+                "sites_adjacent",
+                f"{site.upstream_enzyme} and {site.downstream_enzyme} sit side by side with no "
+                "base between them. The pair is used in practice, but the second enzyme cuts right "
+                "at a fragment end, which is often less efficient: check the digest on a gel, and "
+                "cut in two steps if the double digest is incomplete.",
+            )
+        )
+
     if host.status == "development":
         issues.append(
             Issue(
@@ -418,6 +430,7 @@ def design_insert(
         coding_start=coding_start,
         issues=issues,
         stop_in_insert=want_stop,
+        stop_dna=stop_dna,
         metrics=result.metrics,
         host_motifs=list(host.soft_motifs()),
     )

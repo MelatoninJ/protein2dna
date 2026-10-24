@@ -22,6 +22,8 @@ STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.css": ("app.css", "text/css; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/fonts/Geist-Variable.woff2": ("fonts/Geist-Variable.woff2", "font/woff2"),
+    "/fonts/GeistMono-Variable.woff2": ("fonts/GeistMono-Variable.woff2", "font/woff2"),
 }
 SECURITY_HEADERS = {
     "Cache-Control": "no-store",
@@ -35,7 +37,7 @@ SECURITY_HEADERS = {
 
 
 def _static_bytes(name: str) -> bytes:
-    return resources.files("p2d_ui").joinpath("static", name).read_bytes()
+    return resources.files("p2d_ui").joinpath("static", *name.split("/")).read_bytes()
 
 
 POST_ROUTES = {

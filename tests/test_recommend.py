@@ -32,7 +32,7 @@ def brute_force(vector, host, protein, cterm, window=None):
     found = {}
     for up in sites:
         for down in sites:
-            if down.start <= up.end:
+            if down.start < up.end:
                 continue
             try:
                 site = plan_cut(vector, up, down)

@@ -90,7 +90,7 @@ def construct_report(a: Assembly) -> dict:
     insert_bp = len(d.insert_dna)
     cut_insert = (insert_bp - down_len + _enzyme(down_name).fst5) - _enzyme(up_name).fst5
 
-    stop = "TAATGA" if d.stop_in_insert else ""
+    stop = d.stop_dna
     pad_up, pad_down = d.pad_up, d.pad_down
     parts = [
         {"name": f"5' site ({up_name})", "dna": d.insert_dna[:up_len]},

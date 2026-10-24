@@ -108,7 +108,6 @@ def test_aliases_are_accepted_by_name(vector):
     [
         ("XhoI", "NdeI", "must lie upstream"),
         ("BamHI", "BamHI", "must lie upstream"),
-        ("NdeI", "BamHI", "touch or overlap"),
         ("NcoI", "BspHI", "not a single-cutter"),
         ("EcoRI", "SmaI", "not a single-cutter"),
         ("Nonexistent", "XhoI", "not a single-cutter"),
@@ -147,7 +146,7 @@ def test_there_are_several_valid_pairs(vector):
     pairs = set(valid_pairs(vector))
     assert {("NdeI", "XhoI"), ("BamHI", "EcoRI"), ("NcoI", "XhoI"), ("KpnI", "XhoI")} <= pairs
     assert ("XhoI", "NdeI") not in pairs and ("BamHI", "BamHI") not in pairs
-    assert ("EcoRI", "XhoI") not in pairs, "abutting sites cannot be double-digested"
+    assert ("EcoRI", "XhoI") in pairs and ("NdeI", "BamHI") in pairs, "touching sites are allowed"
 
 
 @pytest.mark.parametrize("payload", [PAYLOAD, STRESS])

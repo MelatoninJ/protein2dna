@@ -205,7 +205,7 @@ def test_three_prime_verdicts_follow_direction_spacing_and_tag(pt1):
     r = service.sites(req(pt1, upstream="BamHI:150"))
     down = {s["id"]: s["as_downstream"] for s in r["sites"]}
     assert down["NdeI:144"]["hidden"] and down["NcoI:85"]["hidden"], "wrong side: not candidates"
-    assert not down["KpnI:156"]["ok"] and "touch or overlap" in down["KpnI:156"]["reason"]
+    assert down["KpnI:156"]["ok"], "touching sites are allowed (with a warning)"
     assert down["EcoRI:168"]["ok"] and down["XhoI:174"]["ok"]
     assert down["XhoI:174"]["has_tag"] is True
 
@@ -296,8 +296,10 @@ def test_the_genbank_output_keeps_the_vectors_annotations(pt1):
 def test_c_terminus_choice_changes_the_protein_and_the_insert(pt1):
     stop = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", cterm="stop"))
     tag = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", cterm="tag"))
-    assert stop["protein"].endswith(PEPTIDE) and "TAATGA" in stop["insert_dna"]
-    assert tag["protein"].endswith(PEPTIDE + "LEHHHHHH") and "TAATGA" not in tag["insert_dna"]
+    assert stop["protein"].endswith(PEPTIDE) and stop["insert_dna"].endswith("TAACTCGAG")
+    assert (
+        tag["protein"].endswith(PEPTIDE + "LEHHHHHH") and "TAA" + "CTCGAG" not in tag["insert_dna"]
+    )
     assert stop["cterm"] == "stop" and tag["cterm"] == "tag"
 
 
@@ -314,7 +316,6 @@ def test_seed_strategy_and_reproducibility(pt1):
     "patch, message",
     [
         ({"upstream": "XhoI:174", "downstream": "NdeI:144"}, "must lie upstream"),
-        ({"upstream": "NdeI:144", "downstream": "BamHI:150"}, "touch or overlap"),
         ({"upstream": "SmaI:100", "downstream": "XhoI:174"}, "No SmaI site"),
         ({"upstream": "NdeI:144", "downstream": ""}, "both a 5' and a 3' site"),
         ({"upstream": "", "downstream": ""}, "both a 5' and a 3' site"),
@@ -597,9 +598,8 @@ def test_the_page_asks_for_the_extra_bases():
 
 def test_pairs_group_workable_pairs_by_the_protein_they_give(pt1):
     r = service.pairs(req(pt1))
-    assert (
-        r["workable"] == 16 and r["considered"] == 16 and r["total_groups"] == len(r["groups"]) == 4
-    )
+    assert r["workable"] == r["considered"] == 20  # touching pairs count too
+    assert r["total_groups"] == len(r["groups"]) == 5
     first = r["groups"][0]
     assert (first["before"], first["after"], first["n_tag"]) == ("MG", "", False)
     assert first["n_pairs"] == 6 and len(first["pairs"]) == 6
@@ -927,3 +927,36 @@ def test_the_page_grid_has_the_form_and_one_stage_so_the_result_stays_in_its_col
     html = static_text("index.html")
     stage = html[html.index('class="stage"') :]
     assert stage.index('id="result"') < stage.index('id="batch-box"'), "the result comes first"
+
+
+def test_the_fonts_are_served_from_the_package_and_licensed(server):
+    css = static_text("app.css")
+    for name in ("Geist-Variable.woff2", "GeistMono-Variable.woff2"):
+        assert f"/fonts/{name}" in css
+        resp, data = call(server, "GET", f"/fonts/{name}")
+        assert resp.status == 200 and resp.getheader("Content-Type") == "font/woff2"
+        assert data[:4] == b"wOF2" and 20_000 < len(data) < 500_000
+    assert "Open Font License" in (
+        resources.files("p2d_ui").joinpath("static", "fonts", "OFL.txt").read_text()
+    )
+    resp, _ = call(server, "GET", "/fonts/../app.py")
+    assert resp.status == 404
+
+
+def test_no_stylesheet_or_script_reaches_outside_this_computer():
+    for name in ("app.css", "app.js", "index.html"):
+        text = static_text(name)
+        assert "https://" not in text.replace("https://github.com", "") or name == "index.html"
+        assert "fonts.googleapis" not in text and "cdn." not in text
+
+
+def test_two_stop_codons_can_be_asked_for_and_other_counts_are_refused(pt1):
+    base = dict(upstream="NdeI:144", downstream="XhoI:174", cterm="stop")
+    one = service.design(req(pt1, **base))
+    two = service.design(req(pt1, **base, stop_codons=2))
+    assert one["insert_bp"] + 3 == two["insert_bp"] and "TAATGA" in two["insert_dna"]
+    assert "TAATGA" not in one["insert_dna"]
+    for bad in (0, 3, "x", True):
+        with pytest.raises(service.InputError, match="must be 1 or 2"):
+            service.design(req(pt1, **base, stop_codons=bad))
+    assert 'id="stop-codons"' in static_text("index.html")

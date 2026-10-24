@@ -60,6 +60,7 @@ def design(
     site: str = typer.Option("NdeI-XhoI", "--site", "-s"),
     vector_path: Path | None = typer.Option(None, "--vector", "-v", help="GenBank file"),
     host: str = typer.Option("ecoli_bl21", "--host"),
+    stop_codons: int = typer.Option(1, "--stop-codons", min=1, max=2, help="1 or 2 stop codons"),
     gb: Path | None = typer.Option(None, "--gb", help="write the assembled plasmid here"),
     fasta: Path | None = typer.Option(None, "--fasta", help="write the insert here"),
 ) -> None:
@@ -80,7 +81,7 @@ def design(
         v = load_bundled()
 
     plan = ConstructPlan.single_chain(payload, host=host)
-    a = assemble(design_insert(plan, v, v.sites[site], load_host(host)))
+    a = assemble(design_insert(plan, v, v.sites[site], load_host(host), stop_codons=stop_codons))
 
     typer.secho(f"\n{v.name} / {site}\n", bold=True)
     typer.echo(a.fusion_report())
@@ -118,6 +119,7 @@ def batch(
         "weighted_sample", "--strategy", help="weighted_sample or max_cai"
     ),
     seed: int | None = typer.Option(None, "--seed"),
+    stop_codons: int = typer.Option(1, "--stop-codons", min=1, max=2, help="1 or 2 stop codons"),
     clamp_5: int = typer.Option(6, "--clamp-5", help="extra bases outside the 5' site"),
     clamp_3: int = typer.Option(6, "--clamp-3", help="extra bases outside the 3' site"),
     n_part: list[str] = typer.Option([], "--n-part", help="tag or linker before the protein"),
@@ -171,6 +173,7 @@ def batch(
             cterm=cterm_value,
             strategy=strategy_value,
             seed=seed,
+            stop_codons=stop_codons,
             clamp_5=clamp_5,
             clamp_3=clamp_3,
             n_parts=parts[0],

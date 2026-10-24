@@ -151,8 +151,8 @@ def test_a_pcr_made_with_the_hand_designed_primers_agrees_with_p2d(puc19, gfp):
     host = p2d.load_host("ecoli_bl21")
     ours = p2d.assemble(p2d.design_insert(plan, puc19, site, host, cterm=p2d.CTerm.STOP))
     assert ours.ok and ours.protein == "MTMITPSLHA" + protein
-    # p2d ends with a double stop (TAATGA); the hand design has a single one
-    assert len(ours.seq) - len(made) == 3
+    # one stop codon, like the hand design, so the two plasmids are the same size
+    assert len(ours.seq) == len(made)
 
 
 # ------------------------------------------------------- Kozak start in a mammalian vector
@@ -281,4 +281,4 @@ def test_the_hand_designed_mek1_primers_agree_with_p2d(orange, mek1):
             )
         )
         assert ours.ok and ours.protein == protein
-        assert len(ours.seq) - len(made) == 3, "p2d's double stop against the hand design's one"
+        assert len(ours.seq) == len(made), "one stop codon, like the hand design"
