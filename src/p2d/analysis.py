@@ -31,7 +31,10 @@ from .vectorio import (
 
 _MCS = re.compile(r"multiple cloning site|\bmcs\b|polylinker|poly-linker", re.I)
 _NOT_EXPRESSED = re.compile(
-    r"resistance|\b(kan|amp|cam|tet|bla|cat|lac[iz]|rop|rep[a-z]?|ori)\w*\b|replication", re.I
+    r"resistance|lactamase|repressor|replication|aminoglycoside|phosphotransferase|"
+    r"chloramphenicol|kanamycin|ampicillin|tetracycline|neomycin|hygromycin|streptomycin|"
+    r"spectinomycin|gentamicin|\b(kan|amp|cam|tet|bla|cat|lac[iz]|rop|rep[a-z]?|ori)\w*\b",
+    re.I,
 )
 _SD = ("AGGAGG", "AGGAG", "GGAGG", "AGGA", "GGAG", "GAGG")
 
