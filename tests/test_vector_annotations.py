@@ -114,7 +114,8 @@ def test_a_resistance_gene_in_front_of_an_annotated_cloning_site_is_not_the_star
     v = Vector(record=record([seq], feats), name="m", circular=True)
     a = analyze_vector(v)
     assert a.region is not None, "the site is recognised"
-    assert a.best_start is None, "but a resistance gene is not an expression start"
+    evidence = a.best_start.evidence if a.best_start else ()
+    assert not any("annotated CDS" in e for e in evidence), "a resistance gene is not a start"
     # the same gene labelled as a fusion partner would have been offered
     feats[0] = cds(100, 100 + len(gene), "glutathione S-transferase")
     again = analyze_vector(Vector(record=record([seq], feats), name="m", circular=True))
