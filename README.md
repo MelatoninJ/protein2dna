@@ -381,3 +381,5 @@ MIT, see `LICENSE`. p2d has no compiled or non-permissive dependencies.
 * **Fonts**: the website ships Geist and Geist Mono (Vercel, SIL Open Font License 1.1, licence text
   in `src/p2d_ui/static/fonts/OFL.txt`), so it fetches nothing from the internet.
 * Depends on Biopython (Biopython License), PyYAML and Typer (MIT).
+
+The framework was built and revised together with Claude.
