@@ -6,10 +6,10 @@
   <meta name="color-scheme" content="light dark">
   <title>p2d | Protein to DNA, in your browser</title>
   <meta name="description" content="Design cloneable DNA for a protein in your own plasmid, and see the fusion protein and the sizes you will actually get.">
-  <link rel="stylesheet" href="app.css?v=3">
+  <link rel="stylesheet" href="app.css?v=4">
   <!-- bridge.js must run first: it answers the /api/ calls app.js makes. -->
-  <script src="bridge.js?v=3"></script>
-  <script src="app.js?v=3" defer></script>
+  <script src="bridge.js?v=4"></script>
+  <script src="app.js?v=4" defer></script>
 </head>
 <body>
   <a class="skip" href="#result">Skip to result</a>
@@ -217,9 +217,7 @@
         <p id="seed-help" class="help">Leave empty for a reproducible default. The same inputs always give the same DNA.</p>
       </div>
 
-      <div class="dock">
-        <button type="submit" class="primary" id="submit">Design insert</button>
-      </div>
+      <button type="submit" class="primary" id="submit">Design insert</button>
     </form>
 
     <div class="stage">
