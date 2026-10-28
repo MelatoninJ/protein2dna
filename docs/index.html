@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>p2d | Protein to DNA, in your browser</title>
+  <meta name="description" content="Design cloneable DNA for a protein in your own plasmid, and see the fusion protein and the sizes you will actually get.">
+  <link rel="stylesheet" href="app.css?v=2">
+  <!-- bridge.js must run first: it answers the /api/ calls app.js makes. -->
+  <script src="bridge.js?v=2"></script>
+  <script src="app.js?v=2" defer></script>
+</head>
+<body>
+  <a class="skip" href="#result">Skip to result</a>
+
+  <header class="top">
+    <div class="wrap top-row">
+      <a class="brand" href="/" aria-label="p2d home">p2d</a>
+      <p class="tagline">Protein to DNA, checked against your vector.</p>
+      <button type="button" class="ghost" id="theme-toggle" aria-label="Switch colour theme">Theme</button>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <form id="design-form" class="panel" novalidate>
+      <h1>Design an insert</h1>
+
+      <div class="field">
+        <div class="label-row">
+          <label for="protein">Protein sequence</label>
+          <button type="button" class="link" id="load-example">Load GFP example</button>
+        </div>
+        <textarea id="protein" name="protein" rows="7" spellcheck="false" autocomplete="off"
+                  aria-describedby="protein-help protein-count" placeholder="MKTAYIAKQR..."></textarea>
+        <div class="help-row">
+          <p id="protein-help" class="help">Amino acids or FASTA. Enter the protein as it is. The note under the sites says when to leave the first M out.</p>
+          <p id="protein-count" class="count" aria-live="polite">0 aa</p>
+        </div>
+        <p id="protein-error" class="field-error" role="alert" hidden></p>
+      </div>
+
+      <fieldset class="field">
+        <legend>Plasmid</legend>
+        <select id="vector" name="vector" aria-label="Plasmid"></select>
+        <div class="row">
+          <button type="button" class="secondary" id="upload-btn">Upload a file</button>
+          <button type="button" class="secondary" id="paste-btn" aria-expanded="false" aria-controls="paste-box">Paste a sequence</button>
+          <input type="file" id="vector-file" hidden accept=".gb,.gbk,.genbank,.gbff,.dna,.fa,.fasta,.fna,.txt">
+        </div>
+        <p class="help">GenBank (.gb), SnapGene (.dna) or FASTA. Files stay on this computer. A plasmid with no annotation can name its start codon in the FASTA header (see Paste a sequence).</p>
+        <div id="paste-box" class="paste" hidden>
+          <label for="paste-text">Plasmid DNA (FASTA, GenBank text or plain sequence)</label>
+          <textarea id="paste-text" rows="5" spellcheck="false" autocomplete="off" placeholder="&gt;my_plasmid start=5307 mcs=5305-5380&#10;TTGACAATTAATCATC..."></textarea>
+          <p class="help">For a FASTA plasmid without annotation, write the start codon in the header: <code>start=5307</code> is the position of the A of the ATG, and <code>mcs=5305-5380</code> (optional) is the cloning region. Positions count from 1 on the strand as written.</p>
+          <button type="button" class="secondary" id="paste-use">Use this plasmid</button>
+        </div>
+        <p id="vector-status" class="help" role="status" aria-live="polite"></p>
+
+        <div id="vector-card" class="vcard" hidden>
+          <p id="vector-summary" class="vsummary"></p>
+          <ul id="vector-warnings" class="vwarn"></ul>
+          <div class="field">
+            <label for="start">Translation starts at</label>
+            <select id="start" name="start"></select>
+          </div>
+          <div id="start-manual-box" class="field" hidden>
+            <label for="start-manual">ATG position (bp)</label>
+            <input id="start-manual" type="number" min="1" inputmode="numeric">
+          </div>
+          <p id="start-note" class="help"></p>
+          <details class="why" id="features-box">
+            <summary id="features-summary">Annotated features</summary>
+            <ul id="features-list"></ul>
+          </details>
+        </div>
+      </fieldset>
+
+      <fieldset class="field" id="sites-field" disabled>
+        <legend>Restriction sites</legend>
+        <div id="mcs" class="mcs" role="img" aria-label="Restriction sites along the plasmid"></div>
+        <p id="mcs-key" class="help"></p>
+        <div class="window">
+          <div class="field">
+            <label for="win-from">Show from (bp)</label>
+            <input id="win-from" type="number" min="1" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="win-to">to (bp)</label>
+            <input id="win-to" type="number" min="1" inputmode="numeric">
+          </div>
+          <button type="button" class="link" id="win-all">Whole plasmid</button>
+          <button type="button" class="link" id="win-orf">Expression region</button>
+          <button type="button" class="link" id="win-mcs" hidden>Annotated MCS</button>
+        </div>
+        <label class="check"><input type="checkbox" id="multi" checked> Include enzymes that cut more than once</label>
+        <div class="suggest">
+          <button type="button" class="secondary" id="suggest-btn">Suggest site pairs</button>
+          <div class="field">
+            <label for="ntag-filter">N-terminal tag</label>
+            <select id="ntag-filter">
+              <option value="any">Any</option>
+              <option value="keep">Keep the vector's</option>
+              <option value="remove">Remove it</option>
+            </select>
+          </div>
+        </div>
+        <div id="suggestions" class="suggestions" hidden aria-live="polite"></div>
+        <div class="pair">
+          <div class="field">
+            <label for="upstream">5' site</label>
+            <select id="upstream" name="upstream"></select>
+          </div>
+          <div class="field">
+            <label for="downstream">3' site</label>
+            <select id="downstream" name="downstream"></select>
+          </div>
+        </div>
+        <p id="pair-note" class="help" aria-live="polite"></p>
+        <details id="why" class="why" hidden>
+          <summary>Why are some sites unavailable?</summary>
+          <ul id="why-list"></ul>
+        </details>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Tags and linkers</legend>
+        <p class="help">Built onto your protein as extra residues. Leave them out if your sequence already carries them.</p>
+        <div class="pair">
+          <div class="field">
+            <label for="n-tag">N-terminal tag</label>
+            <select id="n-tag"></select>
+          </div>
+          <div class="field">
+            <label for="n-linker">Linker after it</label>
+            <select id="n-linker"></select>
+          </div>
+          <div class="field">
+            <label for="c-linker">Linker before the C-terminal tag</label>
+            <select id="c-linker"></select>
+          </div>
+          <div class="field">
+            <label for="c-tag">C-terminal tag</label>
+            <select id="c-tag"></select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>C-terminus</legend>
+        <div class="choices">
+          <label class="choice">
+            <input type="radio" name="cterm" value="stop" checked>
+            <b>Stop codon</b>
+            <span>The protein ends with your sequence. Nothing from the vector is read.</span>
+          </label>
+          <label class="choice" id="cterm-tag-choice">
+            <input type="radio" name="cterm" value="tag" id="cterm-tag">
+            <b>Read into the vector's own C-terminal tag</b>
+            <span id="cterm-tag-note">Adds the bases that put the tag in frame.</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="stop-codons">Stop codons</label>
+        <select id="stop-codons" name="stop_codons">
+          <option value="1" selected>One</option>
+          <option value="2">Two in a row</option>
+        </select>
+        <p class="help">One is the usual choice, the host's most used stop codon. Two are sometimes used to guard against read-through.</p>
+      </div>
+
+      <fieldset class="field">
+        <legend>Extra bases for ordering</legend>
+        <div class="pair">
+          <div class="field">
+            <label for="clamp-5">At the 5' end</label>
+            <input id="clamp-5" name="clamp_5" type="number" min="0" max="30" value="6" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="clamp-3">At the 3' end</label>
+            <input id="clamp-3" name="clamp_3" type="number" min="0" max="30" value="6" inputmode="numeric">
+          </div>
+        </div>
+        <p class="help">Enzymes cut poorly at the very end of a DNA fragment, so a synthetic fragment needs a few bases beyond each site. They are cut away and never reach your plasmid. Six on each side is a common guideline; some enzymes need fewer.</p>
+      </fieldset>
+
+      <div class="field">
+        <label for="host">Expression host</label>
+        <select id="host" name="host"></select>
+        <p id="host-note" class="help"></p>
+      </div>
+
+      <details class="field" id="limits-box">
+        <summary>GC and repeat limits</summary>
+        <p class="help">After choosing codons, p2d swaps synonymous codons to bring the DNA inside these limits, without ever adding a cloning site. The starting values are the host profile's defaults and have not been checked against a reference, so set the ones your synthesis or cloning work needs. Anything the protein forces stays and is reported.</p>
+        <div class="pair">
+          <div class="field"><label for="lim-gc-min">Overall GC from (%)</label><input id="lim-gc-min" type="number" min="0" max="100" inputmode="numeric"></div>
+          <div class="field"><label for="lim-gc-max">Overall GC to (%)</label><input id="lim-gc-max" type="number" min="0" max="100" inputmode="numeric"></div>
+          <div class="field"><label for="lim-window-size">Window size (bases)</label><input id="lim-window-size" type="number" min="10" max="500" inputmode="numeric"></div>
+          <div class="field"><label for="lim-repeat-max">Longest direct repeat (bases)</label><input id="lim-repeat-max" type="number" min="8" max="200" inputmode="numeric"></div>
+          <div class="field"><label for="lim-window-min">Window GC from (%)</label><input id="lim-window-min" type="number" min="0" max="100" inputmode="numeric"></div>
+          <div class="field"><label for="lim-window-max">Window GC to (%)</label><input id="lim-window-max" type="number" min="0" max="100" inputmode="numeric"></div>
+        </div>
+        <button type="button" class="secondary" id="lim-reset">Use the host's values</button>
+      </details>
+
+      <fieldset class="field">
+        <legend>Codon strategy</legend>
+        <div id="strategies" class="choices"></div>
+      </fieldset>
+
+      <div class="field">
+        <label for="seed">Seed</label>
+        <input id="seed" name="seed" type="number" inputmode="numeric" min="0" max="4294967295" placeholder="Optional" aria-describedby="seed-help">
+        <p id="seed-help" class="help">Leave empty for a reproducible default. The same inputs always give the same DNA.</p>
+      </div>
+
+      <button type="submit" class="primary" id="submit">Design insert</button>
+    </form>
+
+    <div class="stage">
+      <section id="result" class="result" tabindex="-1" aria-live="polite" aria-label="Design result"></section>
+      <details class="batch" id="batch-box">
+        <summary>Design many proteins at once</summary>
+        <p class="help">Uses the vector, start codon, sites, C-terminus, tags, host, limits and extra bases chosen above for every protein. Paste FASTA text, or load a file. A protein that cannot be cloned is reported by name and the rest carry on.</p>
+        <label for="batch-input">Proteins (FASTA, one record each)</label>
+        <textarea id="batch-input" rows="8" spellcheck="false" autocomplete="off" placeholder=">binder_1&#10;MKVL...&#10;>binder_2&#10;SKGE..."></textarea>
+        <div class="row">
+          <button type="button" class="secondary" id="batch-file-btn">Load a FASTA file</button>
+          <input id="batch-file" type="file" accept=".fa,.fasta,.faa,.txt" hidden>
+          <button type="button" class="primary" id="batch-btn">Design all</button>
+        </div>
+        <div id="batch-result" aria-live="polite"></div>
+      </details>
+    </div>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Runs entirely in this tab. Python itself is downloaded once and executed by your browser, so nothing you paste or upload is sent anywhere — there is no server to send it to.</p>
+  </footer>
+</body>
+</html>
