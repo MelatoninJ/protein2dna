@@ -23,7 +23,8 @@ echo "    $WHEEL"
 
 echo "==> static files"
 cp "$SRC/app.js" "$DOCS/app.js"
-cp "$SRC/app.css" "$DOCS/app.css"
+# fonts are served from a subfolder here, so /fonts/... must become fonts/...
+sed 's|url("/fonts/|url("fonts/|' "$SRC/app.css" > "$DOCS/app.css"
 mkdir -p "$DOCS/fonts" && cp "$SRC"/fonts/* "$DOCS/fonts/"
 
 python - "$SRC/index.html" "$DOCS/index.html" "$WHEEL" <<'PY'
