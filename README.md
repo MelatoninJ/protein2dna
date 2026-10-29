@@ -382,4 +382,4 @@ MIT, see `LICENSE`. p2d has no compiled or non-permissive dependencies.
   in `src/p2d_ui/static/fonts/OFL.txt`), so it fetches nothing from the internet.
 * Depends on Biopython (Biopython License), PyYAML and Typer (MIT).
 
-The web ui was built and revised together with Claude.
+The framework was built and revised together with Claude.
