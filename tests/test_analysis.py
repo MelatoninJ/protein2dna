@@ -1,10 +1,8 @@
-"""Reading custom plasmids and working out their start codon, cloning region and enzymes.
+"""Reading custom plasmids: start codon, cloning region and enzymes.
 
-Real vectors cannot live in the repository (their licences differ), so tests that
-need them look in the folder named by ``P2D_VECTOR_SAMPLES`` and skip when it is not
-set.  Everything else runs on synthetic plasmids, including a hand-built SnapGene
-``.dna`` file whose expression cassette lies on the reverse strand, like the real
-pET-28a(+).
+Tests that need real vectors read them from ``P2D_VECTOR_SAMPLES`` and skip without it. The rest
+use synthetic plasmids, including a hand-built SnapGene file with the cassette on the reverse
+strand, like pET-28a(+).
 """
 
 from __future__ import annotations
@@ -100,7 +98,7 @@ def test_snapgene_file_is_read_with_features(forward_dna):
         (b">a\n" + b"ACGTN" * 200, "x.fa", "ambiguous"),
     ],
 )
-def test_unusable_input_is_a_clean_error(data, filename, message):
+def test_unusable_input_is_clean_error(data, filename, message):
     with pytest.raises(vectorio.VectorFileError, match=message):
         vectorio.read_vector_bytes(data, filename)
 
@@ -148,14 +146,14 @@ def test_reverse_cassette_is_flipped_back_exactly(forward_dna, reverse_dna):
     assert spans(oriented) == spans(fwd), "features must land on the same bases after flipping"
 
 
-def test_an_antibiotic_marker_cannot_outvote_the_expression_cassette(reverse_dna):
+def test_antibiotic_marker_cannot_outvote_expression_cassette(reverse_dna):
     """KanR points the other way in the file; only expression features may decide."""
     rev = vectorio.read_vector_bytes(reverse_dna, "r.dna")
     plus, minus, _ = vectorio.orientation_votes(rev)
     assert minus > plus
 
 
-def test_promoter_sequence_alone_orients_a_bare_reverse_sequence():
+def test_promoter_sequence_alone_orients_bare_reverse_sequence():
     v = p2d.load_bundled()
     rc = str(Seq(v.seq).reverse_complement())
     bare = vectorio.read_vector_text(rc, "bare")
@@ -163,14 +161,14 @@ def test_promoter_sequence_alone_orients_a_bare_reverse_sequence():
     assert flipped and oriented.seq == v.seq and any("T7 promoter" in n for n in notes)
 
 
-def test_no_signals_means_no_flip_and_a_note():
+def test_no_signals_means_no_flip_and_note():
     seq = "ACGT" * 150
     v = vectorio.read_vector_text(seq, "plain")
     same, flipped, notes = vectorio.normalize_orientation(v)
     assert not flipped and "kept as given" in notes[0]
 
 
-def test_reverse_stored_plasmid_analyses_like_the_forward_one(forward_dna, reverse_dna):
+def test_reverse_stored_plasmid_analyses_like_forward_one(forward_dna, reverse_dna):
     a = analyze_vector(vectorio.read_vector_bytes(forward_dna, "f.dna"))
     b = analyze_vector(vectorio.read_vector_bytes(reverse_dna, "r.dna"))
     assert not a.flipped and b.flipped
@@ -182,7 +180,7 @@ def test_reverse_stored_plasmid_analyses_like_the_forward_one(forward_dna, rever
     assert sites(a.vector) == sites(b.vector), "the same sites at the same positions"
 
 
-def test_annotated_start_is_checked_against_the_sequence(forward_dna):
+def test_annotated_start_is_checked_against_sequence(forward_dna):
     """An annotation that points at a base that is not ATG must not become a start codon."""
     v = vectorio.read_vector_bytes(forward_dna, "f.dna")
     wrong = snapgene_bytes(
@@ -201,7 +199,7 @@ def test_annotated_start_is_checked_against_the_sequence(forward_dna):
     assert all(s.position != 88 for s in a.starts)
 
 
-def test_the_mcs_is_only_reported_when_annotated_never_guessed(ptest1_genbank):
+def test_mcs_is_only_reported_when_annotated_never_guessed(ptest1_genbank):
     custom = analyze_vector(vectorio.read_vector_text(ptest1_genbank, "custom"))  # no MCS feature
     assert custom.region is None
     assert custom.best_start.position == 87 and custom.best_start.confidence == "high"
@@ -210,26 +208,26 @@ def test_the_mcs_is_only_reported_when_annotated_never_guessed(ptest1_genbank):
     assert bare.region is None
 
 
-def test_bare_expression_vector_is_recognised_from_the_sequence_alone():
+def test_bare_vector_start_from_sequence():
     a = analyze_vector(vectorio.read_vector_text(p2d.load_bundled().seq, "bare"))
     best = a.best_start
     assert best.position == 87 and best.confidence == "high" and a.ready
     assert "NcoI" in best.evidence[0] and best.n_terminal.startswith("MGSSHHHHHH")
 
 
-def test_a_start_found_only_behind_a_promoter_is_a_guess():
+def test_start_found_only_behind_promoter_is_guess():
     a = analyze_vector(vectorio.read_vector_text(promoter_only_cassette(), "bare"))
     assert a.best_start.confidence == "medium" and "lac operator" in a.best_start.evidence[0]
     assert not a.ready and any("not certain" in w for w in a.warnings)
 
 
-def test_nothing_to_go_on_gives_warnings_not_a_crash():
+def test_nothing_to_go_on_gives_warnings_not_crash():
     a = analyze_vector(vectorio.read_vector_text("ACGTTGCA" * 100, "noise"))
     assert a.starts == [] and a.region is None and not a.ready
     assert any("start codon" in w for w in a.warnings)
 
 
-def test_confirm_uses_the_best_start_only_when_it_is_certain(forward_dna):
+def test_confirm_uses_best_start_only_when_it_is_certain(forward_dna):
     a = analyze_vector(vectorio.read_vector_bytes(forward_dna, "f.dna"))
     assert confirm(a).expression_start == 87
     guess = analyze_vector(vectorio.read_vector_text(promoter_only_cassette(), "bare"))
@@ -240,13 +238,13 @@ def test_confirm_uses_the_best_start_only_when_it_is_certain(forward_dna):
 
 
 @pytest.mark.parametrize("start", [5, -1, 10**6])
-def test_confirm_rejects_a_start_that_is_not_an_atg(forward_dna, start):
+def test_confirm_rejects_start_that_is_not_atg(forward_dna, start):
     a = analyze_vector(vectorio.read_vector_bytes(forward_dna, "f.dna"))
     with pytest.raises(ValueError, match="not an ATG"):
         confirm(a, start=start)
 
 
-def test_a_confirmed_custom_vector_designs_end_to_end(reverse_dna, host):
+def test_confirmed_custom_vector_designs_end_to_end(reverse_dna, host):
     """Upload (reverse-stored) -> analyse -> confirm -> pick two sites -> design -> verify."""
     v = confirm(analyze_vector(vectorio.read_vector_bytes(reverse_dna, "r.dna")))
     site = plan_cut(v, find_cut_site(v, "NdeI:144"), find_cut_site(v, "XhoI:174"))

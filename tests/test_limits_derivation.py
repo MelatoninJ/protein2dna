@@ -40,14 +40,14 @@ def genome(n=600, seed=1, extra=()):
     return SeqRecord(Seq(seq), id="FAKE", features=feats)
 
 
-def test_a_run_found_in_too_few_genes_does_not_set_the_limit():
+def test_run_found_in_too_few_genes_does_not_set_limit():
     odd = "ATG" + "A" * 30 + "GC" * 60 + "TAA"
     limits = bl.derive(bl.coding_sequences(genome(extra=[odd])))
     plain = bl.derive(bl.coding_sequences(genome()))
     assert limits["homopolymer"]["A"] == plain["homopolymer"]["A"] < 30, "one gene is not enough"
 
 
-def test_a_run_found_in_three_genes_does_set_the_limit():
+def test_run_found_in_three_genes_does_set_limit():
     rich = "ATG" + "A" * 15 + "GC" * 66 + "TAA"
     limits = bl.derive(bl.coding_sequences(genome(extra=[rich] * 3)))
     assert limits["homopolymer"]["A"] == 15
@@ -55,7 +55,7 @@ def test_a_run_found_in_three_genes_does_set_the_limit():
     assert two["homopolymer"]["A"] < 15
 
 
-def test_gc_ranges_are_the_central_99_percent():
+def test_gc_ranges_are_central_99_percent():
     d = bl.derive(bl.coding_sequences(genome()))
     assert d["n_cds"] == 600 and 0.35 < d["gc"][0] < 0.5 < d["gc"][1] < 0.65
     assert d["window"][0] < d["gc"][0] and d["window"][1] > d["gc"][1], (
@@ -75,12 +75,12 @@ def test_only_clean_coding_sequences_are_used():
     assert got == [ok]
 
 
-def test_too_small_a_record_is_not_taken_for_a_genome():
+def test_too_small_record_is_not_taken_for_genome():
     with pytest.raises(ValueError, match="not a genome"):
         bl.derive(bl.coding_sequences(genome(n=100)))
 
 
-def test_the_marker_splice_is_idempotent_and_keeps_what_comes_before():
+def test_marker_splice_idempotent():
     text = "name: x\n\n" + bl.MARKER + "\nold: 1\n"
     block = bl.render(
         "ecoli_bl21", "NC_1.1", "Test genome", bl.derive(bl.coding_sequences(genome()))
@@ -106,7 +106,7 @@ def test_every_limit_names_where_it_comes_from(slug):
     assert bl.MARKER in text and "placeholder" not in text.lower()
 
 
-def test_the_e_coli_rare_codons_are_the_ones_rosetta_2_supplies():
+def test_e_coli_rare_codons_are_ones_rosetta_2_supplies():
     assert set(profile("ecoli_bl21")["rare_codons"]) == {
         "AGA",
         "AGG",
@@ -118,13 +118,13 @@ def test_the_e_coli_rare_codons_are_the_ones_rosetta_2_supplies():
     }
 
 
-def test_the_internal_sd_motif_is_listed_for_both_bacteria_and_chi_only_for_e_coli():
+def test_sd_for_both_bacteria_chi_only_for_ecoli():
     patterns = {s: {m["pattern"] for m in profile(s)["forbidden_motifs"]} for s in BACTERIA}
     assert "AGGAGG" in patterns["ecoli_bl21"] and "AGGAGG" in patterns["bsubtilis"]
     assert "GCTGGTGG" in patterns["ecoli_bl21"] and "GCTGGTGG" not in patterns["bsubtilis"]
 
 
-def test_the_limits_are_not_stricter_than_nature():
+def test_limits_are_not_stricter_than_nature():
     """The old defaults forbade runs that the host's own genes contain thousands of times."""
     h = p2d.load_host("ecoli_bl21")
     assert min(h.homopolymer_max.values()) >= 7 and h.homopolymer_max["A"] >= 9
@@ -133,7 +133,7 @@ def test_the_limits_are_not_stricter_than_nature():
 
 
 @pytest.mark.parametrize("slug", BACTERIA)
-def test_the_shipped_numbers_are_what_the_genome_gives(slug):
+def test_shipped_numbers_are_what_genome_gives(slug):
     path = SAMPLES / "genomes" / f"{bl.GENOMES[slug]}.gb" if SAMPLES else None
     if not path or not path.is_file():
         pytest.skip(f"{bl.GENOMES[slug]}.gb not available (set P2D_VECTOR_SAMPLES)")

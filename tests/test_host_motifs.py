@@ -1,8 +1,7 @@
-"""Host preferences (internal Shine-Dalgarno, Chi, homopolymer runs) as soft constraints.
+"""Host preferences (internal Shine-Dalgarno, Chi, homopolymers) as soft constraints.
 
-They are avoided whenever a path exists and never make a design fail; whatever stays is
-named in a warning.  The check that nothing is violated *silently* runs against an
-independent regex oracle.
+They are avoided when a path exists and never fail a design; whatever remains is named in a
+warning. An independent regex oracle checks that nothing is violated silently.
 """
 
 import re
@@ -44,7 +43,7 @@ def translate(dna):
     return str(Seq(dna).translate())
 
 
-def test_soft_motifs_come_from_the_profile(host):
+def test_soft_motifs_come_from_profile(host):
     soft = host.soft_motifs()
     assert soft["AGGAGG"].startswith("internal Shine-Dalgarno")
     assert soft["GCTGGTGG"].startswith("Chi site")
@@ -52,7 +51,7 @@ def test_soft_motifs_come_from_the_profile(host):
     assert all(reason for reason in soft.values())
 
 
-def test_a_profile_without_limits_asks_for_nothing(tmp_path):
+def test_profile_without_limits_asks_for_nothing(tmp_path):
     bare = tmp_path / "bare.yaml"
     bare.write_text(
         "name: Bare\nslug: bare\ncodon_usage:\n  verified: true\n  table: {M: {ATG: 1.0}}\n"
@@ -60,7 +59,7 @@ def test_a_profile_without_limits_asks_for_nothing(tmp_path):
     assert p2d.load_host(bare).soft_motifs() == {}
 
 
-def test_a_custom_profile_is_honoured(tmp_path):
+def test_custom_profile_is_honoured(tmp_path):
     custom = tmp_path / "custom.yaml"
     custom.write_text(
         "name: Custom\nslug: custom\ncodon_usage:\n  verified: true\n  table: {M: {ATG: 1.0}}\n"
@@ -101,7 +100,7 @@ def test_homopolymer_runs_are_broken_up(host, strategy):
         assert free, "premise: without the preference the runs are there"
 
 
-def test_the_price_of_a_preference_is_visible(host):
+def test_price_of_preference_is_visible(host):
     aa = "K" * 10 + "F" * 10
     free = optimize_coding(req(host, aa))
     soft = optimize_coding(req(host, aa, soft_forbidden=host.soft_motifs()))
@@ -109,7 +108,7 @@ def test_the_price_of_a_preference_is_visible(host):
     assert soft.metrics["soft_kept"] == 0
 
 
-def test_a_site_across_the_junction_is_avoided_when_a_path_exists(host):
+def test_site_across_junction_is_avoided_when_path_exists(host):
     soft = {"AGGAGCGC": "test motif"}  # AGGAG + best Arg codon CGC
     naive = optimize_coding(req(host, "R", prefix="AGGAG"))
     assert naive.dna == "CGC"
@@ -118,7 +117,7 @@ def test_a_site_across_the_junction_is_avoided_when_a_path_exists(host):
     assert region_hits("AGGAG", r.dna, "", list(soft)) == set()
 
 
-def test_an_unavoidable_preference_warns_instead_of_failing(host):
+def test_unavoidable_preference_warns_instead_of_failing(host):
     r = optimize_coding(req(host, "AMA", soft_forbidden={"ATG": "test preference"}))
     assert r.ok and r.dna[3:6] == "ATG"
     (w,) = kept(r)
@@ -134,7 +133,7 @@ def test_only_preferences_that_really_remain_are_reported(host):
     assert [w.message.split(" ")[0] for w in kept(r)] == ["ATG"]
 
 
-def test_when_preferences_conflict_the_earlier_ones_win(host):
+def test_when_preferences_conflict_earlier_ones_win(host):
     leucine = ["TTA", "TTG", "CTC", "CTT", "CTA", "CTG"]  # every Leu codon: all cannot hold
     soft = {p: f"prefer no {p}" for p in leucine}
     r = optimize_coding(req(host, "L", soft_forbidden=soft))
@@ -152,7 +151,7 @@ def test_cloning_sites_always_beat_preferences(host):
     assert r.ok and r.dna == "CTT" and len(kept(r)) == 1
 
 
-def test_an_unavoidable_cloning_site_is_still_the_reported_error(host):
+def test_unavoidable_cloning_site_is_still_reported_error(host):
     r = optimize_coding(req(host, "AMA", forbidden=["ATG"], soft_forbidden={"GCG": "pref"}))
     assert not r.ok
     (issue,) = [i for i in r.issues if i.code == "unavoidable_site"]
@@ -182,7 +181,7 @@ def test_same_seed_same_dna_with_preferences(host):
     assert a.dna == b.dna
 
 
-def test_a_thousand_residues_stay_fast(host):
+def test_thousand_residues_stay_fast(host):
     aa = (ALL_20 * 50)[:1000]
     t = time.time()
     r = optimize_coding(
@@ -230,7 +229,7 @@ def test_property_no_silent_violation(host, aa, strategy, seed, prefix, suffix):
             assert pattern in named, f"{pattern} is in the DNA but was not reported"
 
 
-def test_design_insert_applies_the_host_preferences():
+def test_design_insert_applies_host_preferences():
     plan = p2d.ConstructPlan.single_chain("K" * 12 + "F" * 12 + "E" * 6)
     v = p2d.load_bundled()
     a = p2d.assemble(p2d.design_insert(plan, v, v.sites["NdeI-XhoI"], p2d.load_host("ecoli_bl21")))
@@ -240,7 +239,7 @@ def test_design_insert_applies_the_host_preferences():
     assert a.design.metrics["soft_kept"] == 0
 
 
-def test_real_protein_is_unchanged_by_the_preferences():
+def test_real_protein_is_unchanged_by_preferences():
     """Golden proteins are protein-level, so the codon change must not touch them."""
     a = p2d.run("KVFLDWINEAYQRGTRVLAEMAKRGDEFVKRLIAEGHDPFEVLKELGYSE")
     assert a.ok and a.protein.startswith("MGSSHHHHHHSSGLVPRGSHM" + "KVFLDW")

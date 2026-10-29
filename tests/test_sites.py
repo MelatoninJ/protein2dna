@@ -1,7 +1,6 @@
-"""Choosing two individual restriction sites, and the numbers that follow from the choice.
+"""Choosing two restriction sites, and the sizes and digest that follow.
 
-The size and digest arithmetic is checked against Biopython's own cut positions rather
-than against the code under test, so a wrong cut offset cannot hide.
+Sizes and digests are checked against Biopython's cut positions, not the code under test.
 """
 
 from __future__ import annotations
@@ -101,7 +100,7 @@ def test_blunt_type_iis_and_short_sites_are_left_out(vector):
     assert all(len(c.site) >= 6 for c in list_cut_sites(vector))
 
 
-def test_a_site_in_several_places_is_numbered(vector):
+def test_site_in_several_places_is_numbered(vector):
     twice = with_second_site(vector, "CTCGAG", 400)
     xho = [c for c in list_cut_sites(twice) if c.enzyme == "XhoI"]
     assert [(c.start, c.number, c.count) for c in xho] == [(174, 1, 2), (400, 2, 2)]
@@ -132,27 +131,27 @@ def test_impossible_pairs_say_why(vector, up, down, message):
         plan_cut(vector, find_cut_site(vector, up), find_cut_site(vector, down))
 
 
-def test_a_start_codon_is_required():
+def test_start_codon_is_required():
     seq = p2d.load_bundled().seq
     bare = Vector.from_sequence(seq, name="bare")
     with pytest.raises(ValueError, match="no confirmed start codon"):
         plan_cut(bare, find_cut_site(bare, "NdeI:144"), find_cut_site(bare, "XhoI:174"))
 
 
-def test_a_site_before_the_start_codon_is_refused(vector):
+def test_site_before_start_codon_is_refused(vector):
     moved = Vector.from_sequence(vector.seq, name="moved")
     moved.expression_start = 160  # not an ATG context, but the check order is what matters
     with pytest.raises(ValueError, match="lies before the start codon"):
         plan_cut(moved, find_cut_site(moved, "BamHI:150"), find_cut_site(moved, "XhoI:174"))
 
 
-def test_the_site_holding_the_start_codon_may_be_the_5prime_site(vector):
+def test_site_holding_start_codon_may_be_5prime_site(vector):
     site = plan_cut(vector, find_cut_site(vector, "NcoI:85"), find_cut_site(vector, "XhoI:174"))
     assert site.start_source is StartSource.UPSTREAM_SITE and site.start_offset_in_site == 2
     assert (site.upstream_pos, site.downstream_pos) == (85, 174)
 
 
-def test_a_stop_codon_between_start_and_site_is_refused(vector):
+def test_stop_codon_between_start_and_site_is_refused(vector):
     seq = vector.seq[:120] + "TAA" + vector.seq[123:]  # a stop in frame inside the His tag
     v = Vector.from_sequence(seq, name="stopped")
     v.expression_start = 87
@@ -160,7 +159,7 @@ def test_a_stop_codon_between_start_and_site_is_refused(vector):
         plan_cut(v, find_cut_site(v, "BamHI:150"), find_cut_site(v, "XhoI:174"))
 
 
-def test_a_second_site_inside_the_replaced_piece_is_harmless(vector, host):
+def test_second_site_inside_replaced_piece_is_harmless(vector, host):
     """XhoI also cuts at 162, between BamHI and the chosen XhoI at 174: it is replaced."""
     v = with_second_site(vector, "CTCGAG", 162)
     assert [c.start for c in list_cut_sites(v) if c.enzyme == "XhoI"] == [162, 174]
@@ -172,14 +171,14 @@ def test_a_second_site_inside_the_replaced_piece_is_harmless(vector, host):
     assert real == a.protein
 
 
-def test_a_second_site_in_the_kept_backbone_is_refused(vector):
+def test_second_site_in_kept_backbone_is_refused(vector):
     """Choosing the XhoI at 162 leaves the one at 174 in the backbone: a digest cuts there too."""
     v = with_second_site(vector, "CTCGAG", 162)
     with pytest.raises(ValueError, match=r"also cut the backbone you keep \(XhoI at 175\)"):
         plan_cut(v, find_cut_site(v, "BamHI:150"), find_cut_site(v, "XhoI:162"))
 
 
-def test_a_distant_second_site_is_refused_for_either_enzyme(vector):
+def test_distant_second_site_is_refused_for_either_enzyme(vector):
     far = with_second_site(vector, "GGATCC", 700)  # a second BamHI, far away
     with pytest.raises(ValueError, match=r"BamHI at 701"):
         plan_cut(far, find_cut_site(far, "BamHI:150"), find_cut_site(far, "XhoI:174"))
@@ -221,7 +220,7 @@ def test_sizes_add_up_and_match_biopython(vector, host, up, down):
     assert sorted(f["length"] for f in r["digest_check"]["final"]) == bio_fragments(a.seq, names)
 
 
-def test_digest_roles_name_the_backbone_and_the_insert(vector, host):
+def test_digest_roles_name_backbone_and_insert(vector, host):
     r = construct_report(design(vector, host, "BamHI:150", "XhoI:174"))
     roles = {f["role"]: f["length"] for f in r["digest_check"]["vector"]}
     assert roles == {"backbone (kept)": 1125, "replaced piece": 24}
@@ -231,14 +230,14 @@ def test_digest_roles_name_the_backbone_and_the_insert(vector, host):
     )
 
 
-def test_the_insert_parts_rebuild_the_insert(vector, host):
+def test_insert_parts_rebuild_insert(vector, host):
     a = design(vector, host, "NdeI:144", "EcoRI:168")
     parts = construct_report(a)["insert_parts"]
     assert sum(len(p["dna"]) if "dna" in p else p["bp"] for p in parts) == len(a.insert_dna)
     assert parts[0]["dna"] == "CATATG" and parts[-1]["dna"] == "GAATTC"
 
 
-def test_frame_pads_are_reported_when_the_sites_need_them(vector, host):
+def test_frame_pads_are_reported_when_sites_need_them(vector, host):
     shifted = Vector.from_sequence(vector.seq[:162] + "A" + vector.seq[162:], name="shift1")
     shifted.expression_start = 87
     a = design(
@@ -310,7 +309,7 @@ def test_real_pet28a_known_products(host):
     assert bam.protein.startswith("MGSSHHHHHHSSGLVPRGSHMASMTGGQQMGRGS" + PAYLOAD)
 
 
-def test_real_pet28a_c_terminus_is_a_choice(host):
+def test_real_pet28a_c_terminus_is_choice(host):
     """XhoI and the His6 tag are one base off the start codon's frame in pET-28a(+)."""
     v = real("pET-28a_plus.dna")
     keep = design(v, host, "BamHI:5166", "XhoI:5206")  # default: the vector's own frame
@@ -329,7 +328,7 @@ def test_real_pet28a_c_terminus_is_a_choice(host):
         assert construct_report(a)["sizes"]["plasmid_bp"] == len(a.seq)
 
 
-def test_tag_mode_reads_the_tag_in_frame_even_when_the_frame_is_shifted(vector, host):
+def test_tag_mode_in_shifted_frame(vector, host):
     shifted = Vector.from_sequence(vector.seq[:162] + "A" + vector.seq[162:], name="shift1")
     shifted.expression_start = 87
     xho = next(c.id for c in list_cut_sites(shifted) if c.enzyme == "XhoI")
@@ -340,7 +339,7 @@ def test_tag_mode_reads_the_tag_in_frame_even_when_the_frame_is_shifted(vector, 
     assert tag.design.pad_down != default.design.pad_down
 
 
-def test_stop_mode_ends_the_protein_and_needs_no_downstream_pad(vector, host):
+def test_stop_mode_ends_protein_and_needs_no_downstream_pad(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174", cterm=p2d.CTerm.STOP)
     assert a.ok and a.protein.endswith(PAYLOAD) and a.design.pad_down == ""
     assert a.design.stop_in_insert and a.design.stop_dna == "TAA"
@@ -366,13 +365,13 @@ def test_two_stop_codons_are_available_on_request(vector, host):
         build(3)
 
 
-def test_the_stop_codons_are_the_hosts_most_used_in_order(host):
+def test_stop_codons_are_hosts_most_used_in_order(host):
     assert host.stop_codons(1) == "TAA" and host.stop_codons(2) == "TAATGA"
     other = p2d.load_host("hsapiens")
     assert other.stop_codons(1) == max(other.stop_usage, key=other.stop_usage.get)
 
 
-def test_tag_mode_without_a_tag_says_so(vector, host):
+def test_tag_mode_without_tag_says_so(vector, host):
     seq = vector.seq[:180] + "GCCGCCGCCGCCGCCGCC" + vector.seq[198:]  # the His6 codons become Ala
     v = Vector.from_sequence(seq, name="notag")
     v.expression_start = 87
@@ -380,7 +379,7 @@ def test_tag_mode_without_a_tag_says_so(vector, host):
         design(v, host, "NdeI:144", "XhoI:174", cterm=p2d.CTerm.TAG)
 
 
-def test_find_cterm_tag_reports_where_the_tag_starts(vector):
+def test_find_cterm_tag_reports_where_tag_starts(vector):
     from p2d.frame import find_cterm_tag
 
     tag = find_cterm_tag(vector, 180)
@@ -413,7 +412,7 @@ def test_every_known_tag_is_found_in_any_frame(name, aa, frame):
     assert found.position == 20 + frame + len(dna("LEAAA"))
 
 
-def test_the_earliest_tag_wins_and_a_stop_hides_what_follows():
+def test_earliest_tag_wins_and_stop_hides_what_follows():
     from p2d.frame import find_cterm_tag
 
     both = "A" * 10 + dna("GSDYKDDDDKGSHHHHHH") + "TAA" + "C" * 12
@@ -422,7 +421,7 @@ def test_the_earliest_tag_wins_and_a_stop_hides_what_follows():
     assert find_cterm_tag(Vector.from_sequence(hidden, name="t"), 10) is None
 
 
-def test_a_his_run_is_reported_whole():
+def test_his_run_is_reported_whole():
     from p2d.frame import find_cterm_tag
 
     seq = "A" * 10 + dna("GSHHHHHHHH") + "TAA" + "C" * 12
@@ -440,7 +439,7 @@ def test_touching_sites_are_allowed_and_warned_about(vector, host, up, down):
     assert real == a.protein, "the protein from the finished plasmid is the one reported"
 
 
-def test_sites_with_a_spacer_carry_no_adjacency_warning(vector, host):
+def test_sites_with_spacer_carry_no_adjacency_warning(vector, host):
     codes = {i.code for i in design(vector, host, "NdeI:144", "XhoI:174").issues}
     assert "sites_adjacent" not in codes
 
@@ -458,7 +457,7 @@ def test_sites_that_share_bases_are_still_refused():
         plan_cut(v, sites["SphI"], sites["NsiI"])
 
 
-def test_a_touching_pair_ranks_below_an_equal_one_with_a_spacer(vector, host):
+def test_touching_pair_ranks_below_equal_one_with_spacer(vector, host):
     from p2d.recommend import rank_pairs
 
     options, _ = rank_pairs(vector, PAYLOAD, host)
@@ -480,13 +479,13 @@ def _stop_issue(vector, host):
     return next((i for i in a.issues if i.code == "stop_context"), None)
 
 
-def test_the_base_after_the_stop_is_reported_with_its_source(vector, host):
+def test_base_after_stop_is_reported_with_its_source(vector, host):
     issue = _stop_issue(vector, host)
     assert issue and issue.severity.value == "info"
     assert "TAAC" in issue.message and "Poole" in issue.message and "TAAT" in issue.message
 
 
-def test_a_strong_context_is_not_flagged(vector, tmp_path):
+def test_strong_context_is_not_flagged(vector, tmp_path):
     text = (Path(p2d.__file__).parent / "hosts" / "ecoli_bl21.yaml").read_text()
     assert "strong: [TAAT]" in text
     other = tmp_path / "other.yaml"

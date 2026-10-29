@@ -28,7 +28,7 @@ def load(slug):
         return p2d.load_host(slug)
 
 
-def test_the_expected_hosts_ship():
+def test_expected_hosts_ship():
     assert {"ecoli_bl21", "hsapiens", "mmusculus", "scerevisiae", "bsubtilis"} <= set(HOSTS)
     assert set(HOSTS) == set(tool.HOSTS), "tools/build_codon_table.py knows every profile"
 
@@ -110,7 +110,7 @@ class TestEveryHost:
 
 
 @pytest.mark.parametrize("slug", [s for s in HOSTS if s != "ecoli_bl21"])
-def test_rare_codons_are_derived_from_the_table_for_generated_hosts(slug):
+def test_rare_codons_derived_from_table(slug):
     h = load(slug)
     assert sorted(h.rare_codons) == tool.rare_codons(slug)
     for codon in h.rare_codons:
@@ -123,7 +123,7 @@ def test_hosts_prefer_different_codons():
     assert len(set(best.values())) >= 4, best
 
 
-def test_mammalian_hosts_avoid_polyadenylation_and_au_rich_motifs():
+def test_mammalian_motifs():
     for slug in ("hsapiens", "mmusculus"):
         h = load(slug)
         patterns = set(h.soft_motifs())
@@ -164,7 +164,7 @@ def test_profiles_say_what_is_and_is_not_cited():
         assert re.search(r"Only the codon table .*cited source", text.replace("\n# ", " "), re.S)
 
 
-def test_bacteria_are_released_and_every_other_host_is_in_development():
+def test_host_status():
     released = {s for s in HOSTS if load(s).status == "released"}
     assert released == {"ecoli_bl21", "bsubtilis"}
     assert all(load(s).status == "development" for s in set(HOSTS) - released)
@@ -172,13 +172,13 @@ def test_bacteria_are_released_and_every_other_host_is_in_development():
         assert load(slug).status == tool.STATUS[slug], slug
 
 
-def test_a_profile_without_a_status_counts_as_released(tmp_path):
+def test_profile_without_status_counts_as_released(tmp_path):
     path = tmp_path / "mine.yaml"
     path.write_text((Path(p2d.__file__).parent / "hosts" / "ecoli_bl21.yaml").read_text())
     assert p2d.load_host(path).status == "released"
 
 
-def test_a_design_for_a_host_in_development_says_so_and_still_works():
+def test_development_host_warns_but_works():
     vector = p2d.load_bundled()
     for slug, warned in (("ecoli_bl21", False), ("bsubtilis", False), ("hsapiens", True)):
         a = p2d.run("KVFLDWINEAYQRGTRVLAEM", host=slug, vector=vector, site="NdeI-XhoI")
@@ -186,7 +186,7 @@ def test_a_design_for_a_host_in_development_says_so_and_still_works():
         assert ("host_in_development" in codes) is warned and a.ok, slug
 
 
-def test_the_command_line_marks_hosts_in_development():
+def test_command_line_marks_hosts_in_development():
     from typer.testing import CliRunner
 
     from p2d.cli import app

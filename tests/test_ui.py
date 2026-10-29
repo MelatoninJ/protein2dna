@@ -46,7 +46,7 @@ def test_parse_plain_and_fasta_and_numbered():
     assert service.parse_protein("MKTA*") == "MKTA"
 
 
-def test_parse_uses_only_the_first_fasta_record():
+def test_parse_uses_only_first_fasta_record():
     assert service.parse_protein(">a\nMKTA\n>b\nGGGG\n") == "MKTA"
 
 
@@ -90,7 +90,7 @@ def test_bundled_vector_loads_with_its_analysis():
     assert all(f["type"] != "source" for f in r["features"])
 
 
-def test_uploaded_snapgene_file_and_its_reverse_give_the_same_plasmid():
+def test_snapgene_upload_and_reverse_agree():
     v = p2d.load_bundled()
     fwd = snapgene_bytes(v.seq, ptest1_features(v))
     rc = snapgene_bytes(
@@ -113,7 +113,7 @@ def test_pasted_text_loads_and_is_labelled():
     assert not any("not certain" in w for w in r["warnings"])
 
 
-def test_the_users_own_vector_folder_is_offered_but_only_by_listed_name(tmp_path, monkeypatch):
+def test_vector_folder_only_by_listed_name(tmp_path, monkeypatch):
     monkeypatch.setenv("P2D_VECTOR_DIR", str(tmp_path))
     text = resources.files("p2d.data").joinpath("pTEST1.gb").read_text()
     (tmp_path / "lab_plasmid.gb").write_text(text)
@@ -142,7 +142,7 @@ def test_unusable_vectors_are_clean_input_errors(request_, message):
         service.load_vector(request_)
 
 
-def test_a_plasmid_that_is_no_longer_loaded_says_so():
+def test_plasmid_that_is_no_longer_loaded_says_so():
     with pytest.raises(service.InputError, match="no longer loaded"):
         service.sites({"vector_id": "gone"})
 
@@ -155,7 +155,7 @@ def test_old_plasmids_are_forgotten_but_recent_ones_survive():
         service.sites({"vector_id": first})
 
 
-def test_sites_are_listed_by_position_with_a_default_window(pt1):
+def test_sites_are_listed_by_position_with_default_window(pt1):
     r = service.sites(req(pt1))
     assert [s["id"] for s in r["sites"]] == [
         "NcoI:85",
@@ -182,7 +182,7 @@ def test_five_prime_verdicts_say_why_not(pt1):
     assert not rows["XhoI:174"]["ok"] and "downstream" in rows["XhoI:174"]["reason"]
 
 
-def test_without_a_confirmed_start_nothing_is_usable_yet(pt1):
+def test_without_confirmed_start_nothing_is_usable_yet(pt1):
     r = service.sites({"vector_id": pt1[0]})
     assert r["start"] is None and r["window"] == {"start": 0, "end": 1149}
     assert all(not s["as_upstream"]["ok"] for s in r["sites"])
@@ -198,7 +198,7 @@ def test_three_prime_verdicts_follow_direction_spacing_and_tag(pt1):
     assert down["XhoI:174"]["has_tag"] is True
 
 
-def test_a_site_the_protein_forces_is_unusable_with_the_reason(pt1, monkeypatch):
+def test_site_protein_forces_is_unusable_with_reason(pt1, monkeypatch):
     monkeypatch.setattr(
         service, "_protein_conflict", lambda p, site, h: "forced" if site == "GAATTC" else None
     )
@@ -212,7 +212,7 @@ def test_a_site_the_protein_forces_is_unusable_with_the_reason(pt1, monkeypatch)
     }
 
 
-def test_protein_conflict_message_names_the_residue():
+def test_protein_conflict_message_names_residue():
     assert service._protein_conflict("AMA", "ATG", "ecoli_bl21") == (
         "Your protein forces the ATG site near residue 2; no synonymous codons avoid it."
     )
@@ -230,7 +230,7 @@ def test_multi_cutters_can_be_hidden_or_shown():
     assert all(s["count"] == 1 for s in once) and not any(s["enzyme"] == "XhoI" for s in once)
 
 
-def test_the_window_can_be_chosen_and_is_validated(pt1):
+def test_window_can_be_chosen_and_is_validated(pt1):
     r = service.sites(req(pt1, window=[149, 157]))
     assert [s["id"] for s in r["sites"]] == ["BamHI:150"]
     for bad, message in [
@@ -245,12 +245,12 @@ def test_the_window_can_be_chosen_and_is_validated(pt1):
 @pytest.mark.parametrize(
     "start, message", [("x", "whole number"), (5, "not an ATG"), (10**6, "not an ATG")]
 )
-def test_a_start_that_is_not_an_atg_is_refused(pt1, start, message):
+def test_start_that_is_not_atg_is_refused(pt1, start, message):
     with pytest.raises(service.InputError, match=message):
         service.sites({"vector_id": pt1[0], "start": start})
 
 
-def test_design_returns_everything_the_ui_renders(pt1):
+def test_design_returns_everything_ui_renders(pt1):
     r = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174"))
     assert r["ok"] and r["upstream"] == "NdeI at 145" and r["downstream"] == "XhoI at 175"
     payload_seg = next(s for s in r["segments"] if s["kind"] == "payload")
@@ -264,7 +264,7 @@ def test_design_returns_everything_the_ui_renders(pt1):
     assert r["report"]["protein"]["residues"] == len(r["protein"])
 
 
-def test_the_genbank_output_keeps_the_vectors_annotations(pt1):
+def test_genbank_output_keeps_vectors_annotations(pt1):
     r = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174"))
     rec = SeqIO.read(StringIO(r["genbank"]), "genbank")
     assert len(rec.seq) == r["plasmid_bp"]
@@ -278,7 +278,7 @@ def test_the_genbank_output_keeps_the_vectors_annotations(pt1):
     assert r["fasta"].startswith(">")
 
 
-def test_c_terminus_choice_changes_the_protein_and_the_insert(pt1):
+def test_c_terminus_choice_changes_protein_and_insert(pt1):
     stop = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", cterm="stop"))
     tag = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", cterm="tag"))
     assert stop["protein"].endswith(PEPTIDE) and stop["insert_dna"].endswith("TAACTCGAG")
@@ -320,7 +320,7 @@ def test_bad_choices_are_clean_input_errors(pt1, patch, message):
         service.design(req(pt1, **patch))
 
 
-def test_a_pair_that_would_cut_the_backbone_is_refused_with_the_position():
+def test_pair_that_would_cut_backbone_is_refused_with_position():
     seq = p2d.load_bundled().seq
     r = service.load_vector({"text": seq[:700] + "GGATCC" + seq[706:], "filename": "dup"})
     args = {"vector_id": r["id"], "start": 87, "protein": PEPTIDE, "upstream": "BamHI:150"}
@@ -328,7 +328,7 @@ def test_a_pair_that_would_cut_the_backbone_is_refused_with_the_position():
         service.design({**args, "downstream": "XhoI:174"})
 
 
-def test_a_reverse_stored_upload_designs_the_same_construct():
+def test_reverse_stored_upload_designs_same_construct():
     v = p2d.load_bundled()
     fwd = service.load_vector(
         {"filename": "f.dna", "data_b64": b64(snapgene_bytes(v.seq, ptest1_features(v)))}
@@ -353,7 +353,7 @@ def test_a_reverse_stored_upload_designs_the_same_construct():
     assert out[0]["report"]["sizes"] == out[1]["report"]["sizes"]
 
 
-def test_real_pet28a_through_the_service():
+def test_real_pet28a_through_service():
     if SAMPLES is None or not (SAMPLES / "pET-28a_plus.dna").is_file():
         pytest.skip("pET-28a_plus.dna not available (set P2D_VECTOR_SAMPLES)")
     data = (SAMPLES / "pET-28a_plus.dna").read_bytes()
@@ -412,7 +412,7 @@ def call(server, method, path, body=None, headers=None):
     return resp, data
 
 
-def test_serves_the_three_static_files_with_security_headers(server):
+def test_serves_three_static_files_with_security_headers(server):
     for path, ctype in [
         ("/", "text/html"),
         ("/app.css", "text/css"),
@@ -425,7 +425,7 @@ def test_serves_the_three_static_files_with_security_headers(server):
         assert resp.getheader("X-Content-Type-Options") == "nosniff"
 
 
-def test_the_whole_flow_over_http(server):
+def test_whole_flow_over_http(server):
     resp, data = call(server, "GET", "/api/meta")
     assert resp.status == 200 and json.loads(data)["bundled"]
     resp, data = call(server, "POST", "/api/vector", {"bundled": "pTEST1"})
@@ -438,7 +438,7 @@ def test_the_whole_flow_over_http(server):
     assert resp.status == 200 and json.loads(data)["ok"] is True
 
 
-def test_the_vector_route_takes_a_body_larger_than_the_default_json_limit(server):
+def test_vector_route_large_body(server):
     seq = "ACGT" * 700_000  # 2.8 MB of sequence, ~3.7 MB once base64-encoded
     big = b64(f">p\n{seq}\n".encode())
     resp, data = call(server, "POST", "/api/vector", {"filename": "big.fa", "data_b64": big})
@@ -446,7 +446,7 @@ def test_the_vector_route_takes_a_body_larger_than_the_default_json_limit(server
     assert resp.status == 422 and "250000" in json.loads(data)["error"]
 
 
-def test_input_errors_are_422_with_a_message(server):
+def test_input_errors_are_422_with_message(server):
     resp, data = call(server, "POST", "/api/vector", {"bundled": "nope"})
     assert resp.status == 422 and "Unknown bundled" in json.loads(data)["error"]
 
@@ -513,7 +513,7 @@ def test_example_sequence_is_valid_and_designs_cleanly(pt1):
     assert r["ok"] and not [i for i in r["issues"] if i["severity"] != "info"]
 
 
-def test_the_result_carries_the_dna_to_order(pt1):
+def test_result_carries_dna_to_order(pt1):
     r = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174"))
     o = r["order"]
     assert (len(o["clamp_5"]), len(o["clamp_3"])) == (6, 6), "six extra bases each side by default"
@@ -530,7 +530,7 @@ def test_the_result_carries_the_dna_to_order(pt1):
 
 
 @pytest.mark.parametrize("c5, c3", [(0, 0), (3, 12), ("4", "0"), (30, 30)])
-def test_extra_bases_follow_the_request(pt1, c5, c3):
+def test_extra_bases_follow_request(pt1, c5, c3):
     r = service.design(
         req(pt1, upstream="BamHI:150", downstream="XhoI:174", clamp_5=c5, clamp_3=c3)
     )
@@ -539,7 +539,7 @@ def test_extra_bases_follow_the_request(pt1, c5, c3):
     assert o["ligation"]["ok"] and r["ok"]
 
 
-def test_blank_extra_bases_mean_the_default(pt1):
+def test_blank_extra_bases_mean_default(pt1):
     r = service.design(
         req(pt1, upstream="NdeI:144", downstream="XhoI:174", clamp_5="", clamp_3=None)
     )
@@ -561,7 +561,7 @@ def test_bad_extra_bases_are_clean_input_errors(pt1, patch, message):
         service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", **patch))
 
 
-def test_the_page_asks_for_the_extra_bases():
+def test_page_asks_for_extra_bases():
     html = static_text("index.html")
     for needle in ('id="clamp-5"', 'id="clamp-3"', 'value="6"', "Extra bases for ordering"):
         assert needle in html
@@ -569,7 +569,7 @@ def test_the_page_asks_for_the_extra_bases():
     assert "clamp_5" in js and "DNA to order" in js
 
 
-def test_pairs_group_workable_pairs_by_the_protein_they_give(pt1):
+def test_pairs_group_workable_pairs_by_protein_they_give(pt1):
     r = service.pairs(req(pt1))
     assert r["workable"] == r["considered"] == 20  # touching pairs count too
     assert r["total_groups"] == len(r["groups"]) == 5
@@ -583,7 +583,7 @@ def test_pairs_group_workable_pairs_by_the_protein_they_give(pt1):
     assert counted == r["workable"], "every pair is in exactly one group"
 
 
-def test_a_suggested_pair_designs_to_exactly_what_was_promised(pt1):
+def test_suggested_pair_designs_to_exactly_what_was_promised(pt1):
     r = service.pairs(req(pt1))
     for g in r["groups"]:
         p = g["pairs"][0]
@@ -592,7 +592,7 @@ def test_a_suggested_pair_designs_to_exactly_what_was_promised(pt1):
         assert d["protein"].startswith(g["before"] + PEPTIDE) and d["protein"].endswith(PEPTIDE)
 
 
-def test_the_tag_filter_and_the_c_terminus_reach_the_suggestions(pt1):
+def test_tag_filter_and_c_terminus_reach_suggestions(pt1):
     keep = service.pairs(req(pt1, n_tag="keep"))["groups"]
     drop = service.pairs(req(pt1, n_tag="remove"))["groups"]
     assert keep and all(g["n_tag"] for g in keep) and drop and not any(g["n_tag"] for g in drop)
@@ -614,7 +614,7 @@ def test_pairs_input_errors_are_clean(pt1):
         service.pairs({"vector_id": pt1[0], "protein": PEPTIDE})
 
 
-def test_too_wide_a_window_asks_to_be_narrowed(pt1):
+def test_too_wide_window_asks_to_be_narrowed(pt1):
     seq = p2d.load_bundled().seq
     many = seq[:300] + ("GAATTCGGATCCCTCGAGAAGCTTGCTAGC" * 25) + seq[300:]
     r = service.load_vector({"text": many, "filename": "many"})
@@ -624,7 +624,7 @@ def test_too_wide_a_window_asks_to_be_narrowed(pt1):
         )
 
 
-def test_pairs_over_http_and_the_page_has_the_button(server):
+def test_pairs_over_http_and_page_has_button(server):
     resp, data = call(server, "POST", "/api/vector", {"bundled": "pTEST1"})
     vid = json.loads(data)["id"]
     resp, data = call(
@@ -638,14 +638,14 @@ def test_pairs_over_http_and_the_page_has_the_button(server):
     assert 'id="suggest-btn"' in static_text("index.html") and "/api/pairs" in static_text("app.js")
 
 
-def test_meta_lists_the_tags_and_linkers():
+def test_meta_lists_tags_and_linkers():
     parts = service.meta()["parts"]
     assert {"his6", "flag", "v5"} <= {p["key"] for p in parts["tags"]}
     assert {"gs", "g4s"} <= {p["key"] for p in parts["linkers"]}
     assert all(p["aa"] for rows in parts.values() for p in rows)
 
 
-def test_design_builds_the_chosen_tags_and_linkers_into_the_protein(pt1):
+def test_design_builds_chosen_tags_and_linkers_into_protein(pt1):
     d = service.design(
         req(
             pt1,
@@ -658,7 +658,7 @@ def test_design_builds_the_chosen_tags_and_linkers_into_the_protein(pt1):
     assert d["ok"] and "DYKDDDDKGS" + PEPTIDE + "WSHPQFEK" in d["protein"]
 
 
-def test_the_suggestions_describe_only_what_the_vector_adds(pt1):
+def test_suggestions_describe_only_what_vector_adds(pt1):
     plain = service.pairs(req(pt1))["groups"]
     built = service.pairs(req(pt1, n_parts=["flag"], c_parts=["gs", "ha"]))["groups"]
     assert [(g["before"], g["after"]) for g in plain] == [(g["before"], g["after"]) for g in built]
@@ -671,7 +671,7 @@ def test_unknown_or_malformed_parts_are_refused(pt1):
                 fn(req(pt1, upstream="NcoI:85", downstream="XhoI:174", n_parts=bad))
 
 
-def test_the_page_has_the_tag_and_linker_selects():
+def test_page_has_tag_and_linker_selects():
     html = static_text("index.html")
     assert all(f'id="{i}"' in html for i in ("n-tag", "n-linker", "c-linker", "c-tag"))
 
@@ -691,7 +691,7 @@ def test_meta_gives_each_host_its_limits_in_percent():
     }
 
 
-def test_the_limits_chosen_reach_the_design(pt1):
+def test_limits_chosen_reach_design(pt1):
     base = dict(upstream="NcoI:85", downstream="XhoI:174")
     tight = service.design(req(pt1, **base, limits={"gc_min": 55, "gc_max": 60}))
     assert tight["ok"] and 0.55 <= tight["metrics"]["gc"] <= 0.60
@@ -715,13 +715,13 @@ def test_bad_limits_are_refused(pt1):
                 call(req(pt1, **extra, limits=limits))
 
 
-def test_the_page_has_the_limit_inputs():
+def test_page_has_limit_inputs():
     html = static_text("index.html")
     for i in ("gc-min", "gc-max", "window-size", "window-min", "window-max", "repeat-max"):
         assert f'id="lim-{i}"' in html
 
 
-def test_every_host_can_design_through_the_service(pt1):
+def test_every_host_can_design_through_service(pt1):
     names = {}
     for slug in service.meta()["hosts"]:
         d = service.design(req(pt1, upstream="NcoI:85", downstream="XhoI:174", host=slug["slug"]))
@@ -730,7 +730,7 @@ def test_every_host_can_design_through_the_service(pt1):
     assert len(set(names.values())) == len(names), "each host gives its own codons"
 
 
-def test_each_host_note_reaches_the_page_data():
+def test_each_host_note_reaches_page_data():
     hosts = {h["slug"]: h for h in service.meta()["hosts"]}
     assert "K-12" in hosts["ecoli_bl21"]["note"]
     assert "not for a cell line" in hosts["hsapiens"]["note"]
@@ -746,7 +746,7 @@ def batch_req(pt1, **extra):
     return req(pt1, upstream="NdeI:144", downstream="XhoI:174", fasta=BATCH_FASTA, **extra)
 
 
-def test_batch_designs_every_protein_and_reports_the_one_that_fails(pt1):
+def test_batch_reports_failed_protein(pt1):
     r = service.batch(batch_req(pt1))
     assert (r["n"], r["n_ok"]) == (3, 2)
     assert [(x["name"], x["status"]) for x in r["rows"]] == [
@@ -759,7 +759,7 @@ def test_batch_designs_every_protein_and_reports_the_one_that_fails(pt1):
     assert r["orders_fasta"].count(">") == 2 and "first_order" in r["orders_fasta"]
 
 
-def test_batch_zip_holds_the_summary_orders_and_constructs(pt1):
+def test_batch_zip_holds_summary_orders_and_constructs(pt1):
     import base64
     import io
     import zipfile
@@ -780,7 +780,7 @@ def test_batch_zip_holds_the_summary_orders_and_constructs(pt1):
     assert {i.date_time for i in z.infolist()} == {(2020, 1, 1, 0, 0, 0)}
 
 
-def test_batch_uses_the_same_options_as_a_single_design(pt1):
+def test_batch_uses_same_options_as_single_design(pt1):
     first_protein = BATCH_FASTA.split("\n")[1]
     one = service.design(
         req(
@@ -820,7 +820,7 @@ def test_batch_input_errors_are_clean(pt1):
         service.batch(req(pt1, fasta=BATCH_FASTA))
 
 
-def test_batch_over_http_and_the_page_has_the_panel(server):
+def test_batch_over_http_and_page_has_panel(server):
     resp, data = call(server, "POST", "/api/vector", {"bundled": "pTEST1"})
     vid = json.loads(data)["id"]
     body = {
@@ -841,7 +841,7 @@ def test_batch_over_http_and_the_page_has_the_panel(server):
     assert "/api/batch" in static_text("app.js")
 
 
-def test_released_hosts_come_first_and_the_others_are_marked():
+def test_released_hosts_come_first_and_others_are_marked():
     meta = service.meta()
     status = {h["slug"]: h["status"] for h in meta["hosts"]}
     assert status["ecoli_bl21"] == status["bsubtilis"] == "released"
@@ -851,7 +851,7 @@ def test_released_hosts_come_first_and_the_others_are_marked():
     assert meta["default_host"] == "ecoli_bl21"
 
 
-def test_designing_for_a_host_in_development_carries_a_warning(pt1):
+def test_designing_for_host_in_development_carries_warning(pt1):
     for slug, expected in (("ecoli_bl21", False), ("hsapiens", True)):
         d = service.design(req(pt1, upstream="NdeI:144", downstream="XhoI:174", host=slug))
         codes = [i["code"] for i in d["issues"]]
@@ -859,7 +859,7 @@ def test_designing_for_a_host_in_development_carries_a_warning(pt1):
         assert d["ok"], "a warning, not a refusal"
 
 
-def test_the_page_grid_has_the_form_and_one_stage_so_the_result_stays_in_its_column():
+def test_page_grid_keeps_result_in_its_column():
     """A third direct child of <main> once pushed the result under the form."""
     from html.parser import HTMLParser
 
@@ -891,7 +891,7 @@ def test_the_page_grid_has_the_form_and_one_stage_so_the_result_stays_in_its_col
     assert stage.index('id="result"') < stage.index('id="batch-box"'), "the result comes first"
 
 
-def test_the_fonts_are_served_from_the_package_and_licensed(server):
+def test_fonts_are_served_from_package_and_licensed(server):
     css = static_text("app.css")
     for name in ("Geist-Variable.woff2", "GeistMono-Variable.woff2"):
         assert f"/fonts/{name}" in css
@@ -912,7 +912,7 @@ def test_no_stylesheet_or_script_reaches_outside_this_computer():
         assert "fonts.googleapis" not in text and "cdn." not in text
 
 
-def test_two_stop_codons_can_be_asked_for_and_other_counts_are_refused(pt1):
+def test_stop_codon_count_one_or_two(pt1):
     base = dict(upstream="NdeI:144", downstream="XhoI:174", cterm="stop")
     one = service.design(req(pt1, **base))
     two = service.design(req(pt1, **base, stop_codons=2))

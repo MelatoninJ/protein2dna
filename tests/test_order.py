@@ -43,7 +43,7 @@ PAIRS = [
 ]
 
 
-def test_the_order_is_clamp_insert_clamp(vector, host):
+def test_order_is_clamp_insert_clamp(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a, 6, 4)
     assert o.dna == o.clamp_5 + a.insert_dna + o.clamp_3
@@ -52,13 +52,13 @@ def test_the_order_is_clamp_insert_clamp(vector, host):
     assert o.dna[slice(*o.coding_span)] == a.design.coding, "coding span follows the clamp"
 
 
-def test_no_clamp_means_the_insert_itself(vector, host):
+def test_no_clamp_means_insert_itself(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a, 0, 0)
     assert o.dna == a.insert_dna and o.ligation.ok
 
 
-def test_the_default_is_six_bases_each_side(vector, host):
+def test_default_is_six_bases_each_side(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a)
     assert (len(o.clamp_5), len(o.clamp_3)) == (6, 6)
@@ -87,7 +87,7 @@ def test_clamps_are_not_palindromic_or_repetitive(vector, host, n):
 
 @pytest.mark.parametrize("n", [0, 1, 6, 12, 30])
 @pytest.mark.parametrize("up, down", PAIRS)
-def test_clamps_never_create_a_cloning_site_or_host_motif(vector, host, up, down, n):
+def test_clamps_never_create_cloning_site_or_host_motif(vector, host, up, down, n):
     a = design(vector, host, up, down)
     o = make_order(a, n, n)
     patterns = [
@@ -105,14 +105,14 @@ def test_clamps_never_create_a_cloning_site_or_host_motif(vector, host, up, down
 
 @pytest.mark.parametrize("n", [0, 1, 3, 6, 12, 30])
 @pytest.mark.parametrize("up, down", PAIRS)
-def test_the_order_digests_and_ligates_into_the_planned_plasmid(vector, host, up, down, n):
+def test_order_digests_and_ligates_into_planned_plasmid(vector, host, up, down, n):
     a = design(vector, host, up, down)
     o = make_order(a, n, n)
     assert o.ok and o.ligation.ok, o.ligation.message
     assert "exactly" in o.ligation.message
 
 
-def test_an_independent_digest_agrees(vector, host):
+def test_independent_digest_agrees(vector, host):
     """Biopython's catalyse, run by the test, gives the same middle fragment."""
     a = design(vector, host, "BamHI:150", "XhoI:174")
     o = make_order(a, 6, 6)
@@ -124,7 +124,7 @@ def test_an_independent_digest_agrees(vector, host):
     assert v[:cut_a] + str(middle) + v[cut_b:] == a.seq
 
 
-def test_enzymes_that_cut_the_fragment_elsewhere_are_caught(vector, host):
+def test_enzymes_that_cut_fragment_elsewhere_are_caught(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a, 6, 6)
     bad = "CTCGAG" + o.dna  # a second XhoI in front, outside the intended sites
@@ -132,7 +132,7 @@ def test_enzymes_that_cut_the_fragment_elsewhere_are_caught(vector, host):
     assert not check.ok and "XhoI cuts the ordered fragment 2 times" in check.message
 
 
-def test_a_dropped_base_is_caught(vector, host):
+def test_dropped_base_is_caught(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     o = make_order(a, 6, 6)
     bad = o.dna[:60] + o.dna[61:]  # one base missing from the coding region
@@ -140,13 +140,13 @@ def test_a_dropped_base_is_caught(vector, host):
     assert not check.ok and "different plasmid" in check.message
 
 
-def test_a_fragment_with_no_site_is_caught(vector, host):
+def test_fragment_with_no_site_is_caught(vector, host):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     check = simulate_cloning(a, "ACGT" * 40)
     assert not check.ok and "cuts the ordered fragment 0 times" in check.message
 
 
-def test_a_failed_design_cannot_produce_an_orderable_sequence(vector, host, monkeypatch):
+def test_failed_design_cannot_produce_orderable_sequence(vector, host, monkeypatch):
     a = design(vector, host, "NdeI:144", "XhoI:174")
     monkeypatch.setattr(type(a), "ok", property(lambda self: False))
     o = make_order(a)

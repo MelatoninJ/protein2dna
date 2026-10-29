@@ -1,8 +1,7 @@
-"""Plasmids that carry no annotation: the lacZ-alpha start is recognised from its sequence.
+"""lacZ-alpha start recognised from the sequence of an unannotated plasmid.
 
-pUC19 in GenBank (L09137) has no features at all and lacZ-alpha lies on the minus strand, so
-nothing but the sequence says where translation starts or which way the plasmid should read.
-The real-plasmid tests need files the repository cannot hold and skip without them.
+pUC19 (L09137) has no features and lacZ-alpha lies on the minus strand. Tests on the real
+plasmid skip without ``P2D_VECTOR_SAMPLES``.
 """
 
 from __future__ import annotations
@@ -39,11 +38,11 @@ def plasmid(strand, seed=1):
     return Vector.from_sequence(seq, name="synthetic")
 
 
-def test_the_motif_is_the_start_of_lacz_alpha():
+def test_motif_is_start_of_lacz_alpha():
     assert str(Seq(ALPHA).translate()) == "MTMITPS" and ALPHA.startswith("ATGACCATGATTACG")
 
 
-def test_the_start_is_found_on_the_plus_strand():
+def test_start_is_found_on_plus_strand():
     a = analyze_vector(plasmid(1))
     assert not a.flipped and a.ready
     best = a.best_start
@@ -52,20 +51,20 @@ def test_the_start_is_found_on_the_plus_strand():
     assert best.n_terminal.startswith("MTMITPSLHA")
 
 
-def test_a_plasmid_stored_on_the_minus_strand_is_flipped():
+def test_plasmid_stored_on_minus_strand_is_flipped():
     a = analyze_vector(plasmid(-1))
     assert a.flipped and a.ready
     assert any("lacZ-alpha" in n and "minus" in n for n in a.orientation_notes)
     assert a.vector.seq[a.best_start.position : a.best_start.position + 21] == ALPHA
 
 
-def test_the_flipped_plasmid_is_the_reverse_complement_of_the_input():
+def test_flipped_plasmid_is_reverse_complement_of_input():
     original = plasmid(-1)
     a = analyze_vector(original)
     assert a.vector.seq == rc(original.seq)
 
 
-def test_a_sequence_without_lacz_is_still_reported_as_having_no_start():
+def test_sequence_without_lacz_has_no_start():
     rng = random.Random(5)
     seq = "".join(rng.choice("ACGT") for _ in range(900))
     seq = seq.replace(ALPHA, "").replace(rc(ALPHA), "")
@@ -73,7 +72,7 @@ def test_a_sequence_without_lacz_is_still_reported_as_having_no_start():
     assert not a.ready and not a.starts and not a.flipped
 
 
-def test_a_one_base_change_is_not_recognised():
+def test_one_base_change_is_not_recognised():
     bad = ALPHA[:10] + ("A" if ALPHA[10] != "A" else "C") + ALPHA[11:]
     seq = "ACGT" * 100 + bad + "TTGCATGCC" + "ACGT" * 100
     assert not analyze_vector(Vector.from_sequence(seq, name="x")).starts
@@ -96,13 +95,13 @@ def gfp():
     return "".join(lines[1:])
 
 
-def test_real_puc19_is_oriented_and_started_from_sequence_alone():
+def test_real_puc19_oriented_from_sequence():
     a = analyze_vector(vectorio.read_vector_file(sample("pUC19_L09137.gb")))
     assert a.flipped and a.ready and len(a.starts) == 1
     assert a.best_start.n_terminal.startswith("MTMITPSLHACRSTLED")
 
 
-def test_real_puc19_lists_the_mcs_enzymes_in_lacz_order(puc19):
+def test_real_puc19_lists_mcs_enzymes_in_lacz_order(puc19):
     from p2d.enzymes import list_cut_sites
 
     start = puc19.expression_start
@@ -113,7 +112,7 @@ def test_real_puc19_lists_the_mcs_enzymes_in_lacz_order(puc19):
     ]  # fmt: skip
 
 
-def test_gfp_into_puc19_gives_the_fusion_a_hand_design_predicts(puc19, gfp):
+def test_gfp_into_puc19_gives_fusion_hand_design_predicts(puc19, gfp):
     """SphI + XbaI, the pair chosen by hand: MTMITPSLHA in front of GFP, one frame base."""
     protein = str(Seq(gfp).translate(to_stop=True))
     host = p2d.load_host("ecoli_bl21")
@@ -126,7 +125,7 @@ def test_gfp_into_puc19_gives_the_fusion_a_hand_design_predicts(puc19, gfp):
     assert ("MTMITPSL", 1) in groups, "HindIII leaves the fewest residues once the gene is recoded"
 
 
-def test_a_pcr_made_with_the_hand_designed_primers_agrees_with_p2d(puc19, gfp):
+def test_pcr_made_with_hand_designed_primers_agrees_with_p2d(puc19, gfp):
     """Cut a PCR product and the plasmid with Biopython, ligate, and compare with p2d."""
     forward = "GCGCGCATGCCATGGCTAGCAAAGGAGA"
     reverse = "GCGCTCTAGATTATTTGTAGAGCTCATCCA"
@@ -159,7 +158,7 @@ def kozak_plasmid(context="GCCACCATGG", orf_codons=120):
     return Vector.from_sequence(rand(300) + context[:6] + orf + rand(300), name="mammalian")
 
 
-def test_a_kozak_consensus_start_is_offered_with_medium_confidence():
+def test_kozak_start_is_medium():
     a = analyze_vector(kozak_plasmid())
     assert len(a.starts) == 1 and a.starts[0].confidence == "medium"
     assert "Kozak" in a.starts[0].evidence[0]
@@ -167,13 +166,13 @@ def test_a_kozak_consensus_start_is_offered_with_medium_confidence():
     assert not a.ready, "a medium start must be confirmed by the user"
 
 
-def test_the_kozak_start_needs_the_full_consensus_and_a_real_orf():
+def test_kozak_start_needs_full_consensus_and_real_orf():
     assert not analyze_vector(kozak_plasmid("GCCTCCATGG")).starts, "position -3 must be A or G"
     assert not analyze_vector(kozak_plasmid("GCCACCATGC")).starts, "G at +4 is part of the motif"
     assert not analyze_vector(kozak_plasmid(orf_codons=10)).starts, "too short to be a gene"
 
 
-def test_the_vectors_own_bases_are_tried_first_as_pad():
+def test_vectors_own_bases_are_tried_first_as_pad():
     from p2d.frame import _pad_candidates
 
     pads = _pad_candidates(2, prefix="CTCGAG", suffix="", forbidden=[], frame_offset=0, native="CT")
@@ -182,7 +181,7 @@ def test_the_vectors_own_bases_are_tried_first_as_pad():
     assert "NN" not in odd, "only real bases count as native"
 
 
-def test_altered_counts_residues_that_differ_from_the_vectors_own_reading():
+def test_altered_counts_changed_residues():
     from p2d.recommend import _altered
 
     v = p2d.load_bundled()
@@ -207,13 +206,13 @@ def mek1():
     return str(cds)
 
 
-def test_real_morange2_start_is_the_kozak_atg_of_morange2(orange):
+def test_real_morange2_start_is_kozak_atg_of_morange2(orange):
     a, _ = orange
     assert [s.position for s in a.starts] == [645] and a.starts[0].confidence == "medium"
     assert a.starts[0].n_terminal.startswith("MVSKGEENNMAIIKEFMRFK")
 
 
-def test_mek1_into_morange2_keeps_the_fusion_partner_intact(orange, mek1):
+def test_mek1_into_morange2_keeps_fusion_partner_intact(orange, mek1):
     _, v = orange
     protein = str(Seq(mek1).translate(to_stop=True))
     assert len(protein) == 393
@@ -232,7 +231,7 @@ def test_mek1_into_morange2_keeps_the_fusion_partner_intact(orange, mek1):
     assert groups[0].before.endswith("MDELYK"), "BsrGI keeps mOrange2 and adds nothing"
 
 
-def test_the_hand_designed_mek1_primers_agree_with_p2d(orange, mek1):
+def test_hand_designed_mek1_primers_agree_with_p2d(orange, mek1):
     from Bio.Restriction import BamHI, BsrGI, XhoI
 
     _, v = orange

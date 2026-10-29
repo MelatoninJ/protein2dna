@@ -1,8 +1,7 @@
 """Rebuilding published constructs from their empty vector (tools/compare_genbank.py).
 
-The synthetic constructs are assembled here by hand (own pad rule, random synonymous codons), so
-they do not share p2d's frame code.  The real records need files the repository cannot hold and skip
-without them: the empty pET-28a(+) and the NCBI GenBank records listed in VALIDATION.md.
+Synthetic constructs are built by hand with their own pad rule, so they share no frame code with
+p2d. Tests on real records skip without ``P2D_VECTOR_SAMPLES`` (see VALIDATION.md).
 """
 
 from __future__ import annotations
@@ -56,7 +55,7 @@ def pair(vector, a="NdeI", b="XhoI"):
     return resolve_site(vector, a), resolve_site(vector, b)
 
 
-def test_a_hand_built_construct_is_reproduced_whatever_its_codons(vector, host):
+def test_hand_built_construct_reproduced(vector, host):
     up, down = pair(vector)
     for seed in (1, 2, 3):
         r = cg.compare("hand", vector, build(vector, up, down, PROTEIN, seed=seed), host)
@@ -65,7 +64,7 @@ def test_a_hand_built_construct_is_reproduced_whatever_its_codons(vector, host):
         assert r.real_protein == r.p2d_protein and r.real_protein.endswith(PROTEIN)
 
 
-def test_the_construct_may_be_stored_backwards_or_rotated(vector, host):
+def test_construct_may_be_stored_backwards_or_rotated(vector, host):
     up, down = pair(vector)
     built = build(vector, up, down, PROTEIN)
     flipped = str(Seq(built).reverse_complement())
@@ -77,13 +76,13 @@ def test_the_construct_may_be_stored_backwards_or_rotated(vector, host):
 @pytest.mark.parametrize(
     "a,b", [("NdeI", "XhoI"), ("NdeI", "EcoRI"), ("BamHI", "XhoI"), ("NcoI", "XhoI")]
 )
-def test_several_site_pairs_and_the_junction_residues_agree(vector, host, a, b):
+def test_several_site_pairs_and_junction_residues_agree(vector, host, a, b):
     up, down = pair(vector, a, b)
     r = cg.compare("pair", vector, build(vector, up, down, PROTEIN), host)
     assert r.status == "match" and r.real_protein == r.p2d_protein
 
 
-def test_a_wrong_junction_is_reported_as_a_mismatch(vector, host, monkeypatch):
+def test_wrong_junction_is_reported_as_mismatch(vector, host, monkeypatch):
     """Wrong frame-filling bases would change the protein; the tool must see that."""
     up, down = pair(vector, "NcoI", "XhoI")  # NcoI needs two pad bases in the test vector
     built = build(vector, up, down, PROTEIN, pad="GC")
@@ -98,7 +97,7 @@ def test_a_wrong_junction_is_reported_as_a_mismatch(vector, host, monkeypatch):
     assert cg.first_difference(r.real_protein, r.p2d_protein) is not None
 
 
-def test_an_insert_that_is_not_read_through_is_not_comparable(vector, host):
+def test_insert_that_is_not_read_through_is_not_comparable(vector, host):
     up, down = pair(vector)
     start = vector.expression_start
     n_pad = (3 - (up.end - start) % 3) % 3
@@ -113,21 +112,21 @@ def test_an_insert_that_is_not_read_through_is_not_comparable(vector, host):
     assert r.status == "not comparable" and "not read through" in r.reason
 
 
-def test_a_construct_with_no_site_at_the_junction_is_not_comparable(vector, host):
+def test_construct_with_no_site_at_junction_is_not_comparable(vector, host):
     start = vector.expression_start
     seamless = vector.seq[: start + 3] + coding(PROTEIN) + "TAA" + vector.seq[start + 3 + 300 :]
     r = cg.compare("seamless", vector, seamless, host)
     assert r.status == "not comparable" and "no cloning site" in r.reason
 
 
-def test_an_unrelated_or_identical_record_is_not_comparable(vector, host):
+def test_unrelated_or_identical_record_is_not_comparable(vector, host):
     rng = random.Random(9)
     unrelated = "".join(rng.choice("ACGT") for _ in range(3000))
     assert cg.compare("u", vector, unrelated, host).status == "not comparable"
     assert cg.compare("same", vector, vector.seq, host).status == "not comparable"
 
 
-def test_a_pair_p2d_refuses_is_declined_not_called_a_failure(vector, host, monkeypatch):
+def test_pair_p2d_refuses_is_declined_not_called_failure(vector, host, monkeypatch):
     up, down = pair(vector)
 
     def refuse(*args):
@@ -144,7 +143,7 @@ def test_touching_sites_are_rebuilt_like_any_other_pair(vector, host):
     assert r.status == "match" and r.real_protein == r.p2d_protein
 
 
-def test_the_command_line_reports_and_sets_its_exit_status(vector, tmp_path, capsys):
+def test_command_line_reports_and_sets_its_exit_status(vector, tmp_path, capsys):
     from Bio import SeqIO
     from Bio.Seq import Seq as S
     from Bio.SeqRecord import SeqRecord
@@ -201,7 +200,7 @@ def real(accession):
 
 
 @pytest.mark.parametrize("accession", sorted(MATCHING))
-def test_p2d_rebuilds_the_protein_of_each_published_construct(pet28a, host, accession):
+def test_p2d_rebuilds_protein_of_each_published_construct(pet28a, host, accession):
     up, down, residues = MATCHING[accession]
     name, seq = real(accession)
     r = cg.compare(name, pet28a, seq, host)
@@ -210,7 +209,7 @@ def test_p2d_rebuilds_the_protein_of_each_published_construct(pet28a, host, acce
     assert r.real_protein == r.p2d_protein and r.coverage >= cg.MIN_COVERAGE
 
 
-def test_the_touching_pair_a_real_lab_used_is_rebuilt_too(pet28a, host):
+def test_touching_pair_real_lab_used_is_rebuilt_too(pet28a, host):
     """BamHI and EcoRI sit side by side in pET-28a(+); p2d used to refuse that pair."""
     name, seq = real("MK847901.1")
     r = cg.compare(name, pet28a, seq, host)
@@ -228,12 +227,12 @@ def test_records_that_cannot_test_p2d_say_why(pet28a, host):
         assert r.status == "not comparable" and fragment in r.reason, accession
 
 
-def test_the_published_constructs_use_several_site_pairs_and_genes(pet28a, host):
+def test_published_constructs_use_several_site_pairs_and_genes(pet28a, host):
     pairs = {(u, d) for u, d, _ in MATCHING.values()}
     assert len(pairs) >= 5 and len({n for _, _, n in MATCHING.values()}) >= 7
 
 
-def test_the_real_vector_lists_the_sites_the_constructs_used(pet28a):
+def test_real_vector_lists_sites_constructs_used(pet28a):
     ids = {c.id for c in list_cut_sites(pet28a)}
     for up, down, _ in MATCHING.values():
         assert up in ids and down in ids

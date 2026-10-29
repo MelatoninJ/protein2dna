@@ -1,8 +1,5 @@
-"""The hard gate.
-
-Every case here asserts that translating the *assembled plasmid* from the
-vector's own start codon reproduces the intended fusion protein.  When this
-file goes red, nothing else in the package matters.
+"""Translate the assembled plasmid from the vector's own start codon and compare it with the
+intended fusion protein. If this file fails, nothing else matters.
 """
 
 from __future__ import annotations
@@ -171,7 +168,7 @@ def test_unimplemented_linkage_is_explicit():
         p2d.ConstructPlan(chains=[Chain("a", PAYLOAD)], linkage=LinkageStrategy.SELF_CLEAVING_2A)
 
 
-def test_a_site_that_ignores_the_vectors_real_start_is_refused(vector, host):
+def test_site_that_ignores_vectors_real_start_is_refused(vector, host):
     """The old, wrong NdeI definition ("untagged") must now fail loudly, not pass quietly.
 
     NdeI has an ATG of its own (CAT|ATG), but the vector's ATG at 87 lies upstream and in
@@ -192,7 +189,7 @@ def test_a_site_that_ignores_the_vectors_real_start_is_refused(vector, host):
     assert "87" in err.message and "MGSSHHHHHH" in err.message
 
 
-def test_registered_sites_all_pass_the_start_gate(vector, host):
+def test_registered_sites_all_pass_start_gate(vector, host):
     for key in vector.sites:
         a = build(vector, host, key, PAYLOAD)
         assert a.ok and not any(i.code == "wrong_start" for i in a.issues), key

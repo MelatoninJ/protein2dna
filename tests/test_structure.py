@@ -102,7 +102,7 @@ def test_unverified_profile_still_warns(tmp_path):
     assert not h.codon_table_verified
 
 
-def test_every_residue_has_a_codon():
+def test_every_residue_has_codon():
     h = p2d.load_host("ecoli_bl21")
     for aa in "ACDEFGHIKLMNPQRSTVWY":
         assert h.best_codon(aa)
@@ -140,7 +140,7 @@ def test_genbank_record_roundtrips(tmp_path):
     assert any("insert" in f.qualifiers.get("label", [""])[0] for f in back.features)
 
 
-def test_translate_to_stop_reads_in_frame_and_says_whether_a_stop_ended_it():
+def test_translate_to_stop():
     from p2d.vector import translate_to_stop
 
     assert translate_to_stop("ATGGCTTAAGGG", 0) == ("MA", True)

@@ -70,7 +70,7 @@ def test_every_workable_pair_is_found_and_no_other(vector, host, cterm):
     assert tried >= len(options) > 0
 
 
-def test_what_each_pair_leaves_matches_an_independent_translation(vector, host):
+def test_what_each_pair_leaves_matches_independent_translation(vector, host):
     for cterm in (p2d.CTerm.STOP, p2d.CTerm.TAG):
         for option in rank_pairs(vector, PROTEIN, host, cterm=cterm)[0]:
             a = brute_force(vector, host, PROTEIN, cterm)[(option.up.id, option.down.id)]
@@ -83,14 +83,14 @@ def test_what_each_pair_leaves_matches_an_independent_translation(vector, host):
             assert option.plasmid_bp == len(a.seq) and option.ligation_ok
 
 
-def test_the_n_terminal_tag_flag_means_the_vectors_own_residues_remain(vector, host):
+def test_n_terminal_tag_flag_means_vectors_own_residues_remain(vector, host):
     options, _ = rank_pairs(vector, PROTEIN, host)
     assert any(o.n_tag for o in options) and any(not o.n_tag for o in options)
     for o in options:
         assert o.n_tag == o.before.startswith("MGSSHHHHHH"), (o.up.label, o.before)
 
 
-def test_tag_mode_reads_the_his_tag_for_every_pair(vector, host):
+def test_tag_mode_reads_his_tag_for_every_pair(vector, host):
     for o in rank_pairs(vector, PROTEIN, host, cterm=p2d.CTerm.TAG)[0]:
         assert o.after.endswith("HHHHHH")
     for o in rank_pairs(vector, PROTEIN, host, cterm=p2d.CTerm.STOP)[0]:
@@ -111,7 +111,7 @@ def test_ranking_is_deterministic(vector, host):
     assert first == again
 
 
-def test_limit_and_window_narrow_the_search(vector, host):
+def test_limit_and_window_narrow_search(vector, host):
     everything, tried_all = rank_pairs(vector, PROTEIN, host)
     top, _ = rank_pairs(vector, PROTEIN, host, limit=3)
     assert [(o.up.id, o.down.id) for o in top] == [(o.up.id, o.down.id) for o in everything[:3]]
@@ -119,7 +119,7 @@ def test_limit_and_window_narrow_the_search(vector, host):
     assert tried < tried_all and all(o.up.start >= 144 and o.down.end <= 180 for o in narrow)
 
 
-def test_n_tag_filter_partitions_the_options(vector, host):
+def test_n_tag_filter_partitions_options(vector, host):
     both, _ = rank_pairs(vector, PROTEIN, host)
     keep, _ = rank_pairs(vector, PROTEIN, host, n_tag=True)
     drop, _ = rank_pairs(vector, PROTEIN, host, n_tag=False)
@@ -129,7 +129,7 @@ def test_n_tag_filter_partitions_the_options(vector, host):
     }
 
 
-def test_groups_partition_the_options_and_each_is_one_outcome(vector, host):
+def test_groups_partition_options_and_each_is_one_outcome(vector, host):
     options, _ = rank_pairs(vector, PROTEIN, host)
     groups = group_by_outcome(options)
     members = [(o.up.id, o.down.id) for g in groups for o in g.pairs]
@@ -144,7 +144,7 @@ def test_groups_partition_the_options_and_each_is_one_outcome(vector, host):
     assert bests == sorted(bests), "groups follow the ranking of their best pair"
 
 
-def test_grouping_collapses_pairs_that_differ_only_in_the_3prime_site(vector, host):
+def test_grouping_by_outcome(vector, host):
     options, _ = rank_pairs(vector, PROTEIN, host, cterm=p2d.CTerm.STOP)
     groups = group_by_outcome(options)
     assert len(groups) < len(options), "with a stop the 3' site does not change the protein"
@@ -155,13 +155,13 @@ def test_empty_input_gives_no_groups():
     assert group_by_outcome([]) == []
 
 
-def test_a_start_codon_is_required(vector, host):
+def test_start_codon_is_required(vector, host):
     bare = Vector.from_sequence(vector.seq, name="bare")
     with pytest.raises(ValueError, match="start codon"):
         rank_pairs(bare, PROTEIN, host)
 
 
-def test_a_window_with_too_many_pairs_must_be_narrowed(host):
+def test_window_with_too_many_pairs_must_be_narrowed(host):
     import random
 
     rng = random.Random(3)
@@ -172,7 +172,7 @@ def test_a_window_with_too_many_pairs_must_be_narrowed(host):
         rank_pairs(big, PROTEIN, host)
 
 
-def test_a_window_with_one_site_has_nothing_to_pair(vector, host):
+def test_window_with_one_site_has_nothing_to_pair(vector, host):
     assert rank_pairs(vector, PROTEIN, host, window=(144, 150)) == ([], 0)
 
 
@@ -205,7 +205,7 @@ def test_real_pet28a_results_are_correct_and_distinct(host):
     assert best.up.enzyme == "NcoI" and best.down.enzyme == "XhoI" and best.after == "LEHHHHHH"
 
 
-def test_added_parts_are_built_in_and_do_not_change_what_the_vector_adds(vector, host):
+def test_added_parts_leave_vector_residues_alone(vector, host):
     from p2d.model import LINKERS, TAGS
 
     n, c = (TAGS["flag"], LINKERS["gs"]), (LINKERS["g4s"], TAGS["strep2"])

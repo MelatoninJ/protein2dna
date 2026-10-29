@@ -62,7 +62,7 @@ def test_longest_match_wins_when_patterns_nest():
     assert (7, 6) in hit
 
 
-def test_non_acgt_base_breaks_a_match():
+def test_non_acgt_base_breaks_match():
     a = Automaton(["GAATTC"])
     assert a.find_all("GAANTTC") == []
     assert len(a.find_all("GAATTCGAATTC")) == 2
@@ -76,7 +76,7 @@ def test_state_carries_across_calls():
     assert [(m.end, m.length) for m in matches] == [(3, 6)]  # 6-long match ends 3 bases in
 
 
-def test_empty_pattern_set_is_a_valid_noop():
+def test_empty_pattern_set_is_valid_noop():
     a = Automaton([])
     assert a.find_all("ACGT" * 10) == []
     assert a.max_len == 0

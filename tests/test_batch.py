@@ -44,30 +44,30 @@ def test_records_are_read_with_wrapped_lines_and_headers():
     assert [p.sequence for p in got] == [A, B, C] and not any(p.error for p in got)
 
 
-def test_numbers_spaces_and_a_final_stop_are_ignored():
+def test_numbers_spaces_and_final_stop_are_ignored():
     (p,) = b.read_proteins(">x\n 1 MKVL  AAGI\n  11 VGLL*\n")
     assert p.sequence == "MKVLAAGIVGLL" and p.error is None
 
 
-def test_a_sequence_without_a_header_still_counts():
+def test_sequence_without_header_still_counts():
     (p,) = b.read_proteins("MKVLAAGI\n")
     assert p.name == "protein_1" and p.sequence == "MKVLAAGI"
 
 
-def test_duplicate_names_are_made_unique_whatever_the_case():
+def test_duplicate_names_are_made_unique_whatever_case():
     names = [p.name for p in b.read_proteins(">a\nMK\n>A\nMK\n>a\nMK\n")]
     assert names == ["a", "A_2", "a_3"]
     assert len({n.lower() for n in names}) == 3
 
 
-def test_a_bad_record_carries_its_error_and_the_rest_are_unaffected():
+def test_bad_record_carries_its_error_and_rest_are_unaffected():
     got = b.read_proteins(">ok\nMKV\n>bad\nMK#Z\n>empty\n>fine\nMKVL\n", max_residues=100)
     assert [bool(p.error) for p in got] == [False, True, True, False]
     assert "#" in got[1].error and got[2].error == "no sequence"
     assert b.read_proteins(">long\n" + "M" * 11, max_residues=10)[0].error.startswith("11 residues")
 
 
-def test_no_records_gives_an_empty_list():
+def test_no_records_gives_empty_list():
     assert b.read_proteins("") == [] and b.read_proteins("\n  \n") == []
 
 
@@ -79,12 +79,12 @@ def test_names_are_always_safe_file_names(header):
     assert name not in (".", ".."), "never a directory reference"
 
 
-def test_unsafe_headers_cannot_escape_the_output_folder():
+def test_unsafe_headers_cannot_escape_output_folder():
     assert b.safe_name("../../etc/passwd x", "f") == "etc_passwd"
     assert b.safe_name("   ", "f") == "f" and b.safe_name("###", "f") == "f"
 
 
-def test_each_protein_matches_a_design_made_on_its_own(vector, host, sites):
+def test_each_protein_matches_design_made_on_its_own(vector, host, sites):
     up, down = sites
     result = b.design_batch(
         b.read_proteins(FASTA), vector, up, down, host, strategy=p2d.CodonStrategy.MAX_CAI
@@ -105,14 +105,14 @@ def test_each_protein_matches_a_design_made_on_its_own(vector, host, sites):
         assert entry.assembly.seq == single.seq and entry.order.ok
 
 
-def test_one_failure_does_not_stop_the_others(vector, host, sites):
+def test_one_failure_does_not_stop_others(vector, host, sites):
     got = b.read_proteins(">one\nMKV\n>two\nMK#\n>three\nMKVL\n")
     result = b.design_batch(got, vector, *sites, host)
     assert [e.ok for e in result.entries] == [True, False, True]
     assert result.entries[1].message and not result.ok and result.n_ok == 2
 
 
-def test_a_design_level_failure_is_recorded_per_protein(vector, host, sites, monkeypatch):
+def test_design_level_failure_is_recorded_per_protein(vector, host, sites, monkeypatch):
     """A refusal from the frame engine (no tag after the site) lands on every protein."""
     monkeypatch.setattr("p2d.frame.find_cterm_tag", lambda *a, **k: None)
     result = b.design_batch(b.read_proteins(FASTA), vector, *sites, host, cterm=p2d.CTerm.TAG)
@@ -135,7 +135,7 @@ def test_tags_and_extra_bases_reach_every_entry(vector, host, sites):
         assert len(e.order.clamp_5) == 8 and e.order.clamp_3 == ""
 
 
-def test_a_bad_pair_of_sites_is_the_callers_error_not_a_protein_failure(vector, host, sites):
+def test_bad_sites_are_callers_error(vector, host, sites):
     up, down = sites
     with pytest.raises(ValueError):
         b.design_batch(b.read_proteins(FASTA), vector, down, up, host)
@@ -147,7 +147,7 @@ def made(vector, host, sites):
     return b.design_batch(got, vector, *sites, host, strategy=p2d.CodonStrategy.MAX_CAI)
 
 
-def test_the_summary_has_one_row_per_protein(made):
+def test_summary_has_one_row_per_protein(made):
     rows = list(csv.DictReader(io.StringIO(b.summary_csv(made))))
     assert [r["name"] for r in rows] == ["binder_A", "binder_B", "binder_C", "oops"]
     assert [r["status"] for r in rows] == ["ok", "ok", "ok", "failed"]
@@ -177,12 +177,12 @@ def test_every_genbank_file_holds_its_plasmid(made):
     assert files["failed.txt"].startswith("oops\t")
 
 
-def test_a_clean_batch_writes_no_failure_file(vector, host, sites):
+def test_clean_batch_writes_no_failure_file(vector, host, sites):
     ok = b.design_batch(b.read_proteins(FASTA), vector, *sites, host)
     assert "failed.txt" not in b.files(ok)
 
 
-def test_write_batch_creates_the_files(made, tmp_path):
+def test_write_batch_creates_files(made, tmp_path):
     paths = b.write_batch(made, tmp_path / "deep" / "out")
     assert {p.name for p in paths} >= {"summary.csv", "orders.fasta", "binder_A.gb", "failed.txt"}
     assert all(p.is_file() and tmp_path in p.parents for p in paths)
@@ -193,14 +193,14 @@ def test_every_ok_order_proves_it_clones(made):
         assert e.order.ligation.ok and "exactly" in e.order.ligation.message
 
 
-def test_a_plain_enzyme_name_resolves_when_it_cuts_once(vector):
+def test_plain_enzyme_name_resolves_when_it_cuts_once(vector):
     assert resolve_site(vector, "xhoi").enzyme == "XhoI"
     assert resolve_site(vector, " NdeI ").enzyme == "NdeI"
     site = resolve_site(vector, "BamHI")
     assert resolve_site(vector, site.id) == site
 
 
-def test_an_unknown_or_repeated_enzyme_is_explained(vector):
+def test_unknown_or_repeated_enzyme_is_explained(vector):
     with pytest.raises(ValueError, match="no Nope site"):
         resolve_site(vector, "Nope")
     seq = vector.seq + "GGATCC" + "ACGT" * 10
@@ -213,7 +213,7 @@ def test_an_unknown_or_repeated_enzyme_is_explained(vector):
 runner = CliRunner()
 
 
-def test_the_cli_writes_a_batch_and_exits_zero(tmp_path):
+def test_cli_writes_batch_and_exits_zero(tmp_path):
     fa = tmp_path / "p.fa"
     fa.write_text(FASTA)
     r = runner.invoke(app, ["batch", str(fa), "--out", str(tmp_path / "o"), "--cterm", "stop"])
@@ -223,7 +223,7 @@ def test_the_cli_writes_a_batch_and_exits_zero(tmp_path):
     assert len(list((tmp_path / "o" / "constructs").glob("*.gb"))) == 3
 
 
-def test_the_cli_exits_one_when_a_protein_fails_but_still_writes_the_rest(tmp_path):
+def test_cli_exit_code_on_failed_protein(tmp_path):
     fa = tmp_path / "p.fa"
     fa.write_text(FASTA + ">bad\nMK#\n")
     r = runner.invoke(app, ["batch", str(fa), "-o", str(tmp_path / "o")])
@@ -240,7 +240,7 @@ def test_the_cli_exits_one_when_a_protein_fails_but_still_writes_the_rest(tmp_pa
         (["--n-part", "nothing"], "unknown tag"),
     ],
 )
-def test_the_cli_refuses_bad_options_with_exit_two(tmp_path, args, message):
+def test_cli_refuses_bad_options_with_exit_two(tmp_path, args, message):
     fa = tmp_path / "p.fa"
     fa.write_text(FASTA)
     r = runner.invoke(app, ["batch", str(fa), "-o", str(tmp_path / "o"), *args])
@@ -248,7 +248,7 @@ def test_the_cli_refuses_bad_options_with_exit_two(tmp_path, args, message):
     assert not (tmp_path / "o").exists()
 
 
-def test_the_cli_needs_a_start_unless_the_plasmid_gives_one(tmp_path, vector):
+def test_cli_needs_start_unless_plasmid_gives_one(tmp_path, vector):
     gb = tmp_path / "v.gb"
     SeqIO.write(vector.record, str(gb), "genbank")
     fa = tmp_path / "p.fa"
@@ -260,7 +260,7 @@ def test_the_cli_needs_a_start_unless_the_plasmid_gives_one(tmp_path, vector):
     assert (out / "summary.csv").is_file()
 
 
-def test_the_cli_reports_an_empty_or_missing_file(tmp_path):
+def test_cli_reports_empty_or_missing_file(tmp_path):
     empty = tmp_path / "e.fa"
     empty.write_text("")
     r = runner.invoke(app, ["batch", str(empty), "-o", str(tmp_path / "o")])
@@ -269,12 +269,12 @@ def test_the_cli_reports_an_empty_or_missing_file(tmp_path):
     assert r.exit_code == 2
 
 
-def test_the_vector_bundled_sites_are_cut_once():
+def test_vector_bundled_sites_are_cut_once():
     v = p2d.load_bundled()
     assert {c.enzyme for c in list_cut_sites(v)} >= {"NdeI", "XhoI", "BamHI"}
 
 
-def test_an_entry_that_fails_its_checks_is_never_written_as_something_to_order(made):
+def test_failed_entry_is_never_written_as_order(made):
     import dataclasses
 
     from p2d.order import LigationCheck
@@ -289,7 +289,7 @@ def test_an_entry_that_fails_its_checks_is_never_written_as_something_to_order(m
     assert b.summary_rows(result)[0]["status"] == "failed"
 
 
-def test_a_batch_into_the_real_pet28a_from_the_command_line(tmp_path):
+def test_batch_into_real_pet28a_from_command_line(tmp_path):
     import os
     from pathlib import Path
 

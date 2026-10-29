@@ -70,7 +70,7 @@ def protein(seed, letters, n):
     return "".join(rng.choice(letters) for _ in range(n))
 
 
-def test_the_host_profile_supplies_the_defaults(host):
+def test_host_profile_supplies_defaults(host):
     lim = host.limits()
     assert (lim.gc_min, lim.gc_max) == (0.32, 0.6)
     assert (lim.window_size, lim.window_min, lim.window_max) == (50, 0.28, 0.7)
@@ -110,13 +110,13 @@ def test_repeat_detection_matches_brute_force(dna):
     assert (m.repeats > 0) == expected
 
 
-def test_overlapping_copies_do_not_count_as_a_repeat():
+def test_overlapping_copies_do_not_count_as_repeat():
     lim = Limits(direct_max=20)
     assert measure("A" * 40, lim).repeats == 0, "too short to hold two separate copies"
     assert measure("A" * 100, lim).repeats > 0, "long enough to hold two"
 
 
-def test_copies_that_only_overlap_are_not_a_repeat():
+def test_copies_that_only_overlap_are_not_repeat():
     flank = protein(11, "ACGT", 30)
     dna = flank + "A" * 24 + flank[::-1].replace("A", "C")
     lim = Limits(direct_max=20, inverted_max=20)
@@ -124,7 +124,7 @@ def test_copies_that_only_overlap_are_not_a_repeat():
     assert measure(dna, lim).repeats == 0
 
 
-def test_an_inverted_repeat_is_found_and_counted_separately():
+def test_inverted_repeat_is_found_and_counted_separately():
     unit = protein(12, "ACGT", 26)
     dna = unit + "TTTTTTTTTTTT" + rc(unit)
     assert brute_has_repeat(dna, 20, True) and not brute_has_repeat(dna, 20, False)
@@ -133,7 +133,7 @@ def test_an_inverted_repeat_is_found_and_counted_separately():
 
 
 @pytest.mark.parametrize("letters", ["KNIFYMKNIL", "AGPRAGPRWH"], ids=["AT-rich", "GC-rich"])
-def test_extreme_proteins_are_brought_inside_the_limits(host, letters):
+def test_extreme_proteins_are_brought_inside_limits(host, letters):
     aa, lim = protein(1, letters, 300), host.limits()
     plain = optimize_coding(request(host, aa, None))
     refined = optimize_coding(request(host, aa, lim))
@@ -145,7 +145,7 @@ def test_extreme_proteins_are_brought_inside_the_limits(host, letters):
     assert any(i.code == "refined" for i in refined.issues)
 
 
-def test_nothing_changes_when_the_sequence_is_already_inside(host):
+def test_nothing_changes_when_sequence_is_already_inside(host):
     aa = protein(2, "ACDEFGHIKLMNPQRSTVWY", 200)
     wide = host.limits(gc_min=0.0, gc_max=1.0, window_min=0.0, window_max=1.0, direct_max=200)
     assert (
@@ -162,7 +162,7 @@ def test_repeats_made_of_identical_codons_are_broken(host):
     assert measure(refined.dna, lim).repeats == 0 and translate(refined.dna) == aa
 
 
-def test_refinement_never_adds_a_site(host):
+def test_refinement_never_adds_site(host):
     for letters in ("KNIFYMKNIL", "AGPRAGPRWH", "ACDEFGHIKLMNPQRSTVWY"):
         aa = protein(5, letters, 250)
         for lim in (None, host.limits()):
@@ -188,7 +188,7 @@ def test_refinement_is_deterministic(host):
     assert a == optimize_coding(request(host, aa, host.limits())).dna
 
 
-def test_what_the_protein_forces_is_reported_not_hidden(host):
+def test_what_protein_forces_is_reported_not_hidden(host):
     all_w = optimize_coding(request(host, "W" * 60, host.limits()))  # one codon, 67% GC
     codes = {i.code for i in all_w.issues}
     assert {"gc_out_of_range"} <= codes and translate(all_w.dna) == "W" * 60
@@ -199,7 +199,7 @@ def test_what_the_protein_forces_is_reported_not_hidden(host):
     assert measure(all_k.dna, strict).gc == pytest.approx(1 / 3), "the most GC it can reach"
 
 
-def test_repeats_the_protein_forces_are_reported(host):
+def test_repeats_protein_forces_are_reported(host):
     aa = "M" * 40  # a single codon: nothing to swap
     r = optimize_coding(request(host, aa, host.limits()))
     assert "repeat_kept" in {i.code for i in r.issues}
@@ -232,7 +232,7 @@ def test_any_protein_keeps_its_translation_and_stays_site_free(aa, tightness):
         assert not region_hits("CCATGG", r.dna, "CTCGAG", SITES)
 
 
-def test_a_full_design_uses_the_host_limits_by_default(host):
+def test_full_design_uses_host_limits_by_default(host):
     from p2d.enzymes import list_cut_sites, plan_cut
 
     aa = protein(9, "KNIFYMKNIL", 150)

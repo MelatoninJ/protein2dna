@@ -74,7 +74,7 @@ def test_empty_payload(host):
     assert r.ok and r.dna == "" and r.metrics["n_codons"] == 0
 
 
-def test_unknown_residue_is_a_clear_error(host):
+def test_unknown_residue_is_clear_error(host):
     with pytest.raises(ValueError, match="no codons for residue 'Z'"):
         optimize_coding(request(host, "AZA"))
 
@@ -89,7 +89,7 @@ def test_no_forbidden_site_in_assembled_context(host, strategy):
     assert region_hits(prefix, r.dna, suffix, SITES) == set()
 
 
-def test_site_present_only_in_fixed_context_is_not_a_failure(host):
+def test_site_present_only_in_fixed_context_is_not_failure(host):
     """The enzyme's own site in prefix/suffix is intentional; only overlaps count."""
     r = optimize_coding(request(host, "KK", prefix="GAATTC", suffix="CTCGAG", forbidden=SITES))
     assert r.ok
@@ -136,7 +136,7 @@ def test_pattern_spanning_coding_and_suffix_is_avoided(host):
     assert region_hits("", r.dna, suffix, forbidden) == set()
 
 
-def test_prefix_length_beyond_the_longest_pattern_changes_nothing(host):
+def test_prefix_length_beyond_longest_pattern_changes_nothing(host):
     """Only the last ``max_len`` bases of context can matter; MAX_CAI has no seed to vary."""
     kw = dict(forbidden=["GAATTC"], strategy=CodonStrategy.MAX_CAI)
     short = optimize_coding(request(host, "IL", prefix="AAGA", **kw))
@@ -156,7 +156,7 @@ def test_unavoidable_site_is_reported_not_raised(host):
     assert "different enzyme pair" in issue.message
 
 
-def test_unavoidable_site_across_the_fixed_junction(host):
+def test_unavoidable_site_across_fixed_junction(host):
     # W is TGG only; with a fixed 3' context of AT that always completes TGGAT
     r = optimize_coding(request(host, "W", suffix="AT", forbidden=["TGGAT"]))
     assert not r.ok
@@ -164,7 +164,7 @@ def test_unavoidable_site_across_the_fixed_junction(host):
     assert "3' junction" in issue.message and "TGGAT" in issue.message
 
 
-def test_unavoidable_site_across_the_5prime_junction(host):
+def test_unavoidable_site_across_5prime_junction(host):
     r = optimize_coding(request(host, "WA", prefix="GGA", forbidden=["GGATGG"]))
     assert not r.ok
     (issue,) = [i for i in r.issues if i.code == "unavoidable_site"]
@@ -177,7 +177,7 @@ def test_failure_still_returns_translatable_fallback(host):
     assert r.metrics["feasible"] is False
 
 
-def test_oversized_ambiguous_pattern_is_a_clear_error(host):
+def test_oversized_ambiguous_pattern_is_clear_error(host):
     with pytest.raises(ValueError, match="expands to more than"):
         optimize_coding(request(host, "AA", forbidden=["N" * 8]))
 
@@ -202,7 +202,7 @@ def test_unseeded_call_is_still_reproducible(host):
     assert a.dna == b.dna
 
 
-def test_max_cai_is_never_worse_than_the_naive_baseline(host):
+def test_max_cai_is_never_worse_than_naive_baseline(host):
     """Without sites in the way, MAX_CAI is exactly the naive best-codon choice."""
     naive = reverse_translate(PAYLOAD, host)
     r = optimize_coding(request(host, PAYLOAD, strategy=CodonStrategy.MAX_CAI))
@@ -210,7 +210,7 @@ def test_max_cai_is_never_worse_than_the_naive_baseline(host):
     assert r.metrics["cai"] == pytest.approx(cai(host, PAYLOAD, naive)) == pytest.approx(1.0)
 
 
-def test_max_cai_beats_sampling_under_the_same_constraints(host):
+def test_max_cai_beats_sampling_under_same_constraints(host):
     aa = PAYLOAD * 4
     best = optimize_coding(request(host, aa, forbidden=SITES, strategy=CodonStrategy.MAX_CAI))
     for seed in range(5):
@@ -234,14 +234,14 @@ def test_constrained_max_cai_is_optimal(host):
     assert best.metrics["cai"] == pytest.approx(max(scores))
 
 
-def test_sampling_respects_the_usage_floor(host):
+def test_sampling_respects_usage_floor(host):
     aa = ALL_20 * 6
     r = optimize_coding(request(host, aa, seed=9, usage_floor=0.10))
     for i, residue in enumerate(aa):
         assert host.codons_for(residue)[r.dna[3 * i : 3 * i + 3]] >= 0.10
 
 
-def test_floor_is_relaxed_before_declaring_a_site_unavoidable(host):
+def test_floor_is_relaxed_before_declaring_site_unavoidable(host):
     # leucine's only codon under 0.10 is CTA; forbidding the rest leaves just CTA
     forbidden = ["CTG", "TTA", "TTG", "CTC", "CTT"]
     r = optimize_coding(request(host, "L", forbidden=forbidden, seed=1))
@@ -292,7 +292,7 @@ def test_property_back_translation_and_pattern_freedom(host, aa, strategy, seed,
         assert any(i.code == "unavoidable_site" for i in r.issues)
 
 
-def test_design_insert_uses_the_optimiser_and_exposes_metrics():
+def test_design_insert_uses_optimiser_and_exposes_metrics():
     a = p2d.run(PAYLOAD)
     assert a.ok
     assert a.design.metrics["strategy"] == "weighted_sample"

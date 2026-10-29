@@ -1,9 +1,7 @@
-"""Expression vectors with no annotation: the start codon is read from the sequence.
+"""Start codon of an unannotated expression vector, read from the sequence.
 
-An ATG counts when a ribosome-binding-site-like motif lies 4-10 bases before it and the ATG is
-part of an NcoI or NdeI site, or sits behind a T7 promoter or a lac operator.  The real records
-(NCBI pTrc99A, pBAD24, pET-3a, pET-11a, pET-30a, pColdI, and four that must give nothing) live in
-``unannotated/`` under ``P2D_VECTOR_SAMPLES`` and the tests skip without them.
+Real records (NCBI pTrc99A, pBAD24, pET-3a/11a/30a, pColdI and four that must give nothing)
+come from ``unannotated/`` under ``P2D_VECTOR_SAMPLES``; those tests skip without it.
 """
 
 from __future__ import annotations
@@ -55,7 +53,7 @@ def analyse(seq):
     return analyze_vector(Vector.from_sequence(seq, name="synthetic"))
 
 
-def test_an_atg_inside_an_ncoi_site_after_an_rbs_is_the_start():
+def test_atg_inside_ncoi_site_after_rbs_is_start():
     seq = cassette("", rbs="AGGAGG", gap="AATTCAC", start="CATGG", orf=5).replace(
         "CATGG", "CCATGG", 1
     )
@@ -65,7 +63,7 @@ def test_an_atg_inside_an_ncoi_site_after_an_rbs_is_the_start():
     assert seq[best.position - 2 : best.position + 4] == "CCATGG"
 
 
-def test_an_atg_inside_an_ndei_site_is_found_however_short_the_frame():
+def test_atg_inside_ndei_site_is_found_however_short_frame():
     seq = cassette(T7, gap="TATAC", start="ATATG", tail="GCTAGCTAA", orf=0).replace(
         "ATATG", "CATATG", 1
     )
@@ -75,25 +73,25 @@ def test_an_atg_inside_an_ndei_site_is_found_however_short_the_frame():
     assert best.confidence == "high"  # site and T7 promoter agree
 
 
-def test_a_promoter_without_a_site_gives_a_medium_start_needing_a_long_frame():
+def test_promoter_only_start_is_medium():
     long = analyse(cassette(LAC_O, orf=40))
     assert long.best_start.confidence == "medium" and "lac operator" in long.best_start.evidence[0]
     assert not analyse(cassette(LAC_O, orf=3)).starts  # a 12-codon frame is not an expression start
 
 
-def test_an_rbs_or_atg_alone_is_not_enough():
+def test_rbs_or_atg_alone_is_not_enough():
     assert not analyse(cassette("", orf=40)).starts  # no site, no promoter
     far = cassette(LAC_O, orf=40).replace(LAC_O, LAC_O + flank(300, 9))
     assert not analyse(far).starts  # the operator is more than 250 bases away
     assert not analyse(cassette(LAC_O, rbs="TTTTTT", orf=40)).starts  # no ribosome-binding site
 
 
-def test_the_rbs_has_to_sit_at_a_sensible_distance_from_the_atg():
+def test_rbs_has_to_sit_at_sensible_distance_from_atg():
     assert not analyse(cassette(LAC_O, gap="A" * 14, orf=40)).starts
     assert analyse(cassette(LAC_O, gap="A" * 5, orf=40)).starts
 
 
-def test_a_plasmid_stored_backwards_is_flipped_by_its_cassette():
+def test_plasmid_stored_backwards_is_flipped_by_its_cassette():
     seq = cassette(LAC_O, orf=40)
     plus, minus = analyse(seq), analyse(rc(seq))
     assert not plus.flipped and minus.flipped
@@ -102,7 +100,7 @@ def test_a_plasmid_stored_backwards_is_flipped_by_its_cassette():
     assert any("minus strand" in n for n in minus.orientation_notes)
 
 
-def test_the_cassette_does_not_outvote_a_t7_promoter_or_lacz_alpha():
+def test_cassette_does_not_outvote_t7_promoter_or_lacz_alpha():
     seq = cassette(T7, orf=40)
     votes = vectorio.orientation_votes(Vector.from_sequence(seq, name="t7"))
     assert votes[0] == 2 and votes[1] == 0  # the T7 promoter alone; the cassette adds nothing
@@ -143,7 +141,7 @@ def test_real_unannotated_expression_vectors(name, start, flipped, site, confide
         "LC760188.1.gb",  # pBAD33
     ],
 )
-def test_real_vectors_without_a_start_give_none_and_ask_for_one(name):
+def test_real_vectors_without_start_give_none_and_ask_for_one(name):
     a = record(name)
     assert not a.starts and not a.ready
     assert any("point to one" in w for w in a.warnings)
@@ -153,7 +151,7 @@ def fasta(header, seq):
     return vectorio.read_vector_bytes(f">{header}\n{seq}\n".encode(), "plasmid.fa")
 
 
-def test_a_fasta_header_can_name_the_start_codon_and_the_cloning_region():
+def test_fasta_header_can_name_start_codon_and_cloning_region():
     seq = flank(300, 4) + "ATG" + "GCT" * 60 + "TAA" + flank(300, 5)
     v = fasta("lab plasmid start=301 mcs=301-330", seq)
     a = analyze_vector(v)
@@ -163,7 +161,7 @@ def test_a_fasta_header_can_name_the_start_codon_and_the_cloning_region():
     assert not any("Sequence only" in n for n in v.notes)
 
 
-def test_a_header_without_notes_is_still_just_a_sequence():
+def test_header_without_notes_is_still_just_sequence():
     v = fasta("lab plasmid", flank(600, 6))
     assert any("Sequence only" in n for n in v.notes)
     assert not analyze_vector(v).starts
@@ -173,6 +171,6 @@ def test_a_header_without_notes_is_still_just_a_sequence():
     "header, message",
     [("p start=5", "not an ATG"), ("p start=99999", "not an ATG"), ("p mcs=5-99999", "outside")],
 )
-def test_a_header_that_does_not_fit_the_sequence_is_refused(header, message):
+def test_header_that_does_not_fit_sequence_is_refused(header, message):
     with pytest.raises(vectorio.VectorFileError, match=message):
         fasta(header, flank(600, 7))

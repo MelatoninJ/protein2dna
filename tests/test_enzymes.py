@@ -29,13 +29,13 @@ def translate_from(seq: str, start: int) -> str:
     return str(Seq(tail[: len(tail) - len(tail) % 3]).translate(to_stop=True))
 
 
-def test_expression_window_is_the_in_frame_orf(vector):
+def test_expression_window_is_in_frame_orf(vector):
     w = enzymes.expression_window(vector)
     assert (w.start, w.stop_end) == (87, 201)
     assert vector.seq[w.stop_start : w.stop_end] in {"TAA", "TAG", "TGA"}
 
 
-def test_candidates_are_the_single_cutters_in_the_window(vector):
+def test_candidates_are_single_cutters_in_window(vector):
     found = {c.name: c for c in candidate_enzymes(vector)}
     assert {"NcoI", "NdeI", "BamHI", "KpnI", "Acc65I", "EcoRI", "XhoI"} == set(found)
     assert [c.start for c in candidate_enzymes(vector)] == sorted(c.start for c in found.values())
@@ -52,21 +52,21 @@ def test_isoschizomers_are_merged_under_one_name(vector):
     assert "FauNDI" not in found, "an alias must not also appear as its own entry"
 
 
-def test_kpni_and_acc65i_share_a_site_but_not_ends(vector):
+def test_kpni_and_acc65i_share_site_but_not_ends(vector):
     found = {c.name: c for c in candidate_enzymes(vector)}
     assert found["KpnI"].site == found["Acc65I"].site
     assert (found["KpnI"].overhang_kind, found["Acc65I"].overhang_kind) == ("3'", "5'")
     assert not ends_compatible(found["KpnI"], found["Acc65I"])
 
 
-def test_multi_cutters_and_blunt_and_outside_window_are_excluded(vector):
+def test_excluded_enzymes(vector):
     names = {c.name for c in candidate_enzymes(vector)}
     assert "SmaI" not in names  # blunt
     assert "BsaI" not in names  # Type IIS, not palindromic
     assert "HindIII" not in names and "SacI" not in names  # do not cut, or cut outside
 
 
-def test_vector_without_a_curated_start_is_refused_clearly(vector):
+def test_vector_without_curated_start_is_refused_clearly(vector):
     bare = Vector.from_sequence(vector.seq, name="bare")
     with pytest.raises(ValueError, match="expression start"):
         candidate_enzymes(bare)
@@ -83,7 +83,7 @@ def test_ends_compatible_matches_known_cases():
     assert not ends_compatible(cand("KpnI", "3'", "GTAC"), cand("NcoI", "5'", "GTAC"))
 
 
-def test_start_source_follows_where_the_start_codon_is(vector):
+def test_start_source_follows_where_start_codon_is(vector):
     ndei = plan_site(vector, "NdeI", "XhoI")
     assert ndei.start_source is StartSource.VECTOR and ndei.vector_orf_start == 87
     ncoi = plan_site(vector, "NcoI", "XhoI")
@@ -138,7 +138,7 @@ def test_there_are_several_valid_pairs(vector):
 
 
 @pytest.mark.parametrize("payload", [PAYLOAD, STRESS])
-def test_every_valid_pair_designs_and_translates_from_the_real_start(vector, host, payload):
+def test_every_valid_pair_translates_from_start(vector, host, payload):
     """The protein p2d reports must be what the plasmid really makes from its own ATG."""
     plan = p2d.ConstructPlan.single_chain(payload)
     for up, down in valid_pairs(vector):
@@ -155,7 +155,7 @@ def test_every_valid_pair_designs_and_translates_from_the_real_start(vector, hos
             assert a.protein == real
 
 
-def test_n_terminal_tag_follows_the_enzyme_choice(vector, host):
+def test_n_terminal_tag_follows_enzyme_choice(vector, host):
     plan = p2d.ConstructPlan.single_chain(PAYLOAD)
 
     def protein(up):
@@ -167,7 +167,7 @@ def test_n_terminal_tag_follows_the_enzyme_choice(vector, host):
     assert protein("NcoI").startswith("MG" + PAYLOAD)
 
 
-def test_downstream_enzyme_decides_whether_the_c_terminal_tag_survives(vector, host):
+def test_downstream_enzyme_decides_c_tag(vector, host):
     plan = p2d.ConstructPlan.single_chain(PAYLOAD)
     tagged = p2d.assemble(p2d.design_insert(plan, vector, plan_site(vector, "NdeI", "XhoI"), host))
     assert tagged.protein.endswith("LEHHHHHH")
@@ -186,7 +186,7 @@ def shifted_vector(vector, extra: int) -> Vector:
 
 
 @pytest.mark.parametrize("extra", [1, 2])
-def test_downstream_frame_is_preserved_when_the_site_is_out_of_frame(vector, host, extra):
+def test_downstream_frame_kept_for_shifted_site(vector, host, extra):
     """The vector's own C-terminal reading must continue exactly as before the splice."""
     v = shifted_vector(vector, extra)
     plan = p2d.ConstructPlan.single_chain(PAYLOAD)
@@ -203,7 +203,7 @@ def test_downstream_frame_is_preserved_when_the_site_is_out_of_frame(vector, hos
     assert checked, "the shifted vector must still offer pairs to test"
 
 
-def test_out_of_frame_downstream_site_gets_a_three_prime_pad(vector, host):
+def test_out_of_frame_downstream_site_gets_three_prime_pad(vector, host):
     v = shifted_vector(vector, 1)
     plan = p2d.ConstructPlan.single_chain(PAYLOAD)
     pads = {

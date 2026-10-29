@@ -1,8 +1,4 @@
-"""Regex-based reference for forbidden-site checks.
-
-Deliberately shares no code with ``p2d.optimize.automaton``, so a bug there
-cannot hide itself from the tests that use this.
-"""
+"""Regex-based reference for forbidden-site checks; it shares no code with the automaton."""
 
 import re
 
